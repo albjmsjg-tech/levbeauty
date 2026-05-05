@@ -1,0 +1,1954 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LevBeauty — Protótipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --cream: oklch(97% 0.012 75);
+    --blush: oklch(88% 0.055 10);
+    --blush-mid: oklch(82% 0.075 12);
+    --rose: oklch(68% 0.1 10);
+    --gold: oklch(72% 0.115 75);
+    --gold-light: oklch(88% 0.07 80);
+    --mauve: oklch(36% 0.06 340);
+    --mauve-dark: oklch(24% 0.05 340);
+    --text: oklch(22% 0.04 340);
+    --text-mid: oklch(50% 0.04 340);
+    --text-light: oklch(72% 0.025 340);
+    --white: oklch(99% 0.005 75);
+    --border: oklch(90% 0.02 75);
+  }
+  html, body { width: 100%; min-height: 100vh; background: var(--cream); font-family: 'Poppins', sans-serif; color: var(--text); }
+  #root { width: 100%; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel">
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "primaryColor": "sage",
+  "fontStyle": "dm",
+  "density": "comfortable",
+  "accentGold": true,
+  "animationsOn": true
+}/*EDITMODE-END*/;
+
+// ── Icons (inline SVG) ─────────────────────────────────────────────────────
+const Icon = ({ name, size = 18, color = "currentColor", style = {} }) => {
+  const icons = {
+    home: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    calendar: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+    scissors: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>,
+    user: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+    star: <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+    mapPin: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+    home2: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+    chevronRight: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+    chevronLeft: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+    plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    dollar: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
+    bar: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+    bell: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
+    clock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    credit: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+    pix: <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none"><path d="M12 2l2.5 4.5L19 5l-1.5 4.5 4 2.5-4 2.5L19 19l-4.5-1.5L12 22l-2.5-4.5L5 19l1.5-4.5-4-2.5 4-2.5L5 5l4.5 1.5z" opacity="0.85"/></svg>,
+    settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+    logout: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+    package: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11L12 2z"/><line x1="12" y1="22" x2="12" y2="11.5"/><polyline points="21 6.5 12 11.5 3 6.5"/><line x1="3" y1="17.5" x2="12" y2="12.5"/></svg>,
+    info: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
+  };
+  return <span style={{display:'inline-flex',alignItems:'center',...style}}>{icons[name] || null}</span>;
+};
+
+// ── Format helpers ──────────────────────────────────────────────────────────
+const fmt = (v) => v.toLocaleString('pt-BR', {style:'currency',currency:'BRL'});
+const pct = (v) => `${v.toFixed(1)}%`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLIENT APP (Mobile)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const services = [
+  { id:1, name:'Alongamento em Gel', duration:'2h 30min', price:180, icon:'', rating:4.9, desc:'Unhas longas e naturais com gel resistente.' },
+  { id:2, name:'Banho de Gel', duration:'1h 30min', price:120, icon:'', rating:4.8, desc:'Capa protetora de gel brilhante sobre as unhas naturais.' },
+  { id:3, name:'Esmaltação em Gel', duration:'1h', price:90, icon:'', rating:4.9, desc:'Esmalte em gel de longa duração, até 3 semanas.' },
+  { id:4, name:'Manutenção', duration:'1h 15min', price:80, icon:'', rating:4.7, desc:'Manutenção do alongamento com preenchimento.' },
+];
+
+const timeSlots = ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00'];
+
+function ClientApp({ tweaks, salonConfig }) {
+  const [screen, setScreen] = React.useState('home');
+  const [selectedService, setSelectedService] = React.useState(null);
+  const [selectedDate, setSelectedDate] = React.useState(null);
+  const [selectedTime, setSelectedTime] = React.useState(null);
+  const [location, setLocation] = React.useState('salon');
+  const [payment, setPayment] = React.useState('pix');
+  const [activeTab, setActiveTab] = React.useState('home');
+  const [calendarMonth, setCalendarMonth] = React.useState(4);
+  const [booked, setBooked] = React.useState(false);
+  const [clientCep, setClientCep] = React.useState('');
+  const [cepChecked, setCepChecked] = React.useState(false);
+  const [cepDistance, setCepDistance] = React.useState(null);
+  const [cepError, setCepError] = React.useState('');
+
+  const cfg = salonConfig || defaultSalonConfig;
+
+  const checkCep = () => {
+    const cleaned = clientCep.replace(/\D/g,'');
+    if(cleaned.length < 8) { setCepError('CEP inválido. Digite os 8 dígitos.'); return; }
+    const dist = estimateDistance(cleaned, cfg.cepBase);
+    setCepDistance(dist);
+    setCepChecked(true);
+    if(dist > cfg.maxRadiusKm) {
+      setCepError(`Seu CEP está a ${dist.toFixed(1)} km — fora do raio de ${cfg.maxRadiusKm} km.`);
+    } else {
+      setCepError('');
+    }
+  };
+
+  const travelFee = React.useMemo(() => {
+    if(location !== 'home') return 0;
+    if(!cepChecked || cepDistance === null || cepDistance > cfg.maxRadiusKm) return 0;
+    return Math.max(cfg.minTravelFee, cepDistance * 2 * cfg.pricePerKm);
+  }, [location, cepChecked, cepDistance, cfg]);
+
+  const homeAvailable = cfg.homeEnabled && cepChecked && cepDistance !== null && cepDistance <= cfg.maxRadiusKm;
+  const cardFee = payment === 'credit' ? (selectedService ? selectedService.price * 0.0329 : 0) : 0;
+  const total = selectedService ? selectedService.price + travelFee + cardFee : 0;
+
+  // Block 2h buffer in time slots for home visits
+  const getAvailableSlots = () => {
+    if(location !== 'home') return timeSlots;
+    // For home visits, filter out last 2 slots to simulate 2h block before next appt
+    return timeSlots.slice(0, -4);
+  };
+
+  const goTo = (s) => { setScreen(s); setActiveTab(s === 'home' ? 'home' : s === 'agenda' ? 'agenda' : s); };
+
+  const daysInMonth = 31;
+  const firstDay = 4; // Thursday May 1
+  const today = 4;
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:'var(--white)',overflow:'hidden',fontFamily:tweaks.fontStyle==='dm'?'Poppins, sans-serif':"'Playfair Display', 'Poppins', sans-serif"}}>
+      {/* Scrollable content */}
+      <div style={{flex:1,overflowY:'auto',overflowX:'hidden'}}>
+
+        {/* HOME */}
+        {screen === 'home' && (
+          <div>
+            {/* Header */}
+            <div style={{background:'linear-gradient(160deg, oklch(88% 0.055 10), oklch(82% 0.065 350))',padding:'28px 20px 32px',position:'relative',overflow:'hidden'}}>
+              <div style={{position:'absolute',top:-30,right:-30,width:120,height:120,borderRadius:'50%',background:'oklch(95% 0.04 75 / 0.4)'}}></div>
+              <div style={{position:'absolute',bottom:-20,left:10,width:80,height:80,borderRadius:'50%',background:'oklch(72% 0.115 75 / 0.2)'}}></div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',position:'relative'}}>
+                <div>
+                  <p style={{fontFamily:"'Poppins'",fontSize:13,color:'oklch(40% 0.05 340)',letterSpacing:'0.05em',fontWeight:400}}>Olá, Fernanda </p>
+                  <h2 style={{fontFamily:"'Playfair Display'",fontSize:28,fontWeight:600,color:'oklch(22% 0.04 340)',marginTop:2,lineHeight:1.1}}>Pronta para arrasar?</h2>
+                </div>
+                <div style={{width:40,height:40,borderRadius:'50%',background:'oklch(72% 0.115 75)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <Icon name="bell" size={16} color="white"/>
+                </div>
+              </div>
+              <div style={{marginTop:16,background:'white',borderRadius:14,padding:'12px 16px',display:'flex',alignItems:'center',gap:10,boxShadow:'0 2px 12px oklch(40% 0.05 10 / 0.12)'}}>
+                <Icon name="calendar" size={16} color="var(--gold)"/>
+                <div>
+                  <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'"}}>Próximo agendamento</p>
+                  <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",marginTop:1}}>Alongamento em Gel · Seg, 12 Mai · 10:00</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Services */}
+            <div style={{padding:'22px 20px 0'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+                <h3 style={{fontFamily:"'Playfair Display'",fontSize:22,fontWeight:600,color:'var(--text)'}}>Nossos Serviços</h3>
+                <span style={{fontSize:12,color:'var(--gold)',fontWeight:500,fontFamily:"'Poppins'",cursor:'pointer'}}>Ver todos</span>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                {services.map(svc => (
+                  <div key={svc.id} onClick={() => {setSelectedService(svc);setScreen('book-service');}}
+                    style={{background:'white',borderRadius:16,padding:'14px 16px',display:'flex',alignItems:'center',gap:14,boxShadow:'0 1px 8px oklch(40% 0.05 340 / 0.07)',cursor:'pointer',border:'1px solid var(--border)',transition:'transform 0.15s',':hover':{transform:'scale(1.01)'}}}>
+                    <div style={{width:48,height:48,borderRadius:14,background:'linear-gradient(135deg, oklch(92% 0.045 10), oklch(88% 0.06 350))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>
+                      {svc.icon}
+                    </div>
+                    <div style={{flex:1}}>
+                      <p style={{fontFamily:"'Poppins'",fontWeight:600,fontSize:14,color:'var(--text)'}}>  {svc.name}</p>
+                      <div style={{display:'flex',gap:10,marginTop:3,alignItems:'center'}}>
+                        <span style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'",display:'flex',alignItems:'center',gap:3}}><Icon name="clock" size={11} color="var(--text-light)"/> {svc.duration}</span>
+                        <span style={{fontSize:12,color:'var(--gold)',fontWeight:600,fontFamily:"'Poppins'"}}>{fmt(svc.price)}</span>
+                      </div>
+                    </div>
+                    <Icon name="chevronRight" size={16} color="var(--text-light)"/>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent */}
+            <div style={{padding:'22px 20px 24px'}}>
+              <h3 style={{fontFamily:"'Playfair Display'",fontSize:22,fontWeight:600,color:'var(--text)',marginBottom:12}}>Histórico</h3>
+              {[{s:'Esmaltação em Gel',d:'15 Abr',p:90},{s:'Manutenção',d:'02 Abr',p:80}].map((h,i)=>(
+                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
+                  <div>
+                    <p style={{fontSize:13,fontWeight:500,fontFamily:"'Poppins'",color:'var(--text)'}}>{h.s}</p>
+                    <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:2}}>{h.d}</p>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <p style={{fontSize:13,fontWeight:600,fontFamily:"'Poppins'",color:'var(--mauve)'}}>{fmt(h.p)}</p>
+                    <div style={{display:'flex',gap:2,marginTop:3,justifyContent:'flex-end'}}>
+                      {[1,2,3,4,5].map(s=><span key={s} style={{fontSize:10,color:'var(--gold)'}}></span>)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* BOOK SERVICE */}
+        {screen === 'book-service' && selectedService && (
+          <div>
+            <div style={{background:`linear-gradient(160deg, oklch(88% 0.055 10), oklch(82% 0.065 350))`,padding:'20px 20px 28px'}}>
+              <button onClick={() => setScreen('home')} style={{background:'none',border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:6,marginBottom:16}}>
+                <Icon name="chevronLeft" size={18} color="var(--mauve)"/>
+                <span style={{fontSize:13,color:'var(--mauve)',fontFamily:"'Poppins'"}}>Voltar</span>
+              </button>
+              <div style={{display:'flex',alignItems:'center',gap:14}}>
+                <div style={{width:56,height:56,borderRadius:16,background:'white',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,boxShadow:'0 2px 12px oklch(40% 0.05 10 / 0.15)'}}>
+                  {selectedService.icon}
+                </div>
+                <div>
+                  <h2 style={{fontFamily:"'Playfair Display'",fontSize:24,fontWeight:600,color:'var(--mauve-dark)'}}>{selectedService.name}</h2>
+                  <p style={{fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'",marginTop:3}}>{selectedService.desc}</p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{padding:'0 20px 24px'}}>
+              {/* Location */}
+              <div style={{marginTop:20}}>
+                <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",marginBottom:10,letterSpacing:'0.03em'}}>LOCAL DO ATENDIMENTO</p>
+                <div style={{display:'flex',gap:10}}>
+                  <button onClick={()=>{setLocation('salon');setCepChecked(false);setCepDistance(null);setCepError('');}}
+                    style={{flex:1,padding:'12px 8px',borderRadius:12,border:`1.5px solid ${location==='salon'?'var(--gold)':'var(--border)'}`,background:location==='salon'?'oklch(95% 0.045 75)':'white',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,transition:'all 0.15s'}}>
+                    <Icon name="scissors" size={18} color={location==='salon'?'var(--gold)':'var(--text-light)'}/>
+                    <span style={{fontSize:12,fontWeight:location==='salon'?600:400,color:location==='salon'?'var(--gold)':'var(--text-mid)',fontFamily:"'Poppins'"}}>No Salão</span>
+                  </button>
+                  {cfg.homeEnabled && (
+                    <button onClick={()=>setLocation('home')}
+                      style={{flex:1,padding:'12px 8px',borderRadius:12,border:`1.5px solid ${location==='home'?'var(--gold)':'var(--border)'}`,background:location==='home'?'oklch(95% 0.045 75)':'white',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,transition:'all 0.15s'}}>
+                      <Icon name="home2" size={18} color={location==='home'?'var(--gold)':'var(--text-light)'}/>
+                      <span style={{fontSize:12,fontWeight:location==='home'?600:400,color:location==='home'?'var(--gold)':'var(--text-mid)',fontFamily:"'Poppins'"}}>Em Casa</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* CEP field for home visits */}
+                {location==='home' && (
+                  <div style={{marginTop:12,background:'oklch(98% 0.015 75)',borderRadius:12,padding:'14px',border:'1px solid var(--border)'}}>
+                    <p style={{fontSize:12,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'",marginBottom:8}}>Informe seu CEP para verificar disponibilidade</p>
+                    <div style={{display:'flex',gap:8}}>
+                      <input value={clientCep} onChange={e=>{setClientCep(formatCEP(e.target.value));setCepChecked(false);setCepDistance(null);setCepError('');}}
+                        placeholder="00000-000" maxLength={9}
+                        style={{flex:1,padding:'9px 12px',borderRadius:9,border:`1.5px solid ${cepError?'oklch(60% 0.12 15)':cepChecked&&!cepError?'oklch(55% 0.1 145)':'var(--border)'}`,fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',outline:'none'}}/>
+                      <button onClick={checkCep}
+                        style={{padding:'9px 14px',borderRadius:9,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:12,fontWeight:600,color:'white',fontFamily:"'Poppins'"}}>
+                        Verificar
+                      </button>
+                    </div>
+                    {cepError && (
+                      <p style={{fontSize:11,color:'oklch(50% 0.12 15)',fontFamily:"'Poppins'",marginTop:7,display:'flex',alignItems:'center',gap:4}}>
+                        <Icon name="info" size={12} color="oklch(50% 0.12 15)"/> {cepError}
+                      </p>
+                    )}
+                    {cepChecked && !cepError && cepDistance!==null && (
+                      <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:4}}>
+                        <p style={{fontSize:11,color:'oklch(40% 0.1 145)',fontFamily:"'Poppins'",display:'flex',alignItems:'center',gap:4}}>
+                          <Icon name="check" size={12} color="oklch(40% 0.1 145)"/> Disponível! Distância estimada: {cepDistance.toFixed(1)} km
+                        </p>
+                        <p style={{fontSize:12,fontWeight:600,color:'var(--gold)',fontFamily:"'Poppins'"}}>
+                          Taxa de deslocamento: R$ {travelFee.toFixed(2)} (ida + volta)
+                        </p>
+                        <p style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'"}}>
+                          Após confirmação, 2h serão bloqueadas antes do próximo atendimento para o deslocamento.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Calendar */}
+              <div style={{marginTop:20}}>
+                <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",marginBottom:10,letterSpacing:'0.03em'}}>ESCOLHA UMA DATA</p>
+                <div style={{background:'white',borderRadius:16,padding:'14px',border:'1px solid var(--border)'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                    <span style={{fontFamily:"'Playfair Display'",fontSize:18,fontWeight:600,color:'var(--text)'}}>Maio 2026</span>
+                    <div style={{display:'flex',gap:8}}>
+                      <button style={{background:'none',border:'none',cursor:'pointer',padding:4}}><Icon name="chevronLeft" size={14} color="var(--text-light)"/></button>
+                      <button style={{background:'none',border:'none',cursor:'pointer',padding:4}}><Icon name="chevronRight" size={14} color="var(--text-light)"/></button>
+                    </div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:6}}>
+                    {['D','S','T','Q','Q','S','S'].map((d,i)=>(
+                      <div key={i} style={{textAlign:'center',fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",fontWeight:500,paddingBottom:4}}>{d}</div>
+                    ))}
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4}}>
+                    {Array.from({length:firstDay}).map((_,i)=><div key={`e${i}`}/>)}
+                    {Array.from({length:daysInMonth}).map((_,i)=>{
+                      const day=i+1;
+                      const past=day<today;
+                      const sel=selectedDate===day;
+                      return (
+                        <button key={day} onClick={()=>!past&&setSelectedDate(day)}
+                          style={{aspectRatio:'1',borderRadius:'50%',border:'none',background:sel?'var(--gold)':day===today?'oklch(92% 0.04 75)':'none',cursor:past?'default':'pointer',opacity:past?0.3:1,
+                            fontSize:12,fontWeight:sel?700:400,color:sel?'white':'var(--text)',fontFamily:"'Poppins'",display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s'}}>
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Time slots */}
+              {selectedDate && (location==='salon' || homeAvailable) && (
+                <div style={{marginTop:16}}>
+                  <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",marginBottom:10,letterSpacing:'0.03em'}}>HORÁRIO DISPONÍVEL
+                    {location==='home'&&<span style={{fontSize:10,fontWeight:400,color:'var(--text-light)',marginLeft:8}}>2h de buffer inclusos</span>}
+                  </p>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                    {getAvailableSlots().map(t=>(
+                      <button key={t} onClick={()=>setSelectedTime(t)}
+                        style={{padding:'8px 14px',borderRadius:10,border:`1.5px solid ${selectedTime===t?'var(--gold)':'var(--border)'}`,background:selectedTime===t?'var(--gold)':'white',cursor:'pointer',
+                          fontSize:12,fontWeight:selectedTime===t?600:400,color:selectedTime===t?'white':'var(--text)',fontFamily:"'Poppins'",transition:'all 0.15s'}}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  {location==='home' && <p style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:6}}>Os últimos horários foram bloqueados para garantir tempo de deslocamento de retorno.</p>}
+                </div>
+              )}
+
+              {/* Payment */}
+              {selectedTime && (
+                <div style={{marginTop:20}}>
+                  <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",marginBottom:10,letterSpacing:'0.03em'}}>PAGAMENTO</p>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {[{v:'pix',label:'Pix',sub:'Sem taxas',icon:'pix'},{v:'credit',label:'Cartão de Crédito',sub:'Taxa de 3,29%',icon:'credit'},{v:'local',label:'Presencial',sub:'No dia do atendimento',icon:'dollar'}].map(opt=>(
+                      <button key={opt.v} onClick={()=>setPayment(opt.v)}
+                        style={{padding:'12px 14px',borderRadius:12,border:`1.5px solid ${payment===opt.v?'var(--gold)':'var(--border)'}`,background:payment===opt.v?'oklch(97% 0.04 75)':'white',cursor:'pointer',
+                          display:'flex',alignItems:'center',gap:12,transition:'all 0.15s',textAlign:'left'}}>
+                        <Icon name={opt.icon} size={18} color={payment===opt.v?'var(--gold)':'var(--text-light)'}/>
+                        <div style={{flex:1}}>
+                          <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>{opt.label}</p>
+                          <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:1}}>{opt.sub}</p>
+                        </div>
+                        {payment===opt.v&&<Icon name="check" size={16} color="var(--gold)"/>}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Summary */}
+                  <div style={{marginTop:16,background:'oklch(97% 0.015 75)',borderRadius:14,padding:'14px 16px',border:'1px solid var(--border)'}}>
+                    <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",marginBottom:10}}>Resumo</p>
+                    {[
+                      {label:selectedService.name, val:fmt(selectedService.price)},
+                      ...(travelFee>0?[{label:`Deslocamento (${cepDistance?.toFixed(1)} km × 2 × R$${cfg.pricePerKm.toFixed(2)})`,val:fmt(travelFee)}]:[]),
+                      ...(cardFee>0?[{label:'Taxa cartão (3,29%)',val:fmt(cardFee)}]:[]),
+                    ].map((row,i)=>(
+                      <div key={i} style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                        <span style={{fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>{row.label}</span>
+                        <span style={{fontSize:12,color:'var(--text)',fontFamily:"'Poppins'"}}>{row.val}</span>
+                      </div>
+                    ))}
+                    <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:4,display:'flex',justifyContent:'space-between'}}>
+                      <span style={{fontSize:14,fontWeight:600,fontFamily:"'Poppins'",color:'var(--text)'}}>Total</span>
+                      <span style={{fontSize:14,fontWeight:700,fontFamily:"'Poppins'",color:'var(--gold)'}}>{fmt(total)}</span>
+                    </div>
+                  </div>
+                  <button onClick={()=>setBooked(true)||setScreen('confirm')}
+                    style={{width:'100%',marginTop:16,padding:'16px',borderRadius:14,background:'linear-gradient(135deg, var(--gold), oklch(65% 0.13 65))',border:'none',cursor:'pointer',
+                      fontFamily:"'Poppins'",fontSize:15,fontWeight:600,color:'white',letterSpacing:'0.02em',boxShadow:'0 4px 18px oklch(72% 0.115 75 / 0.4)',transition:'transform 0.15s'}}>
+                    Confirmar Agendamento
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CONFIRM */}
+        {screen === 'confirm' && (
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'90%',padding:'40px 28px',textAlign:'center'}}>
+            <div style={{width:80,height:80,borderRadius:'50%',background:'linear-gradient(135deg, oklch(88% 0.055 10), var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20,boxShadow:'0 6px 24px oklch(72% 0.115 75 / 0.3)'}}>
+              <Icon name="check" size={36} color="white"/>
+            </div>
+            <h2 style={{fontFamily:"'Playfair Display'",fontSize:30,fontWeight:600,color:'var(--text)',marginBottom:8}}>Agendado!</h2>
+            <p style={{fontSize:14,color:'var(--text-mid)',fontFamily:"'Poppins'",lineHeight:1.5,marginBottom:24}}>Seu agendamento foi confirmado. Você receberá uma notificação de lembrete.</p>
+            <div style={{background:'white',borderRadius:16,padding:'18px',width:'100%',border:'1px solid var(--border)',textAlign:'left',marginBottom:24}}>
+              {[
+                {label:'Serviço',val:selectedService?.name},
+                {label:'Data',val:`${selectedDate} de Maio, 2026`},
+                {label:'Horário',val:selectedTime},
+                {label:'Local',val:location==='salon'?'Salão LevBeauty':'Seu endereço'},
+                {label:'Total',val:fmt(total)},
+              ].map((r,i)=>(
+                <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:i<4?'1px solid var(--border)':'none'}}>
+                  <span style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'"}}>{r.label}</span>
+                  <span style={{fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>{r.val}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={()=>{setScreen('home');setSelectedService(null);setSelectedDate(null);setSelectedTime(null);}}
+              style={{width:'100%',padding:'14px',borderRadius:14,background:'var(--gold)',border:'none',cursor:'pointer',fontFamily:"'Poppins'",fontSize:14,fontWeight:600,color:'white'}}>
+              Voltar ao Início
+            </button>
+          </div>
+        )}
+
+        {/* AGENDA */}
+        {screen === 'agenda' && (
+          <div style={{padding:'24px 20px'}}>
+            <h2 style={{fontFamily:"'Playfair Display'",fontSize:26,fontWeight:600,color:'var(--text)',marginBottom:18}}>Meus Agendamentos</h2>
+            {[
+              {s:'Alongamento em Gel',d:'12 Mai, 10:00',status:'confirmado',p:180},
+              {s:'Manutenção',d:'26 Mai, 14:00',status:'pendente',p:80},
+            ].map((a,i)=>(
+              <div key={i} style={{background:'white',borderRadius:16,padding:'14px 16px',marginBottom:10,border:'1px solid var(--border)',boxShadow:'0 1px 8px oklch(40% 0.05 340 / 0.05)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                  <div>
+                    <p style={{fontFamily:"'Poppins'",fontWeight:600,fontSize:14,color:'var(--text)'}}>{a.s}</p>
+                    <p style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:3,display:'flex',alignItems:'center',gap:4}}><Icon name="calendar" size={12} color="var(--text-light)"/>{a.d}</p>
+                  </div>
+                  <span style={{fontSize:11,fontWeight:600,fontFamily:"'Poppins'",padding:'4px 10px',borderRadius:20,background:a.status==='confirmado'?'oklch(90% 0.06 145)':'oklch(95% 0.05 75)',color:a.status==='confirmado'?'oklch(35% 0.1 145)':'oklch(55% 0.1 75)'}}>
+                    {a.status}
+                  </span>
+                </div>
+                <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span style={{fontSize:14,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'"}}>{fmt(a.p)}</span>
+                  <button style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',fontSize:12,fontFamily:"'Poppins'",color:'var(--text-mid)'}}>Cancelar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* PROFILE */}
+        {screen === 'profile' && (
+          <div>
+            <div style={{background:'linear-gradient(160deg, oklch(88% 0.055 10), oklch(82% 0.065 350))',padding:'28px 20px 36px',textAlign:'center'}}>
+              <div style={{width:70,height:70,borderRadius:'50%',background:'linear-gradient(135deg, var(--gold), oklch(65% 0.1 10))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px',fontSize:28}}></div>
+              <h2 style={{fontFamily:"'Playfair Display'",fontSize:24,fontWeight:600,color:'var(--mauve-dark)'}}>Fernanda Silva</h2>
+              <p style={{fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'",marginTop:3}}>fernanda@email.com</p>
+            </div>
+            <div style={{padding:'20px'}}>
+              {[{icon:'calendar',label:'Histórico de Agendamentos',sub:'12 atendimentos'},
+                {icon:'star',label:'Serviços Favoritos',sub:'Alongamento em Gel'},
+                {icon:'bell',label:'Notificações',sub:'WhatsApp + Push ativado'},
+                {icon:'settings',label:'Configurações',sub:'Perfil e privacidade'},
+                {icon:'logout',label:'Sair',sub:'',danger:true}].map((item,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'13px 0',borderBottom:'1px solid var(--border)',cursor:'pointer'}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:item.danger?'oklch(95% 0.04 15)':'oklch(96% 0.025 75)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <Icon name={item.icon} size={16} color={item.danger?'oklch(55% 0.12 15)':'var(--text-mid)'}/>
+                  </div>
+                  <div style={{flex:1}}>
+                    <p style={{fontSize:13,fontWeight:500,fontFamily:"'Poppins'",color:item.danger?'oklch(55% 0.12 15)':'var(--text)'}}>{item.label}</p>
+                    {item.sub&&<p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:1}}>{item.sub}</p>}
+                  </div>
+                  {!item.danger&&<Icon name="chevronRight" size={14} color="var(--text-light)"/>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Nav */}
+      {screen !== 'book-service' && screen !== 'confirm' && (
+        <div style={{borderTop:'1px solid var(--border)',background:'white',padding:'10px 0 6px',display:'flex',justifyContent:'space-around',flexShrink:0}}>
+          {[{id:'home',icon:'home',label:'Início'},{id:'agenda',icon:'calendar',label:'Agenda'},{id:'scissors',icon:'scissors',label:'Serviços'},{id:'profile',icon:'user',label:'Perfil'}].map(tab=>(
+            <button key={tab.id} onClick={()=>setScreen(tab.id==='scissors'?'home':tab.id)}
+              style={{background:'none',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'4px 12px',opacity:activeTab===tab.id||screen===tab.id?1:0.45,transition:'opacity 0.2s'}}>
+              <Icon name={tab.icon} size={20} color={screen===tab.id||activeTab===tab.id?'var(--gold)':'var(--text-light)'}/>
+              <span style={{fontSize:10,fontFamily:"'Poppins'",fontWeight:screen===tab.id?600:400,color:screen===tab.id?'var(--gold)':'var(--text-light)'}}>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OWNER DASHBOARD (Desktop)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const inputsData = [
+  {name:'Builder Gel (10g)',unit:'g',pkgQty:10,pkgCost:45.00,perApplication:2},
+  {name:'Tips Soft Gel (cx 240un)',unit:'un',pkgQty:240,pkgCost:38.00,perApplication:10},
+  {name:'Primer (15ml)',unit:'ml',pkgQty:15,pkgCost:22.00,perApplication:0.5},
+  {name:'Acetona (500ml)',unit:'ml',pkgQty:500,pkgCost:8.00,perApplication:10},
+  {name:'Lixa de Arquivo',unit:'un',pkgQty:12,pkgCost:18.00,perApplication:0.33},
+  {name:'Esmalte Gel UV (6ml)',unit:'ml',pkgQty:6,pkgCost:35.00,perApplication:0.4},
+  {name:'Base Coat (8ml)',unit:'ml',pkgQty:8,pkgCost:28.00,perApplication:0.5},
+  {name:'Top Coat (8ml)',unit:'ml',pkgQty:8,pkgCost:32.00,perApplication:0.5},
+];
+
+function computeUnitCost(inp) {
+  return (inp.pkgCost / inp.pkgQty) * inp.perApplication;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AGENDA SECTION (Owner)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const initialAppts = [
+  {id:1, name:'Ana Costa',    svc:'Alongamento em Gel', time:'09:00', status:'concluído',  price:180, phone:'(11) 98888-0001', location:'salon', payment:'pix'},
+  {id:2, name:'Mariana Lima', svc:'Banho de Gel',       time:'11:00', status:'confirmado', price:120, phone:'(11) 98888-0002', location:'salon', payment:'credit'},
+  {id:3, name:'Julia Santos', svc:'Esmaltação em Gel',  time:'14:00', status:'confirmado', price:90,  phone:'(11) 98888-0003', location:'home',  payment:'pix'},
+  {id:4, name:'Beatriz Rocha',svc:'Manutenção',         time:'16:00', status:'pendente',   price:80,  phone:'(11) 98888-0004', location:'salon', payment:'local'},
+];
+
+const weekDays = ['Dom 4','Seg 5','Ter 6','Qua 7','Qui 8','Sex 9','Sáb 10'];
+const allServices = ['Alongamento em Gel','Banho de Gel','Esmaltação em Gel','Manutenção'];
+const allTimes = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
+const statusList = ['pendente','confirmado','concluído','cancelado'];
+const statusColors = {
+  concluído: {bg:'oklch(92% 0.06 145)', color:'oklch(32% 0.1 145)'},
+  confirmado: {bg:'oklch(93% 0.04 75)',  color:'oklch(48% 0.1 70)'},
+  pendente:   {bg:'oklch(95% 0.03 60)',  color:'oklch(48% 0.08 60)'},
+  cancelado:  {bg:'oklch(94% 0.04 15)',  color:'oklch(48% 0.12 15)'},
+};
+
+function StatusBadge({status, onClick, interactive=false}) {
+  const s = statusColors[status] || statusColors.pendente;
+  return (
+    <span onClick={onClick}
+      style={{fontSize:10,fontWeight:600,fontFamily:"'Poppins'",padding:'4px 11px',borderRadius:10,
+        background:s.bg,color:s.color,cursor:interactive?'pointer':'default',
+        border:interactive?`1.5px solid ${s.color}40`:'none',userSelect:'none',whiteSpace:'nowrap',
+        transition:'opacity 0.15s'}}>
+      {status}
+    </span>
+  );
+}
+
+function ApptCard({ appt, onUpdate, onDelete }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState({...appt});
+
+  const cycleStatus = (e) => {
+    e.stopPropagation();
+    const idx = statusList.indexOf(appt.status);
+    const next = statusList[(idx + 1) % statusList.length];
+    onUpdate({...appt, status: next});
+  };
+
+  const saveEdit = () => { onUpdate(draft); setEditing(false); };
+
+  return (
+    <div style={{marginBottom:10}}>
+      {/* Main row */}
+      <div onClick={()=>setExpanded(p=>!p)}
+        style={{display:'flex',gap:14,alignItems:'stretch',cursor:'pointer',background:'white',borderRadius:14,
+          border:`1.5px solid ${expanded?'var(--gold)':'var(--border)'}`,overflow:'hidden',
+          boxShadow:expanded?'0 4px 18px oklch(72% 0.115 75 / 0.12)':'0 1px 4px oklch(40% 0.04 340 / 0.05)',
+          transition:'all 0.2s'}}>
+        {/* Time column */}
+        <div style={{width:64,background:expanded?'var(--gold)':'oklch(98% 0.015 75)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'14px 0',flexShrink:0,transition:'background 0.2s'}}>
+          <span style={{fontSize:13,fontWeight:700,fontFamily:"'Poppins'",color:expanded?'white':'var(--text)',lineHeight:1}}>{appt.time}</span>
+        </div>
+        {/* Info */}
+        <div style={{flex:1,padding:'12px 14px',display:'flex',alignItems:'center',gap:12}}>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{appt.name}</p>
+            <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:2}}>{appt.svc}</p>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
+            <span style={{fontSize:13,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'"}}>{fmt(appt.price)}</span>
+            <StatusBadge status={appt.status} interactive onClick={cycleStatus}/>
+            <div style={{width:20,height:20,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-light)',transition:'transform 0.2s',transform:expanded?'rotate(90deg)':'none'}}>
+              <Icon name="chevronRight" size={14} color="var(--text-light)"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded panel */}
+      {expanded && (
+        <div style={{background:'white',borderRadius:'0 0 14px 14px',border:'1.5px solid var(--gold)',borderTop:'none',padding:'16px 18px',marginTop:-2}}>
+          {!editing ? (
+            <>
+              {/* Details */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+                {[
+                  {l:'Telefone', v:appt.phone},
+                  {l:'Local', v:appt.location==='home'?'Em Casa':'No Salão'},
+                  {l:'Pagamento', v:{pix:'Pix',credit:'Cartão',local:'Presencial'}[appt.payment]||appt.payment},
+                  {l:'Valor', v:fmt(appt.price)},
+                ].map((r,i)=>(
+                  <div key={i} style={{background:'oklch(98% 0.01 75)',borderRadius:8,padding:'8px 12px'}}>
+                    <p style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'",marginBottom:2}}>{r.l}</p>
+                    <p style={{fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>{r.v}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Status buttons */}
+              <div style={{marginBottom:12}}>
+                <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginBottom:8,fontWeight:500,letterSpacing:'0.04em'}}>ALTERAR STATUS</p>
+                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                  {statusList.map(s=>(
+                    <button key={s} onClick={()=>onUpdate({...appt,status:s})}
+                      style={{padding:'6px 14px',borderRadius:8,border:`1.5px solid ${appt.status===s?statusColors[s].color:'var(--border)'}`,
+                        background:appt.status===s?statusColors[s].bg:'white',cursor:'pointer',
+                        fontSize:11,fontWeight:appt.status===s?700:400,
+                        color:appt.status===s?statusColors[s].color:'var(--text-mid)',fontFamily:"'Poppins'",transition:'all 0.15s'}}>
+                      {appt.status===s&&' '}{s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div style={{display:'flex',gap:8,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+                <button onClick={()=>{setDraft({...appt});setEditing(true);}}
+                  style={{flex:1,padding:'9px',borderRadius:9,border:'1.5px solid var(--gold)',background:'oklch(98% 0.04 75)',cursor:'pointer',fontSize:12,fontWeight:600,color:'var(--gold)',fontFamily:"'Poppins'"}}>
+                   Editar
+                </button>
+                <button onClick={()=>onDelete(appt.id)}
+                  style={{padding:'9px 16px',borderRadius:9,border:'1.5px solid oklch(90% 0.04 15)',background:'oklch(98% 0.02 15)',cursor:'pointer',fontSize:12,fontWeight:600,color:'oklch(50% 0.12 15)',fontFamily:"'Poppins'"}}>
+                   Excluir
+                </button>
+              </div>
+            </>
+          ) : (
+            /* Edit form */
+            <div>
+              <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginBottom:12,fontWeight:500,letterSpacing:'0.04em'}}>EDITANDO AGENDAMENTO</p>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+                {[
+                  {l:'Nome',key:'name',type:'text'},
+                  {l:'Telefone',key:'phone',type:'text'},
+                  {l:'Horário',key:'time',type:'select',opts:allTimes},
+                  {l:'Serviço',key:'svc',type:'select',opts:allServices},
+                  {l:'Valor (R$)',key:'price',type:'number'},
+                  {l:'Local',key:'location',type:'select',opts:['salon','home']},
+                ].map(f=>(
+                  <div key={f.key}>
+                    <label style={{fontSize:11,fontWeight:500,color:'var(--text-mid)',fontFamily:"'Poppins'",display:'block',marginBottom:4}}>{f.l}</label>
+                    {f.type==='select'?(
+                      <select value={draft[f.key]} onChange={e=>setDraft(d=>({...d,[f.key]:e.target.value}))}
+                        style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:12,color:'var(--text)',background:'white',outline:'none'}}>
+                        {f.opts.map(o=><option key={o} value={o}>{o==='salon'?'No Salão':o==='home'?'Em Casa':o}</option>)}
+                      </select>
+                    ):(
+                      <input type={f.type} value={draft[f.key]} onChange={e=>setDraft(d=>({...d,[f.key]:f.type==='number'?Number(e.target.value):e.target.value}))}
+                        style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:12,color:'var(--text)',background:'white',outline:'none'}}/>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={saveEdit}
+                  style={{flex:1,padding:'9px',borderRadius:9,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:12,fontWeight:600,color:'white',fontFamily:"'Poppins'"}}>
+                  Salvar Alterações
+                </button>
+                <button onClick={()=>setEditing(false)}
+                  style={{padding:'9px 16px',borderRadius:9,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewApptModal({ onSave, onClose }) {
+  const [form, setForm] = React.useState({name:'',phone:'',svc:allServices[0],time:'09:00',price:'',location:'salon',payment:'pix',status:'confirmado'});
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const valid = form.name && form.time && form.price;
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'oklch(22% 0.04 340 / 0.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
+      <div style={{background:'white',borderRadius:20,padding:'28px',width:480,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px oklch(22% 0.04 340 / 0.25)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <h2 style={{fontFamily:"'Playfair Display'",fontSize:24,fontWeight:600,color:'var(--text)'}}>Novo Agendamento</h2>
+          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,color:'var(--text-light)',lineHeight:1}}>×</button>
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {[
+            {l:'Nome da Cliente *',k:'name',type:'text',placeholder:'Ex: Fernanda Silva'},
+            {l:'Telefone / WhatsApp',k:'phone',type:'text',placeholder:'(11) 99999-0000'},
+          ].map(f=>(
+            <div key={f.k}>
+              <label style={{fontSize:12,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'",display:'block',marginBottom:5}}>{f.l}</label>
+              <input type={f.type} placeholder={f.placeholder} value={form[f.k]} onChange={e=>set(f.k,e.target.value)}
+                style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',background:'white',outline:'none'}}/>
+            </div>
+          ))}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div>
+              <label style={{fontSize:12,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'",display:'block',marginBottom:5}}>Serviço *</label>
+              <select value={form.svc} onChange={e=>set('svc',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',background:'white',outline:'none'}}>
+                {allServices.map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{fontSize:12,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'",display:'block',marginBottom:5}}>Horário *</label>
+              <select value={form.time} onChange={e=>set('time',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',background:'white',outline:'none'}}>
+                {allTimes.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{fontSize:12,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'",display:'block',marginBottom:5}}>Valor (R$) *</label>
+              <input type="number" placeholder="0" value={form.price} onChange={e=>set('price',Number(e.target.value))}
+                style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',background:'white',outline:'none'}}/>
+            </div>
+            <div>
+              <label style={{fontSize:12,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'",display:'block',marginBottom:5}}>Local</label>
+              <select value={form.location} onChange={e=>set('location',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',background:'white',outline:'none'}}>
+                <option value="salon">No Salão</option>
+                <option value="home">Em Casa</option>
+              </select>
+            </div>
+            <div>
+              <label style={{fontSize:12,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'",display:'block',marginBottom:5}}>Pagamento</label>
+              <select value={form.payment} onChange={e=>set('payment',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',background:'white',outline:'none'}}>
+                <option value="pix">Pix</option>
+                <option value="credit">Cartão</option>
+                <option value="local">Presencial</option>
+              </select>
+            </div>
+            <div>
+              <label style={{fontSize:12,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'",display:'block',marginBottom:5}}>Status</label>
+              <select value={form.status} onChange={e=>set('status',e.target.value)}
+                style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',background:'white',outline:'none'}}>
+                {statusList.map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:10,marginTop:20}}>
+          <button onClick={()=>valid&&onSave({...form,id:Date.now(),price:Number(form.price)})} disabled={!valid}
+            style={{flex:1,padding:'12px',borderRadius:12,border:'none',background:valid?'var(--gold)':'var(--border)',cursor:valid?'pointer':'not-allowed',fontFamily:"'Poppins'",fontSize:14,fontWeight:600,color:'white',transition:'background 0.2s'}}>
+            Confirmar Agendamento
+          </button>
+          <button onClick={onClose}
+            style={{padding:'12px 18px',borderRadius:12,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',fontFamily:"'Poppins'",fontSize:13,color:'var(--text-mid)'}}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgendaSection({ fmt }) {
+  const [appts, setAppts] = React.useState(initialAppts);
+  const [selectedDay, setSelectedDay] = React.useState(0);
+  const [showModal, setShowModal] = React.useState(false);
+
+  const update = (updated) => setAppts(prev => prev.map(a => a.id===updated.id ? updated : a));
+  const deleteAppt = (id) => setAppts(prev => prev.filter(a => a.id!==id));
+  const addAppt = (appt) => { setAppts(prev=>[...prev,appt].sort((a,b)=>a.time.localeCompare(b.time))); setShowModal(false); };
+
+  const dayRevTotal = appts.filter(a=>a.status!=='cancelado').reduce((s,a)=>s+Number(a.price),0);
+
+  return (
+    <div style={{padding:'28px 32px'}}>
+      {showModal && <NewApptModal onSave={addAppt} onClose={()=>setShowModal(false)}/>}
+
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+        <div>
+          <h1 style={{fontFamily:"'Playfair Display'",fontSize:30,fontWeight:600,color:'var(--text)'}}>Agenda</h1>
+          <p style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:2}}>{appts.length} agendamentos · receita prevista <strong style={{color:'var(--gold)'}}>{fmt(dayRevTotal)}</strong></p>
+        </div>
+        <button onClick={()=>setShowModal(true)}
+          style={{padding:'10px 20px',borderRadius:12,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:13,fontFamily:"'Poppins'",color:'white',fontWeight:600,display:'flex',alignItems:'center',gap:7,boxShadow:'0 4px 14px oklch(72% 0.115 75 / 0.35)'}}>
+          <Icon name="plus" size={15} color="white"/> Novo Agendamento
+        </button>
+      </div>
+
+      {/* Day picker */}
+      <div style={{background:'white',borderRadius:16,padding:'16px',border:'1px solid var(--border)',marginBottom:20}}>
+        <div style={{display:'flex',gap:4}}>
+          {weekDays.map((d,i)=>(
+            <button key={d} onClick={()=>setSelectedDay(i)}
+              style={{flex:1,padding:'10px 4px',borderRadius:10,border:'none',background:i===selectedDay?'var(--gold)':'oklch(98% 0.01 75)',cursor:'pointer',textAlign:'center',transition:'all 0.15s'}}>
+              <p style={{fontSize:10,color:i===selectedDay?'oklch(94% 0.04 75)':'var(--text-light)',fontFamily:"'Poppins'",fontWeight:500,marginBottom:2}}>{d.split(' ')[0]}</p>
+              <p style={{fontSize:17,fontWeight:700,color:i===selectedDay?'white':'var(--text)',fontFamily:"'Poppins'"}}>{d.split(' ')[1]}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tip */}
+      <div style={{background:'oklch(97% 0.04 75)',border:'1px solid oklch(88% 0.06 75)',borderRadius:10,padding:'10px 14px',marginBottom:16,display:'flex',gap:8,alignItems:'center'}}>
+        <Icon name="info" size={14} color="var(--gold)"/>
+        <p style={{fontSize:11,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>Clique em um agendamento para expandir e <strong>editar</strong> ou <strong>alterar o status</strong>. Clique no badge de status para avançar rapidamente.</p>
+      </div>
+
+      {/* Appointment cards */}
+      {appts.length===0 && (
+        <div style={{textAlign:'center',padding:'40px',color:'var(--text-light)',fontFamily:"'Poppins'",fontSize:13}}>
+          Nenhum agendamento para este dia.
+        </div>
+      )}
+      {appts.map(a=>(
+        <ApptCard key={a.id} appt={a} onUpdate={update} onDelete={deleteAppt}/>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRICING SECTION (Service Catalog + Calculator)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const defaultServiceCatalog = [
+  {
+    id:1, name:'Banho de Gel', emoji:'', price:120, active:true,
+    inputs:[0,2,4,5,6,7], // indices into inputsData
+    profitMargin:30, taxPct:7, cardPct:3.29, mktPct:5,
+    manicurePct:0, // no outsourcing
+  },
+  {
+    id:2, name:'Alongamento em Gel', emoji:'', price:180, active:true,
+    inputs:[0,1,2,4,5,6,7],
+    profitMargin:35, taxPct:7, cardPct:3.29, mktPct:5,
+    manicurePct:0,
+  },
+  {
+    id:3, name:'Esmaltação em Gel', emoji:'', price:90, active:true,
+    inputs:[2,4,5,6,7],
+    profitMargin:28, taxPct:7, cardPct:3.29, mktPct:5,
+    manicurePct:0,
+  },
+  {
+    id:4, name:'Manutenção', emoji:'', price:80, active:true,
+    inputs:[0,2,4],
+    profitMargin:30, taxPct:7, cardPct:3.29, mktPct:5,
+    manicurePct:0,
+  },
+];
+
+function calcPricing(svc, allInputs) {
+  const selectedInpCost = svc.inputs.reduce((acc,idx)=> acc + (allInputs[idx] ? computeUnitCost(allInputs[idx]) : 0), 0);
+  const deductions = svc.taxPct + svc.cardPct + svc.mktPct + svc.manicurePct;
+  const idealPrice = selectedInpCost / (1 - (svc.profitMargin/100) - (deductions/100));
+  const grossProfit = idealPrice - selectedInpCost;
+  const manicureCost = idealPrice * svc.manicurePct / 100;
+  const netProfit = grossProfit - (idealPrice * (svc.taxPct + svc.cardPct + svc.mktPct) / 100) - manicureCost;
+  return { selectedInpCost, idealPrice, grossProfit, netProfit, manicureCost };
+}
+
+function ServiceModal({ svc, allInputs, onSave, onClose }) {
+  const [draft, setDraft] = React.useState(svc ? {...svc} : {
+    id: Date.now(), name:'', emoji:'', price:0, active:true,
+    inputs:[], profitMargin:30, taxPct:7, cardPct:3.29, mktPct:5, manicurePct:0,
+  });
+  const set = (k,v) => setDraft(d=>({...d,[k]:v}));
+  const toggleInput = (idx) => setDraft(d=>({...d, inputs: d.inputs.includes(idx) ? d.inputs.filter(i=>i!==idx) : [...d.inputs,idx]}));
+  const valid = draft.name.trim().length > 0;
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'oklch(22% 0.04 340 / 0.55)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
+      <div style={{background:'white',borderRadius:20,padding:'28px',width:560,maxHeight:'92vh',overflowY:'auto',boxShadow:'0 20px 60px oklch(22% 0.04 340 / 0.3)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <h2 style={{fontFamily:"'Playfair Display'",fontSize:24,fontWeight:600,color:'var(--text)'}}>{svc?'Editar Serviço':'Novo Serviço'}</h2>
+          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',fontSize:22,color:'var(--text-light)',lineHeight:1}}>×</button>
+        </div>
+
+        {/* Basic info */}
+        <div style={{display:'grid',gridTemplateColumns:'56px 1fr',gap:12,marginBottom:16}}>
+          <div>
+            <label style={{fontSize:11,fontWeight:500,color:'var(--text-mid)',fontFamily:"'Poppins'",display:'block',marginBottom:5}}>Emoji</label>
+            <input value={draft.emoji} onChange={e=>set('emoji',e.target.value)} maxLength={2}
+              style={{width:'100%',padding:'9px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:20,textAlign:'center',outline:'none'}}/>
+          </div>
+          <div>
+            <label style={{fontSize:11,fontWeight:500,color:'var(--text-mid)',fontFamily:"'Poppins'",display:'block',marginBottom:5}}>Nome do Serviço *</label>
+            <input value={draft.name} onChange={e=>set('name',e.target.value)} placeholder="Ex: Banho de Gel"
+              style={{width:'100%',padding:'9px 12px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',outline:'none'}}/>
+          </div>
+        </div>
+
+        {/* Insumos */}
+        <div style={{marginBottom:16}}>
+          <p style={{fontSize:11,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",letterSpacing:'0.04em',marginBottom:8}}>INSUMOS UTILIZADOS</p>
+          <div style={{display:'flex',flexDirection:'column',gap:5,maxHeight:200,overflowY:'auto',paddingRight:4}}>
+            {allInputs.map((inp,idx)=>{
+              const sel = draft.inputs.includes(idx);
+              return (
+                <div key={idx} onClick={()=>toggleInput(idx)}
+                  style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:9,border:`1.5px solid ${sel?'var(--gold)':'var(--border)'}`,background:sel?'oklch(98% 0.035 75)':'white',cursor:'pointer',transition:'all 0.15s'}}>
+                  <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${sel?'var(--gold)':'var(--border)'}`,background:sel?'var(--gold)':'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    {sel&&<Icon name="check" size={10} color="white"/>}
+                  </div>
+                  <span style={{flex:1,fontSize:12,color:'var(--text)',fontFamily:"'Poppins'"}}>{inp.name}</span>
+                  <span style={{fontSize:11,color:sel?'var(--gold)':'var(--text-light)',fontWeight:600,fontFamily:"'Poppins'"}}>{sel?`R$${computeUnitCost(inp).toFixed(2)}`:''}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Params */}
+        <div style={{marginBottom:16}}>
+          <p style={{fontSize:11,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",letterSpacing:'0.04em',marginBottom:8}}>PARÂMETROS DE PRECIFICAÇÃO</p>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            {[
+              {l:'Margem de Lucro %', k:'profitMargin', min:5, max:80},
+              {l:'Impostos %', k:'taxPct', min:0, max:20},
+              {l:'Taxa Cartão %', k:'cardPct', min:0, max:10, step:0.01},
+              {l:'Custo Fixo %', k:'mktPct', min:0, max:30},
+            ].map(f=>(
+              <div key={f.k}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <label style={{fontSize:11,fontWeight:500,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>{f.l}</label>
+                  <span style={{fontSize:12,fontWeight:700,color:'var(--text)',fontFamily:"'Poppins'"}}>{Number(draft[f.k]).toFixed(f.step?2:1)}%</span>
+                </div>
+                <input type="range" min={f.min} max={f.max} step={f.step||0.1} value={draft[f.k]}
+                  onChange={e=>set(f.k,Number(e.target.value))}
+                  style={{width:'100%',accentColor:'var(--gold)',cursor:'pointer'}}/>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Manicure commission */}
+        <div style={{background:'oklch(97% 0.03 340)',borderRadius:12,padding:'14px 16px',marginBottom:20,border:'1px solid var(--border)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <div>
+              <p style={{fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>Manicure Terceirizada</p>
+              <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:1}}>Comissão da manicure sobre o valor do serviço</p>
+            </div>
+            <span style={{fontSize:14,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'"}}>{Number(draft.manicurePct).toFixed(1)}%</span>
+          </div>
+          <input type="range" min={0} max={60} step={0.5} value={draft.manicurePct}
+            onChange={e=>set('manicurePct',Number(e.target.value))}
+            style={{width:'100%',accentColor:'oklch(65% 0.1 320)',cursor:'pointer'}}/>
+          <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
+            <span style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'"}}>0% (sem terceirização)</span>
+            <span style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'"}}>60%</span>
+          </div>
+          {draft.manicurePct > 0 && (
+            <p style={{fontSize:11,color:'oklch(50% 0.1 320)',fontFamily:"'Poppins'",marginTop:8,fontWeight:500}}>
+              ! A comissão de {draft.manicurePct.toFixed(1)}% será deduzida do seu lucro líquido
+            </p>
+          )}
+        </div>
+
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={()=>valid&&onSave(draft)} disabled={!valid}
+            style={{flex:1,padding:'12px',borderRadius:12,border:'none',background:valid?'var(--gold)':'var(--border)',cursor:valid?'pointer':'not-allowed',fontFamily:"'Poppins'",fontSize:14,fontWeight:600,color:'white'}}>
+            {svc?'Salvar Alterações':'Cadastrar Serviço'}
+          </button>
+          <button onClick={onClose}
+            style={{padding:'12px 18px',borderRadius:12,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',fontFamily:"'Poppins'",fontSize:13,color:'var(--text-mid)'}}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PricingSection({ inputs, fmt, pct }) {
+  const [catalog, setCatalog] = React.useState(defaultServiceCatalog);
+  const [selectedId, setSelectedId] = React.useState(1);
+  const [modal, setModal] = React.useState(null); // null | 'new' | svc object
+
+  const selected = catalog.find(s=>s.id===selectedId) || catalog[0];
+  const { selectedInpCost, idealPrice, grossProfit, netProfit, manicureCost } = calcPricing(selected, inputs);
+
+  const saveService = (draft) => {
+    setCatalog(prev => {
+      const exists = prev.find(s=>s.id===draft.id);
+      return exists ? prev.map(s=>s.id===draft.id?draft:s) : [...prev,draft];
+    });
+    setSelectedId(draft.id);
+    setModal(null);
+  };
+
+  const deleteService = (id) => {
+    setCatalog(prev=>prev.filter(s=>s.id!==id));
+    if(selectedId===id) setSelectedId(catalog[0]?.id);
+  };
+
+  return (
+    <div style={{padding:'28px 32px',height:'100%',overflowY:'auto'}}>
+      {modal && <ServiceModal svc={modal==='new'?null:modal} allInputs={inputs} onSave={saveService} onClose={()=>setModal(null)}/>}
+
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:22}}>
+        <div>
+          <h1 style={{fontFamily:"'Playfair Display'",fontSize:30,fontWeight:600,color:'var(--text)'}}>Módulo de Precificação</h1>
+          <p style={{fontSize:13,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:3}}>Cadastre serviços e calcule o preço ideal com custos reais</p>
+        </div>
+        <button onClick={()=>setModal('new')}
+          style={{padding:'10px 20px',borderRadius:12,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:13,fontFamily:"'Poppins'",color:'white',fontWeight:600,display:'flex',alignItems:'center',gap:7,boxShadow:'0 4px 14px oklch(72% 0.115 75 / 0.35)',flexShrink:0}}>
+          <Icon name="plus" size={15} color="white"/> Novo Serviço
+        </button>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'260px 1fr',gap:20,alignItems:'start'}}>
+
+        {/* Left: Service list */}
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <p style={{fontSize:11,fontWeight:600,color:'var(--text-light)',fontFamily:"'Poppins'",letterSpacing:'0.05em',marginBottom:4}}>SERVIÇOS CADASTRADOS</p>
+          {catalog.map(svc=>{
+            const {idealPrice:ip} = calcPricing(svc,inputs);
+            const sel = svc.id===selectedId;
+            return (
+              <div key={svc.id} onClick={()=>setSelectedId(svc.id)}
+                style={{background:'white',borderRadius:14,padding:'12px 14px',border:`1.5px solid ${sel?'var(--gold)':'var(--border)'}`,cursor:'pointer',
+                  boxShadow:sel?'0 4px 16px oklch(72% 0.115 75 / 0.15)':'0 1px 4px oklch(40% 0.04 340 / 0.05)',
+                  transition:'all 0.15s',display:'flex',alignItems:'center',gap:12}}>
+                <div style={{width:40,height:40,borderRadius:10,background:sel?'linear-gradient(135deg,oklch(88% 0.055 10),oklch(82% 0.065 350))':'oklch(97% 0.015 75)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0,transition:'background 0.15s'}}>
+                  {svc.emoji}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{svc.name}</p>
+                  <p style={{fontSize:11,color:sel?'var(--gold)':'var(--text-light)',fontFamily:"'Poppins'",fontWeight:sel?700:400,marginTop:2}}>{fmt(ip)}</p>
+                </div>
+                {sel && <div style={{width:6,height:6,borderRadius:'50%',background:'var(--gold)',flexShrink:0}}/>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right: Calculator for selected service */}
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+          {/* Service header */}
+          <div style={{background:'white',borderRadius:16,padding:'16px 20px',border:'1px solid var(--border)',display:'flex',alignItems:'center',gap:14}}>
+            <div style={{width:52,height:52,borderRadius:14,background:'linear-gradient(135deg,oklch(88% 0.055 10),oklch(82% 0.065 350))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>
+              {selected.emoji}
+            </div>
+            <div style={{flex:1}}>
+              <h2 style={{fontFamily:"'Playfair Display'",fontSize:22,fontWeight:600,color:'var(--text)'}}>{selected.name}</h2>
+              <p style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:2}}>
+                {selected.inputs.length} insumos · margem {selected.profitMargin}%
+                {selected.manicurePct>0&&` · manicure ${selected.manicurePct}%`}
+              </p>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>setModal(selected)}
+                style={{padding:'8px 16px',borderRadius:9,border:'1.5px solid var(--gold)',background:'oklch(98% 0.04 75)',cursor:'pointer',fontSize:12,fontWeight:600,color:'var(--gold)',fontFamily:"'Poppins'"}}>
+                 Editar
+              </button>
+              <button onClick={()=>deleteService(selected.id)}
+                style={{padding:'8px 12px',borderRadius:9,border:'1.5px solid oklch(90% 0.04 15)',background:'oklch(98% 0.02 15)',cursor:'pointer',fontSize:12,color:'oklch(50% 0.12 15)',fontFamily:"'Poppins'"}}>
+                
+              </button>
+            </div>
+          </div>
+
+          {/* Price result card */}
+          <div style={{background:'linear-gradient(145deg,oklch(36% 0.06 340),oklch(28% 0.05 320))',borderRadius:16,padding:'22px 24px',color:'white',position:'relative',overflow:'hidden'}}>
+            <div style={{position:'absolute',top:-20,right:-20,width:100,height:100,borderRadius:'50%',background:'oklch(72% 0.115 75 / 0.15)'}}/>
+            <div style={{position:'absolute',bottom:-30,left:-10,width:120,height:120,borderRadius:'50%',background:'oklch(88% 0.055 10 / 0.08)'}}/>
+            <p style={{fontSize:11,color:'oklch(80% 0.04 340)',fontFamily:"'Poppins'",letterSpacing:'0.07em',fontWeight:500,position:'relative'}}>PREÇO IDEAL SUGERIDO</p>
+            <p style={{fontFamily:"'Playfair Display'",fontSize:50,fontWeight:600,color:'white',lineHeight:1.1,margin:'6px 0 14px',position:'relative'}}>{fmt(idealPrice)}</p>
+            <div style={{display:'flex',gap:12,position:'relative',flexWrap:'wrap'}}>
+              {[
+                {l:'Custo Insumos',v:fmt(selectedInpCost),c:'oklch(80% 0.04 340)'},
+                {l:'Lucro Bruto',v:fmt(grossProfit),c:'oklch(80% 0.04 340)'},
+                {l:'Lucro Líquido ',v:fmt(netProfit),c:'oklch(85% 0.12 140)'},
+                ...(selected.manicurePct>0?[{l:`Manicure (${selected.manicurePct}%)`,v:fmt(manicureCost),c:'oklch(80% 0.08 320)'}]:[]),
+              ].map((it,i)=>(
+                <div key={i} style={{flex:'1 1 120px',background:'oklch(100% 0 0 / 0.1)',borderRadius:10,padding:'10px 12px'}}>
+                  <p style={{fontSize:10,color:'oklch(75% 0.04 340)',fontFamily:"'Poppins'"}}>{it.l}</p>
+                  <p style={{fontSize:16,fontWeight:700,fontFamily:"'Playfair Display'",color:it.c,marginTop:2}}>{it.v}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Breakdown bars */}
+          <div style={{background:'white',borderRadius:16,padding:'20px',border:'1px solid var(--border)'}}>
+            <h3 style={{fontFamily:"'Playfair Display'",fontSize:20,fontWeight:600,color:'var(--text)',marginBottom:14}}>Composição do Preço</h3>
+            {[
+              {label:'Custo dos Insumos',val:selectedInpCost,color:'oklch(55% 0.08 10)',pct:selectedInpCost/idealPrice*100},
+              {label:`Impostos (${pct(selected.taxPct)})`,val:idealPrice*selected.taxPct/100,color:'oklch(60% 0.1 250)',pct:selected.taxPct},
+              {label:`Taxa Cartão (${pct(selected.cardPct)})`,val:idealPrice*selected.cardPct/100,color:'oklch(60% 0.1 320)',pct:selected.cardPct},
+              {label:`Custo Fixo (${pct(selected.mktPct)})`,val:idealPrice*selected.mktPct/100,color:'oklch(60% 0.1 145)',pct:selected.mktPct},
+              ...(selected.manicurePct>0?[{label:`Comissão Manicure (${pct(selected.manicurePct)})`,val:manicureCost,color:'oklch(60% 0.1 320)',pct:selected.manicurePct}]:[]),
+              {label:`Lucro Líquido (${pct(selected.profitMargin)})`,val:netProfit,color:'oklch(72% 0.115 75)',pct:selected.profitMargin},
+            ].map((r,i)=>(
+              <div key={i} style={{marginBottom:11}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <div style={{width:8,height:8,borderRadius:2,background:r.color,flexShrink:0}}/>
+                    <span style={{fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>{r.label}</span>
+                  </div>
+                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                    <span style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'"}}>{r.pct.toFixed(1)}%</span>
+                    <span style={{fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",minWidth:65,textAlign:'right'}}>{fmt(r.val)}</span>
+                  </div>
+                </div>
+                <div style={{height:5,background:'var(--border)',borderRadius:3,overflow:'hidden'}}>
+                  <div style={{width:`${Math.min(r.pct,100)}%`,height:'100%',background:r.color,borderRadius:3,transition:'width 0.4s ease'}}/>
+                </div>
+              </div>
+            ))}
+            <div style={{borderTop:'1px solid var(--border)',paddingTop:12,marginTop:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>Preço de Venda Sugerido</span>
+              <span style={{fontSize:20,fontWeight:700,color:'var(--gold)',fontFamily:"'Playfair Display'"}}>{fmt(idealPrice)}</span>
+            </div>
+          </div>
+
+          {/* Manicure callout */}
+          {selected.manicurePct>0 && (
+            <div style={{background:'oklch(96% 0.03 320)',borderRadius:12,padding:'12px 16px',border:'1px solid oklch(88% 0.06 320)',display:'flex',gap:10}}>
+              <Icon name="info" size={15} color="oklch(55% 0.1 320)" style={{flexShrink:0,marginTop:1}}/>
+              <p style={{fontSize:12,color:'oklch(35% 0.06 320)',fontFamily:"'Poppins'",lineHeight:1.6}}>
+                Com manicure terceirizada a <strong>{selected.manicurePct}%</strong>, você repassa <strong>{fmt(manicureCost)}</strong> por atendimento. Seu lucro líquido real é <strong>{fmt(netProfit)}</strong>.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FINANCEIRO SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+const initialFixedCosts = [
+  {id:1, name:'Aluguel',          val:1200},
+  {id:2, name:'Energia',          val:180},
+  {id:3, name:'Pró-labore',       val:2000},
+  {id:4, name:'Simples Nacional', val:350},
+  {id:5, name:'Internet/Tel',     val:120},
+  {id:6, name:'Material extra',   val:200},
+];
+
+function CostRow({ cost, onSave, onDelete, fmt }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draftName, setDraftName] = React.useState(cost.name);
+  const [draftVal, setDraftVal] = React.useState(cost.val);
+
+  const save = () => { onSave({...cost, name:draftName, val:Number(draftVal)}); setEditing(false); };
+  const cancel = () => { setDraftName(cost.name); setDraftVal(cost.val); setEditing(false); };
+
+  if (editing) {
+    return (
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
+        <input value={draftName} onChange={e=>setDraftName(e.target.value)}
+          style={{flex:1,padding:'7px 10px',borderRadius:8,border:'1.5px solid var(--gold)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',outline:'none'}}/>
+        <div style={{display:'flex',alignItems:'center',gap:4}}>
+          <span style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'"}}>R$</span>
+          <input type="number" value={draftVal} onChange={e=>setDraftVal(e.target.value)}
+            style={{width:90,padding:'7px 10px',borderRadius:8,border:'1.5px solid var(--gold)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',outline:'none',textAlign:'right'}}/>
+        </div>
+        <button onClick={save} style={{padding:'6px 14px',borderRadius:7,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:11,fontWeight:600,color:'white',fontFamily:"'Poppins'"}}>Salvar</button>
+        <button onClick={cancel} style={{padding:'6px 10px',borderRadius:7,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',fontSize:11,color:'var(--text-mid)',fontFamily:"'Poppins'"}}></button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:'1px solid var(--border)'}}
+      onMouseEnter={e=>e.currentTarget.querySelector('.row-actions').style.opacity='1'}
+      onMouseLeave={e=>e.currentTarget.querySelector('.row-actions').style.opacity='0'}>
+      <span style={{fontSize:13,color:'var(--text)',fontFamily:"'Poppins'"}}>{cost.name}</span>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>{fmt(cost.val)}</span>
+        <div className="row-actions" style={{display:'flex',gap:5,opacity:0,transition:'opacity 0.15s'}}>
+          <button onClick={()=>setEditing(true)}
+            style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid var(--gold)',background:'oklch(98% 0.04 75)',cursor:'pointer',fontSize:10,fontWeight:600,color:'var(--gold)',fontFamily:"'Poppins'"}}>
+            
+          </button>
+          <button onClick={()=>onDelete(cost.id)}
+            style={{padding:'4px 8px',borderRadius:6,border:'1.5px solid oklch(90% 0.04 15)',background:'oklch(99% 0.01 15)',cursor:'pointer',fontSize:10,color:'oklch(50% 0.12 15)',fontFamily:"'Poppins'"}}>
+            
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FinanceiroSection({ fmt }) {
+  const [costs, setCosts] = React.useState(initialFixedCosts);
+  const [adding, setAdding] = React.useState(false);
+  const [newName, setNewName] = React.useState('');
+  const [newVal, setNewVal] = React.useState('');
+  const [exportModal, setExportModal] = React.useState(false);
+  const receita = 6840;
+
+  const totalFixed = costs.reduce((a,c)=>a+c.val,0);
+  const resultado = receita - totalFixed;
+
+  const saveCost = (updated) => setCosts(prev=>prev.map(c=>c.id===updated.id?updated:c));
+  const deleteCost = (id) => setCosts(prev=>prev.filter(c=>c.id!==id));
+  const addCost = () => {
+    if(!newName.trim()||!newVal) return;
+    setCosts(prev=>[...prev,{id:Date.now(),name:newName.trim(),val:Number(newVal)}]);
+    setNewName(''); setNewVal(''); setAdding(false);
+  };
+
+  const exportCSV = (period) => {
+    const label = period === 'weekly' ? 'Semanal' : 'Mensal';
+    const date = period === 'weekly' ? '28 Abr - 04 Mai 2026' : 'Maio 2026';
+    const appts = [
+      {data:'28/04',cliente:'Ana Costa',servico:'Alongamento em Gel',pagamento:'Pix',valor:180},
+      {data:'29/04',cliente:'Mariana Lima',servico:'Banho de Gel',pagamento:'Cartão',valor:120},
+      {data:'30/04',cliente:'Julia Santos',servico:'Esmaltação em Gel',pagamento:'Pix',valor:90},
+      {data:'01/05',cliente:'Beatriz Rocha',servico:'Manutencao',pagamento:'Presencial',valor:80},
+      {data:'02/05',cliente:'Ana Costa',servico:'Banho de Gel',pagamento:'Pix',valor:120},
+      ...(period==='monthly'?[
+        {data:'05/05',cliente:'Carla Mendes',servico:'Alongamento em Gel',pagamento:'Pix',valor:180},
+        {data:'08/05',cliente:'Mariana Lima',servico:'Esmaltação em Gel',pagamento:'Cartão',valor:90},
+        {data:'12/05',cliente:'Julia Santos',servico:'Alongamento em Gel',pagamento:'Pix',valor:180},
+        {data:'15/05',cliente:'Beatriz Rocha',servico:'Banho de Gel',pagamento:'Pix',valor:120},
+        {data:'19/05',cliente:'Ana Costa',servico:'Manutencao',pagamento:'Presencial',valor:80},
+      ]:[]),
+    ];
+    const totalRec = appts.reduce((a,r)=>a+r.valor,0);
+    const rows = [
+      `LEVBEAUTY — RELATORIO ${label.toUpperCase()}`,
+      `Periodo: ${date}`,
+      '',
+      'Data,Cliente,Servico,Pagamento,Valor (R$)',
+      ...appts.map(r=>`${r.data},${r.cliente},${r.servico},${r.pagamento},${r.valor.toFixed(2)}`),
+      '',
+      `Total Atendimentos,${appts.length}`,
+      `Receita Total,${totalRec.toFixed(2)}`,
+      '',
+      'CUSTOS FIXOS DO MES',
+      'Item,Valor (R$)',
+      ...costs.map(c=>`${c.name},${c.val.toFixed(2)}`),
+      `Total Custos,${totalFixed.toFixed(2)}`,
+      '',
+      `RESULTADO,${(totalRec - totalFixed).toFixed(2)}`,
+    ];
+    const csv = rows.join('\n');
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `LevBeauty_Relatorio_${label}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    setExportModal(false);
+  };
+
+  return (
+    <div style={{padding:'28px 32px'}}>
+      {/* Export Modal */}
+      {exportModal && (
+        <div style={{position:'fixed',inset:0,background:'oklch(22% 0.04 340 / 0.5)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
+          <div style={{background:'white',borderRadius:20,padding:'32px',width:420,boxShadow:'0 20px 60px oklch(22% 0.04 340 / 0.25)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+              <h2 style={{fontFamily:"'Playfair Display'",fontSize:24,fontWeight:600,color:'var(--text)'}}>Exportar Relatório</h2>
+              <button onClick={()=>setExportModal(false)} style={{background:'none',border:'none',cursor:'pointer',fontSize:22,color:'var(--text-light)',lineHeight:1}}>×</button>
+            </div>
+            <p style={{fontSize:13,color:'var(--text-mid)',fontFamily:"'Poppins'",marginBottom:20,lineHeight:1.6}}>Escolha o período do relatório. O arquivo CSV pode ser aberto no Excel ou Google Sheets.</p>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              <button onClick={()=>exportCSV('weekly')}
+                style={{padding:'16px 20px',borderRadius:14,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',textAlign:'left',transition:'all 0.15s'}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.background='oklch(98% 0.04 75)';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='white';}}>
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{width:40,height:40,borderRadius:10,background:'oklch(96% 0.04 75)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <Icon name="calendar" size={18} color="var(--gold)"/>
+                  </div>
+                  <div>
+                    <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>Relatório Semanal</p>
+                    <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:2}}>28 Abr — 04 Mai 2026</p>
+                  </div>
+                  <Icon name="chevronRight" size={16} color="var(--text-light)" style={{marginLeft:'auto'}}/>
+                </div>
+              </button>
+              <button onClick={()=>exportCSV('monthly')}
+                style={{padding:'16px 20px',borderRadius:14,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',textAlign:'left',transition:'all 0.15s'}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.background='oklch(98% 0.04 75)';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='white';}}>
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{width:40,height:40,borderRadius:10,background:'oklch(96% 0.04 75)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <Icon name="bar" size={18} color="var(--gold)"/>
+                  </div>
+                  <div>
+                    <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>Relatório Mensal</p>
+                    <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:2}}>Maio 2026 — completo</p>
+                  </div>
+                  <Icon name="chevronRight" size={16} color="var(--text-light)" style={{marginLeft:'auto'}}/>
+                </div>
+              </button>
+            </div>
+            <p style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:16,textAlign:'center'}}>Formato CSV — compatível com Excel e Google Sheets</p>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
+        <h1 style={{fontFamily:"'Playfair Display'",fontSize:30,fontWeight:600,color:'var(--text)'}}>Financeiro</h1>
+        <button onClick={()=>setExportModal(true)}
+          style={{padding:'10px 20px',borderRadius:12,border:'1.5px solid var(--gold)',background:'white',cursor:'pointer',fontSize:12,fontFamily:"'Poppins'",color:'var(--gold)',fontWeight:600,display:'flex',alignItems:'center',gap:7,transition:'all 0.15s'}}
+          onMouseEnter={e=>{e.currentTarget.style.background='oklch(98% 0.04 75)';}}
+          onMouseLeave={e=>{e.currentTarget.style.background='white';}}>
+          <Icon name="bar" size={14} color="var(--gold)"/> Exportar Relatório
+        </button>
+      </div>
+
+      {/* KPIs */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:24}}>
+        {[
+          {l:'Receita Bruta',    v:fmt(receita),    sub:'Maio 2026',        color:'oklch(38% 0.1 145)'},
+          {l:'Custos Fixos',     v:fmt(totalFixed), sub:'Despesas mensais', color:'oklch(50% 0.1 20)'},
+          {l:'Resultado',        v:fmt(resultado),  sub:'Lucro do mês',     color:resultado>=0?'oklch(38% 0.1 145)':'oklch(50% 0.1 20)'},
+        ].map((k,i)=>(
+          <div key={i} style={{background:'white',borderRadius:16,padding:'20px',border:'1px solid var(--border)'}}>
+            <p style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'",marginBottom:8}}>{k.l}</p>
+            <p style={{fontFamily:"'Playfair Display'",fontSize:30,fontWeight:600,color:k.color}}>{k.v}</p>
+            <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:4}}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Costs table */}
+      <div style={{background:'white',borderRadius:16,padding:'20px 24px',border:'1px solid var(--border)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <h3 style={{fontFamily:"'Playfair Display'",fontSize:20,fontWeight:600,color:'var(--text)'}}>Custos Fixos Mensais</h3>
+          <button onClick={()=>setAdding(v=>!v)}
+            style={{padding:'7px 16px',borderRadius:9,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:12,fontFamily:"'Poppins'",color:'white',fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+            <Icon name="plus" size={13} color="white"/> Novo Custo
+          </button>
+        </div>
+
+        {/* Add row */}
+        {adding && (
+          <div style={{display:'flex',gap:10,alignItems:'center',padding:'10px 12px',borderRadius:10,background:'oklch(98% 0.03 75)',border:'1.5px solid var(--gold)',marginBottom:12}}>
+            <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Nome do custo (ex: Água)"
+              style={{flex:1,padding:'7px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',outline:'none'}}/>
+            <div style={{display:'flex',alignItems:'center',gap:4}}>
+              <span style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'"}}>R$</span>
+              <input type="number" value={newVal} onChange={e=>setNewVal(e.target.value)} placeholder="0,00"
+                style={{width:90,padding:'7px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',outline:'none',textAlign:'right'}}/>
+            </div>
+            <button onClick={addCost} style={{padding:'7px 16px',borderRadius:8,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:12,fontWeight:600,color:'white',fontFamily:"'Poppins'"}}>Adicionar</button>
+            <button onClick={()=>setAdding(false)} style={{padding:'7px 10px',borderRadius:8,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'"}}></button>
+          </div>
+        )}
+
+        <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginBottom:8}}>Passe o mouse sobre uma linha para editar ou excluir</p>
+
+        {costs.map(c=>(
+          <CostRow key={c.id} cost={c} onSave={saveCost} onDelete={deleteCost} fmt={fmt}/>
+        ))}
+
+        {costs.length===0 && (
+          <p style={{textAlign:'center',padding:'20px',color:'var(--text-light)',fontFamily:"'Poppins'",fontSize:13}}>Nenhum custo fixo cadastrado.</p>
+        )}
+
+        <div style={{paddingTop:14,marginTop:4,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span style={{fontSize:15,fontWeight:700,fontFamily:"'Poppins'",color:'var(--text)'}}>Total Mensal</span>
+          <span style={{fontSize:18,fontWeight:700,fontFamily:"'Playfair Display'",color:'oklch(50% 0.1 20)'}}>{fmt(totalFixed)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const unitOptions = ['g','ml','un','cm','m'];
+
+function InsumoRow({ inp, onSave, onDelete, fmt }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState({...inp});
+  const set = (k,v) => setDraft(d=>({...d,[k]:v}));
+  const cost = computeUnitCost(inp);
+  const save = () => { onSave(draft); setEditing(false); };
+  const cancel = () => { setDraft({...inp}); setEditing(false); };
+  const cellStyle = {padding:'11px 14px', borderBottom:'1px solid var(--border)', verticalAlign:'middle'};
+  const inputStyle = {width:'100%', padding:'6px 8px', borderRadius:7, border:'1.5px solid var(--gold)', fontFamily:"'Poppins'", fontSize:12, color:'var(--text)', outline:'none', background:'oklch(99% 0.02 75)'};
+
+  if (editing) {
+    return (
+      <tr style={{background:'oklch(98% 0.03 75)'}}>
+        <td style={cellStyle}><input value={draft.name} onChange={e=>set('name',e.target.value)} style={{...inputStyle,minWidth:140}}/></td>
+        <td style={cellStyle}>
+          <div style={{display:'flex',gap:4}}>
+            <input type="number" value={draft.pkgQty} onChange={e=>set('pkgQty',Number(e.target.value))} style={{...inputStyle,width:60}}/>
+            <select value={draft.unit} onChange={e=>set('unit',e.target.value)} style={{...inputStyle,width:52,padding:'6px 4px'}}>
+              {unitOptions.map(u=><option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+        </td>
+        <td style={cellStyle}>
+          <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <span style={{fontSize:11,color:'var(--text-light)'}}>R$</span>
+            <input type="number" value={draft.pkgCost} onChange={e=>set('pkgCost',Number(e.target.value))} style={{...inputStyle,width:70}}/>
+          </div>
+        </td>
+        <td style={cellStyle}>
+          <div style={{display:'flex',gap:4,alignItems:'center'}}>
+            <input type="number" value={draft.perApplication} step="0.01" onChange={e=>set('perApplication',Number(e.target.value))} style={{...inputStyle,width:60}}/>
+            <span style={{fontSize:11,color:'var(--text-light)'}}>{draft.unit}</span>
+          </div>
+        </td>
+        <td style={cellStyle}><span style={{fontSize:13,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'"}}>{fmt(computeUnitCost(draft))}</span></td>
+        <td style={cellStyle}>
+          <div style={{display:'flex',gap:6}}>
+            <button onClick={save} style={{padding:'6px 14px',borderRadius:7,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:11,fontWeight:600,color:'white',fontFamily:"'Poppins'"}}>Salvar</button>
+            <button onClick={cancel} style={{padding:'6px 10px',borderRadius:7,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',fontSize:11,color:'var(--text-mid)',fontFamily:"'Poppins'"}}></button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr style={{borderBottom:'1px solid var(--border)',transition:'background 0.12s'}}
+      onMouseEnter={e=>e.currentTarget.style.background='oklch(99% 0.015 75)'}
+      onMouseLeave={e=>e.currentTarget.style.background='white'}>
+      <td style={cellStyle}><p style={{fontSize:13,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'"}}>{inp.name}</p></td>
+      <td style={{...cellStyle,fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>{inp.pkgQty} {inp.unit}</td>
+      <td style={{...cellStyle,fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>{fmt(inp.pkgCost)}</td>
+      <td style={{...cellStyle,fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>{inp.perApplication} {inp.unit}</td>
+      <td style={{...cellStyle,fontSize:13,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'"}}>{fmt(cost)}</td>
+      <td style={cellStyle}>
+        <div style={{display:'flex',gap:6}}>
+          <button onClick={()=>setEditing(true)}
+            style={{padding:'5px 14px',borderRadius:7,border:'1.5px solid var(--gold)',background:'oklch(98% 0.04 75)',cursor:'pointer',fontSize:11,fontWeight:600,color:'var(--gold)',fontFamily:"'Poppins'"}}>
+             Editar
+          </button>
+          <button onClick={()=>onDelete(inp.name)}
+            style={{padding:'5px 10px',borderRadius:7,border:'1.5px solid oklch(90% 0.04 15)',background:'oklch(99% 0.01 15)',cursor:'pointer',fontSize:11,color:'oklch(50% 0.12 15)',fontFamily:"'Poppins'"}}>
+            
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function InsumoSection({ inputs, setInputs, fmt }) {
+  const [adding, setAdding] = React.useState(false);
+  const [newInp, setNewInp] = React.useState({name:'',unit:'ml',pkgQty:0,pkgCost:0,perApplication:0});
+  const setN = (k,v) => setNewInp(d=>({...d,[k]:v}));
+  const inputStyle = {padding:'7px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:12,color:'var(--text)',outline:'none',width:'100%'};
+
+  const saveEdit = (updated) => setInputs(prev=>prev.map(i=>i.name===updated.name?updated:i));
+  const deleteInp = (name) => setInputs(prev=>prev.filter(i=>i.name!==name));
+  const addInp = () => {
+    if(!newInp.name.trim()) return;
+    setInputs(prev=>[...prev,{...newInp}]);
+    setNewInp({name:'',unit:'ml',pkgQty:0,pkgCost:0,perApplication:0});
+    setAdding(false);
+  };
+
+  return (
+    <div style={{padding:'28px 32px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
+        <div>
+          <h1 style={{fontFamily:"'Playfair Display'",fontSize:30,fontWeight:600,color:'var(--text)'}}>Gestão de Insumos</h1>
+          <p style={{fontSize:13,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:3}}>Clique em  Editar para modificar qualquer insumo diretamente na tabela</p>
+        </div>
+        <button onClick={()=>setAdding(v=>!v)}
+          style={{padding:'10px 20px',borderRadius:12,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:13,fontFamily:"'Poppins'",color:'white',fontWeight:600,display:'flex',alignItems:'center',gap:7,boxShadow:'0 4px 14px oklch(72% 0.115 75 / 0.35)'}}>
+          <Icon name="plus" size={14} color="white"/> Novo Insumo
+        </button>
+      </div>
+
+      {adding && (
+        <div style={{background:'oklch(98% 0.03 75)',borderRadius:14,padding:'16px 18px',border:'1.5px solid var(--gold)',marginBottom:16}}>
+          <p style={{fontSize:11,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",letterSpacing:'0.04em',marginBottom:10}}>NOVO INSUMO</p>
+          <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr',gap:10,marginBottom:12}}>
+            <div>
+              <label style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",display:'block',marginBottom:4}}>Nome</label>
+              <input value={newInp.name} onChange={e=>setN('name',e.target.value)} placeholder="Ex: Builder Gel" style={inputStyle}/>
+            </div>
+            <div>
+              <label style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",display:'block',marginBottom:4}}>Qtd/Pacote</label>
+              <div style={{display:'flex',gap:4}}>
+                <input type="number" value={newInp.pkgQty||''} onChange={e=>setN('pkgQty',Number(e.target.value))} placeholder="0" style={{...inputStyle,width:55}}/>
+                <select value={newInp.unit} onChange={e=>setN('unit',e.target.value)} style={{...inputStyle,width:48,padding:'7px 4px'}}>
+                  {unitOptions.map(u=><option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",display:'block',marginBottom:4}}>Custo Pacote (R$)</label>
+              <input type="number" value={newInp.pkgCost||''} onChange={e=>setN('pkgCost',Number(e.target.value))} placeholder="0.00" style={inputStyle}/>
+            </div>
+            <div>
+              <label style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",display:'block',marginBottom:4}}>Uso/Aplicação</label>
+              <input type="number" step="0.01" value={newInp.perApplication||''} onChange={e=>setN('perApplication',Number(e.target.value))} placeholder="0" style={inputStyle}/>
+            </div>
+            <div>
+              <label style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",display:'block',marginBottom:4}}>Custo/Aplic.</label>
+              <p style={{fontSize:14,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'",padding:'8px 0'}}>{fmt(computeUnitCost(newInp))}</p>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={addInp} style={{padding:'8px 20px',borderRadius:9,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:12,fontWeight:600,color:'white',fontFamily:"'Poppins'"}}>Adicionar</button>
+            <button onClick={()=>setAdding(false)} style={{padding:'8px 16px',borderRadius:9,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{background:'white',borderRadius:16,border:'1px solid var(--border)',overflow:'hidden'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontFamily:"'Poppins'"}}>
+          <thead>
+            <tr style={{background:'oklch(98% 0.015 75)',borderBottom:'1px solid var(--border)'}}>
+              {['Produto','Qtd/Pacote','Custo Pacote','Uso/Aplicação','Custo/Aplicação','Ações'].map(h=>(
+                <th key={h} style={{padding:'12px 14px',textAlign:'left',fontSize:11,fontWeight:600,color:'var(--text-light)',letterSpacing:'0.05em'}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {inputs.map((inp,i)=>(
+              <InsumoRow key={inp.name+i} inp={inp} onSave={saveEdit} onDelete={deleteInp} fmt={fmt}/>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SETTINGS SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+const defaultSalonConfig = {
+  name: 'LevBeauty',
+  phone: '(11) 99999-0000',
+  address: 'Rua das Flores, 123, São Paulo',
+  cepBase: '01310-100',       // CEP do salão (referência)
+  homeEnabled: true,           // atendimento a domicílio habilitado
+  maxRadiusKm: 15,             // raio máximo em km
+  pricePerKm: 2.50,            // R$ por km (ida+volta já dobrado no cálculo)
+  minTravelFee: 20,            // taxa mínima de deslocamento
+};
+
+// Simulated CEP → distance lookup (in a real app, would call ViaCEP + Google Maps)
+function estimateDistance(cepClient, cepBase) {
+  // Demo: use last 3 digits to generate a plausible distance
+  const clientNum = parseInt(cepClient.replace(/\D/g,'').slice(-4)) || 0;
+  const baseNum = parseInt(cepBase.replace(/\D/g,'').slice(-4)) || 0;
+  const diff = Math.abs(clientNum - baseNum);
+  // Map diff to 0-25 km range
+  return Math.min(25, Math.round((diff % 200) / 8 * 10) / 10);
+}
+
+function formatCEP(v) {
+  return v.replace(/\D/g,'').slice(0,8).replace(/^(\d{5})(\d)/, '$1-$2');
+}
+
+function SettingsSection({ salonConfig, setSalonConfig }) {
+  const [cfg, setCfg] = React.useState({...salonConfig});
+  const [saved, setSaved] = React.useState(false);
+  const set = (k,v) => setCfg(c=>({...c,[k]:v}));
+
+  const save = () => {
+    setSalonConfig(cfg);
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 2500);
+  };
+
+  const fieldStyle = {width:'100%',padding:'10px 14px',borderRadius:10,border:'1.5px solid var(--border)',fontFamily:"'Poppins'",fontSize:13,color:'var(--text)',background:'white',outline:'none'};
+  const labelStyle = {fontSize:12,fontWeight:500,color:'var(--text)',fontFamily:"'Poppins'",display:'block',marginBottom:6};
+
+  return (
+    <div style={{padding:'28px 32px',maxWidth:600}}>
+      <h1 style={{fontFamily:"'Playfair Display'",fontSize:30,fontWeight:600,color:'var(--text)',marginBottom:4}}>Configurações</h1>
+      <p style={{fontSize:13,color:'var(--text-light)',fontFamily:"'Poppins'",marginBottom:24}}>Gerencie as informações e regras do seu salão</p>
+
+      {/* Salon info */}
+      <div style={{background:'white',borderRadius:16,padding:'20px 24px',border:'1px solid var(--border)',marginBottom:16}}>
+        <h3 style={{fontFamily:"'Playfair Display'",fontSize:18,fontWeight:600,color:'var(--text)',marginBottom:16}}>Informações do Salão</h3>
+        {[
+          {label:'Nome do Salão', key:'name', type:'text'},
+          {label:'Telefone / WhatsApp', key:'phone', type:'text'},
+          {label:'Endereço completo', key:'address', type:'text'},
+        ].map(f=>(
+          <div key={f.key} style={{marginBottom:14}}>
+            <label style={labelStyle}>{f.label}</label>
+            <input type={f.type} value={cfg[f.key]} onChange={e=>set(f.key,e.target.value)} style={fieldStyle}/>
+          </div>
+        ))}
+      </div>
+
+      {/* Home visit settings */}
+      <div style={{background:'white',borderRadius:16,padding:'20px 24px',border:'1px solid var(--border)',marginBottom:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+          <div>
+            <h3 style={{fontFamily:"'Playfair Display'",fontSize:18,fontWeight:600,color:'var(--text)'}}>Atendimento a Domicílio</h3>
+            <p style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:2}}>Configure as regras para atendimentos fora do salão</p>
+          </div>
+          {/* Toggle */}
+          <button onClick={()=>set('homeEnabled',!cfg.homeEnabled)}
+            style={{width:48,height:26,borderRadius:13,border:'none',background:cfg.homeEnabled?'var(--gold)':'var(--border)',cursor:'pointer',position:'relative',transition:'background 0.2s',flexShrink:0}}>
+            <div style={{position:'absolute',top:3,left:cfg.homeEnabled?24:3,width:20,height:20,borderRadius:'50%',background:'white',transition:'left 0.2s',boxShadow:'0 1px 4px oklch(22% 0.04 340 / 0.2)'}}/>
+          </button>
+        </div>
+
+        {cfg.homeEnabled && (
+          <div style={{marginTop:18,display:'flex',flexDirection:'column',gap:16}}>
+            {/* CEP base */}
+            <div>
+              <label style={labelStyle}>CEP do Salão (referência para calcular distância)</label>
+              <input value={cfg.cepBase} onChange={e=>set('cepBase',formatCEP(e.target.value))}
+                placeholder="00000-000" maxLength={9} style={fieldStyle}/>
+              <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:4}}>O CEP da cliente será comparado a este para calcular a distância aproximada</p>
+            </div>
+
+            {/* Radius + price per km */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                  <label style={labelStyle}>Raio máximo de atendimento</label>
+                  <span style={{fontSize:13,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'"}}>{cfg.maxRadiusKm} km</span>
+                </div>
+                <input type="range" min={1} max={50} step={1} value={cfg.maxRadiusKm}
+                  onChange={e=>set('maxRadiusKm',Number(e.target.value))}
+                  style={{width:'100%',accentColor:'var(--gold)',cursor:'pointer'}}/>
+                <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
+                  <span style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'"}}>1 km</span>
+                  <span style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'"}}>50 km</span>
+                </div>
+              </div>
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                  <label style={labelStyle}>Valor por km (ida + volta)</label>
+                  <span style={{fontSize:13,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'"}}>R$ {cfg.pricePerKm.toFixed(2)}/km</span>
+                </div>
+                <input type="range" min={0.5} max={10} step={0.25} value={cfg.pricePerKm}
+                  onChange={e=>set('pricePerKm',Number(e.target.value))}
+                  style={{width:'100%',accentColor:'var(--gold)',cursor:'pointer'}}/>
+                <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
+                  <span style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'"}}>R$ 0,50</span>
+                  <span style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'"}}>R$ 10,00</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Min fee */}
+            <div>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                <label style={labelStyle}>Taxa mínima de deslocamento</label>
+                <span style={{fontSize:13,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'"}}>R$ {cfg.minTravelFee.toFixed(2)}</span>
+              </div>
+              <input type="range" min={0} max={100} step={5} value={cfg.minTravelFee}
+                onChange={e=>set('minTravelFee',Number(e.target.value))}
+                style={{width:'100%',accentColor:'var(--gold)',cursor:'pointer'}}/>
+            </div>
+
+            {/* Preview calculation */}
+            <div style={{background:'oklch(97% 0.04 75)',borderRadius:10,padding:'12px 16px',border:'1px solid oklch(88% 0.06 75)'}}>
+              <p style={{fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",marginBottom:6}}>Exemplo de cálculo:</p>
+              {[5,10,15].map(km=>{
+                const fee = Math.max(cfg.minTravelFee, km * 2 * cfg.pricePerKm);
+                const inRange = km <= cfg.maxRadiusKm;
+                return (
+                  <div key={km} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                    <span style={{fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>{km} km de distância</span>
+                    <span style={{fontSize:12,fontWeight:600,fontFamily:"'Poppins'",color:inRange?'var(--gold)':'oklch(55% 0.1 15)'}}>
+                      {inRange?`R$ ${fee.toFixed(2)}`:'Fora do raio'}
+                    </span>
+                  </div>
+                );
+              })}
+              <p style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:6}}>Taxa = máx(mínimo, distância × 2 × R$/km) — ida e volta inclusos</p>
+            </div>
+
+            {/* Block time info */}
+            <div style={{background:'oklch(96% 0.03 340)',borderRadius:10,padding:'12px 16px',border:'1px solid oklch(90% 0.03 340)',display:'flex',gap:10}}>
+              <Icon name="clock" size={15} color="var(--text-mid)" style={{flexShrink:0,marginTop:1}}/>
+              <p style={{fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'",lineHeight:1.6}}>
+                <strong>Bloqueio automático:</strong> após um agendamento a domicílio confirmado, 2 horas são bloqueadas na agenda antes do próximo horário disponível para cobrir o deslocamento.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Save button */}
+      <button onClick={save}
+        style={{width:'100%',padding:'13px',borderRadius:12,border:'none',background:saved?'oklch(55% 0.1 145)':'var(--gold)',cursor:'pointer',fontFamily:"'Poppins'",fontSize:14,fontWeight:600,color:'white',transition:'background 0.3s',boxShadow:'0 4px 14px oklch(72% 0.115 75 / 0.3)'}}>
+        {saved ? 'Configurações salvas!' : 'Salvar Configurações'}
+      </button>
+    </div>
+  );
+}
+
+function OwnerDashboard({ tweaks, salonConfig, setSalonConfig }) {
+  const [activeSection, setActiveSection] = React.useState('dashboard');
+  const [inputs, setInputs] = React.useState(inputsData);
+
+
+
+
+  const todayAppts = [
+    {name:'Ana Costa',svc:'Alongamento em Gel',time:'09:00',status:'concluído',price:180},
+    {name:'Mariana Lima',svc:'Banho de Gel',time:'11:00',status:'confirmado',price:120},
+    {name:'Julia Santos',svc:'Esmaltação em Gel',time:'14:00',status:'confirmado',price:90},
+    {name:'Beatriz Rocha',svc:'Manutenção',time:'16:00',status:'pendente',price:80},
+  ];
+  const dayRevenue = todayAppts.filter(a=>a.status!=='pendente').reduce((a,c)=>a+c.price,0);
+
+  const navItems = [
+    {id:'dashboard',icon:'home',label:'Dashboard'},
+    {id:'agenda',icon:'calendar',label:'Agenda'},
+    {id:'pricing',icon:'dollar',label:'Precificação'},
+    {id:'inputs',icon:'package',label:'Insumos'},
+    {id:'financeiro',icon:'bar',label:'Financeiro'},
+    {id:'settings',icon:'settings',label:'Configurações'},
+  ];
+
+  return (
+    <div style={{display:'flex',height:'100vh',background:'oklch(97% 0.012 75)',fontFamily:"'Poppins', sans-serif",overflow:'hidden'}}>
+      {/* Sidebar */}
+      <div style={{width:220,background:'white',borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',flexShrink:0}}>
+        <div style={{padding:'24px 20px 20px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:34,height:34,borderRadius:10,background:'linear-gradient(135deg,oklch(88% 0.055 10),oklch(72% 0.115 75))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}></div>
+            <div>
+              <p style={{fontFamily:"'Playfair Display'",fontSize:20,fontWeight:600,color:'var(--mauve-dark)',lineHeight:1}}>LevBeauty</p>
+              <p style={{fontSize:10,color:'var(--text-light)',letterSpacing:'0.06em',fontWeight:500}}>GESTÃO</p>
+            </div>
+          </div>
+        </div>
+        <nav style={{flex:1,padding:'8px 12px'}}>
+          {navItems.map(n=>(
+            <button key={n.id} onClick={()=>setActiveSection(n.id)}
+              style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:10,border:'none',background:activeSection===n.id?'oklch(96% 0.04 75)':'none',cursor:'pointer',marginBottom:2,transition:'background 0.15s',textAlign:'left'}}>
+              <Icon name={n.icon} size={16} color={activeSection===n.id?'var(--gold)':'var(--text-light)'}/>
+              <span style={{fontSize:13,fontWeight:activeSection===n.id?600:400,color:activeSection===n.id?'var(--text)':'var(--text-mid)',fontFamily:"'Poppins'"}}>{n.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div style={{padding:'16px 12px',borderTop:'1px solid var(--border)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px'}}>
+            <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,oklch(85% 0.07 10),oklch(72% 0.115 75))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}></div>
+            <div>
+              <p style={{fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>Levi Santos</p>
+              <p style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'"}}>Proprietária</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div style={{flex:1,overflowY:'auto',overflowX:'hidden'}}>
+
+        {/* DASHBOARD */}
+        {activeSection==='dashboard' && (
+          <div style={{padding:'28px 32px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
+              <div>
+                <h1 style={{fontFamily:"'Playfair Display'",fontSize:30,fontWeight:600,color:'var(--text)'}}>Bom dia, Levi! </h1>
+                <p style={{fontSize:13,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:3}}>Domingo, 4 de Maio de 2026</p>
+              </div>
+              <div style={{display:'flex',gap:10}}>
+                <button style={{padding:'9px 18px',borderRadius:10,border:'1.5px solid var(--border)',background:'white',cursor:'pointer',fontSize:13,fontFamily:"'Poppins'",color:'var(--text)',display:'flex',alignItems:'center',gap:6}}>
+                  <Icon name="bell" size={14} color="var(--text-mid)"/> 3 alertas
+                </button>
+                <button onClick={()=>setActiveSection('agenda')} style={{padding:'9px 18px',borderRadius:10,border:'none',background:'var(--gold)',cursor:'pointer',fontSize:13,fontFamily:"'Poppins'",color:'white',fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+                  <Icon name="plus" size={14} color="white"/> Novo agend.
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Cards */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:24}}>
+              {[
+                {label:'Receita Hoje',val:fmt(dayRevenue),sub:'2 atend. concluídos',icon:'dollar',color:'oklch(72% 0.115 75)',bg:'oklch(97% 0.045 75)'},
+                {label:'Agend. Hoje',val:'4',sub:'1 pendente',icon:'calendar',color:'oklch(60% 0.1 250)',bg:'oklch(97% 0.03 250)'},
+                {label:'Receita Mensal',val:fmt(6840),sub:'+12% vs mês ant.',icon:'bar',color:'oklch(60% 0.1 145)',bg:'oklch(97% 0.03 145)'},
+                {label:'Ticket Médio',val:fmt(118),sub:'Últimos 30 dias',icon:'info',color:'oklch(60% 0.1 320)',bg:'oklch(97% 0.03 320)'},
+              ].map((k,i)=>(
+                <div key={i} style={{background:'white',borderRadius:16,padding:'18px',border:'1px solid var(--border)',boxShadow:'0 1px 6px oklch(40% 0.04 340 / 0.05)'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
+                    <p style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'",fontWeight:500,letterSpacing:'0.03em'}}>{k.label}</p>
+                    <div style={{width:32,height:32,borderRadius:8,background:k.bg,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <Icon name={k.icon} size={15} color={k.color}/>
+                    </div>
+                  </div>
+                  <p style={{fontFamily:"'Playfair Display'",fontSize:26,fontWeight:600,color:'var(--text)'}}>{k.val}</p>
+                  <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:4}}>{k.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Today's appointments */}
+            <div style={{display:'grid',gridTemplateColumns:'1.4fr 1fr',gap:20}}>
+              <div style={{background:'white',borderRadius:16,padding:'20px',border:'1px solid var(--border)'}}>
+                <h3 style={{fontFamily:"'Playfair Display'",fontSize:20,fontWeight:600,color:'var(--text)',marginBottom:16}}>Agenda de Hoje</h3>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  {todayAppts.map((a,i)=>(
+                    <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',borderRadius:12,background:'oklch(98% 0.01 75)',border:'1px solid var(--border)'}}>
+                      <div style={{width:44,height:44,borderRadius:10,background:'linear-gradient(135deg,oklch(88% 0.055 10),oklch(84% 0.065 350))',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <span style={{fontSize:10,fontWeight:700,fontFamily:"'Poppins'",color:'var(--mauve)'}}>{a.time}</span>
+                      </div>
+                      <div style={{flex:1}}>
+                        <p style={{fontSize:13,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'"}}>{a.name}</p>
+                        <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",marginTop:1}}>{a.svc}</p>
+                      </div>
+                      <div style={{textAlign:'right'}}>
+                        <p style={{fontSize:13,fontWeight:700,color:'var(--gold)',fontFamily:"'Poppins'"}}>{fmt(a.price)}</p>
+                        <span style={{fontSize:10,fontWeight:600,fontFamily:"'Poppins'",padding:'2px 8px',borderRadius:10,background:a.status==='concluído'?'oklch(92% 0.06 145)':a.status==='confirmado'?'oklch(92% 0.04 75)':'oklch(95% 0.03 60)',color:a.status==='concluído'?'oklch(38% 0.1 145)':a.status==='confirmado'?'oklch(55% 0.1 70)':'oklch(55% 0.08 60)'}}>
+                          {a.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fixed costs overview */}
+              <div style={{background:'white',borderRadius:16,padding:'20px',border:'1px solid var(--border)'}}>
+                <h3 style={{fontFamily:"'Playfair Display'",fontSize:20,fontWeight:600,color:'var(--text)',marginBottom:4}}>Custos Fixos/Mês</h3>
+                <p style={{fontSize:12,color:'var(--text-light)',fontFamily:"'Poppins'",marginBottom:14}}>Total: <strong style={{color:'var(--text)'}}>{fmt(initialFixedCosts.reduce((a,c)=>a+c.val,0))}</strong></p>
+                {initialFixedCosts.map((c,i)=>{
+                  const total=initialFixedCosts.reduce((a,cc)=>a+cc.val,0);
+                  return (
+                    <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                      <span style={{fontSize:12,color:'var(--text-mid)',fontFamily:"'Poppins'"}}>{c.name}</span>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <div style={{width:60,height:5,borderRadius:3,background:'var(--border)',overflow:'hidden'}}>
+                          <div style={{width:`${(c.val/total)*100}%`,height:'100%',background:'linear-gradient(90deg,oklch(88% 0.055 10),var(--gold))',borderRadius:3}}/>
+                        </div>
+                        <span style={{fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:"'Poppins'",minWidth:60,textAlign:'right'}}>{fmt(c.val)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                <button onClick={()=>setActiveSection('financeiro')} style={{width:'100%',marginTop:12,padding:'10px',borderRadius:10,border:'1.5px solid var(--gold)',background:'transparent',cursor:'pointer',fontFamily:"'Poppins'",fontSize:12,fontWeight:600,color:'var(--gold)'}}>
+                  Gerenciar Custos →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PRICING CALCULATOR */}
+        {activeSection==='pricing' && (
+          <PricingSection inputs={inputs} fmt={fmt} pct={pct}/>
+        )}
+
+                {/* INSUMOS */}
+        {activeSection==='inputs' && (
+          <InsumoSection inputs={inputs} setInputs={setInputs} fmt={fmt}/>
+        )}
+
+        {/* AGENDA (Owner) */}
+        {activeSection==='agenda' && (
+          <AgendaSection fmt={fmt}/>
+        )}
+
+        {/* FINANCEIRO */}
+        {activeSection==='financeiro' && (
+          <FinanceiroSection fmt={fmt}/>
+        )}
+
+        {/* SETTINGS */}
+        {(activeSection==='settings') && (
+          <SettingsSection salonConfig={salonConfig} setSalonConfig={setSalonConfig}/>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT
+// ─────────────────────────────────────────────────────────────────────────────
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [view, setView] = React.useState('both');
+  const [salonConfig, setSalonConfig] = React.useState(defaultSalonConfig);
+
+  return (
+    <div style={{minHeight:'100vh',background:'oklch(96% 0.01 75)',fontFamily:"'Poppins', sans-serif"}}>
+      {/* Top bar */}
+      <div style={{background:'white',borderBottom:'1px solid var(--border)',padding:'0 24px',display:'flex',alignItems:'center',justifyContent:'space-between',height:52,position:'sticky',top:0,zIndex:50}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:30,height:30,borderRadius:8,background:'linear-gradient(135deg,oklch(88% 0.055 10),var(--gold))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}></div>
+          <span style={{fontFamily:"'Playfair Display'",fontSize:20,fontWeight:600,color:'var(--mauve-dark)'}}>LevBeauty</span>
+          <span style={{fontSize:10,color:'var(--text-light)',fontFamily:"'Poppins'",letterSpacing:'0.06em',marginLeft:4}}>PROTÓTIPO</span>
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          {[{v:'client',label:'Cliente'},{v:'owner',label:'Gestor'},{v:'both',label:'Ambos'}].map(opt=>(
+            <button key={opt.v} onClick={()=>setView(opt.v)}
+              style={{padding:'6px 14px',borderRadius:8,border:`1.5px solid ${view===opt.v?'var(--gold)':'var(--border)'}`,background:view===opt.v?'var(--gold)':'white',cursor:'pointer',fontSize:12,fontFamily:"'Poppins'",fontWeight:view===opt.v?600:400,color:view===opt.v?'white':'var(--text)',transition:'all 0.2s'}}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Layout */}
+      <div style={{display:'flex',gap:0,height:'calc(100vh - 52px)',overflow:'hidden'}}>
+        {/* CLIENT (phone) */}
+        {(view==='both'||view==='client') && (
+          <div style={{flex:view==='both'?'0 0 auto':1,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px',background:view==='client'?'oklch(96% 0.015 75)':'oklch(94% 0.02 10 / 0.6)',borderRight:view==='both'?'1px solid var(--border)':'none',minWidth:view==='both'?420:0}}>
+            <div style={{transform:'scale(0.88)',transformOrigin:'center center'}}>
+              <IOSDevice width={375} height={812} dark={false}>
+                <ClientApp tweaks={tweaks} salonConfig={salonConfig}/>
+              </IOSDevice>
+            </div>
+          </div>
+        )}
+
+        {/* OWNER (desktop) */}
+        {(view==='both'||view==='owner') && (
+          <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+            {view==='both'&&<div style={{padding:'10px 20px 6px',background:'white',borderBottom:'1px solid var(--border)'}}>
+              <p style={{fontSize:11,color:'var(--text-light)',fontFamily:"'Poppins'",letterSpacing:'0.06em',fontWeight:500}}>PAINEL DA PROPRIETÁRIA</p>
+            </div>}
+            <div style={{flex:1,overflow:'hidden'}}>
+              <OwnerDashboard tweaks={tweaks} salonConfig={salonConfig} setSalonConfig={setSalonConfig}/>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <TweaksPanel>
+        <TweakSection title="Visual">
+          <TweakRadio label="Tipografia" value={tweaks.fontStyle} options={['cormorant','dm']} onChange={v=>setTweak('fontStyle',v)}/>
+          <TweakRadio label="Densidade" value={tweaks.density} options={['comfortable','compact']} onChange={v=>setTweak('density',v)}/>
+          <TweakToggle label="Acento Dourado" value={tweaks.accentGold} onChange={v=>setTweak('accentGold',v)}/>
+          <TweakToggle label="Animações" value={tweaks.animationsOn} onChange={v=>setTweak('animationsOn',v)}/>
+        </TweakSection>
+        <TweakSection title="Paleta">
+          <TweakRadio label="Tom Principal" value={tweaks.primaryColor} options={['blush','mauve','sage']} onChange={v=>setTweak('primaryColor',v)}/>
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>
