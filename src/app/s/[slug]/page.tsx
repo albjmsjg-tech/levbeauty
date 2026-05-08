@@ -10,6 +10,7 @@ interface SalonData {
   slug: string;
   phone: string | null;
   address: string | null;
+  home_enabled: boolean;
 }
 
 interface ServiceData {
@@ -86,6 +87,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
 
   const [step, setStep] = useState<Step>("list");
   const [selectedSvc, setSelectedSvc] = useState<ServiceData | null>(null);
+  const [location, setLocation] = useState<"salon" | "home">("salon");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [bookedSlots, setBookedSlots] = useState<{ appt_time: string; duration_min: number }[]>([]);
@@ -103,7 +105,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       const supabase = createClient();
       const { data: salonData, error: salonErr } = await supabase
         .from("salons")
-        .select("id, name, slug, phone, address")
+        .select("id, name, slug, phone, address, home_enabled")
         .eq("slug", params.slug)
         .single();
 
@@ -166,6 +168,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       appt_time: selectedTime,
       duration_min: selectedSvc.duration_min,
       price: selectedSvc.price,
+      location,
     });
     if (error) {
       setSubmitError("Erro ao confirmar agendamento. Tente novamente.");
@@ -179,6 +182,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
   const resetBooking = () => {
     setStep("list");
     setSelectedSvc(null);
+    setLocation("salon");
     setSelectedDate("");
     setSelectedTime("");
     setClientName("");
@@ -314,6 +318,31 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                 <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{selectedSvc.name}</p>
                 <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: "2px 0 0" }}>{selectedSvc.duration_min} min · {fmt(selectedSvc.price)}</p>
               </div>
+            </div>
+
+            {/* Location selector */}
+            <div style={{ marginBottom: 22 }}>
+              <p style={{ fontFamily: "var(--font-poppins)", fontSize: 11, fontWeight: 700, color: "var(--text-mid)", letterSpacing: "0.07em", margin: "0 0 10px" }}>LOCAL DO ATENDIMENTO</p>
+              {salon.home_enabled ? (
+                <div style={{ display: "flex", gap: 10 }}>
+                  {(["salon", "home"] as const).map(loc => (
+                    <button key={loc} onClick={() => setLocation(loc)}
+                      style={{ flex: 1, padding: "11px 8px", borderRadius: 11, border: `1.5px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, transition: "all 0.15s" }}>
+                      <span style={{ fontSize: 18 }}>{loc === "salon" ? "🏪" : "🏠"}</span>
+                      <span style={{ fontSize: 12, fontWeight: location === loc ? 700 : 400, color: location === loc ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
+                        {loc === "salon" ? "No Salão" : "Em Casa"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ background: "oklch(97% 0.01 0)", borderRadius: 10, padding: "10px 14px", border: "1px solid var(--border)", display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>ℹ️</span>
+                  <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: 0, lineHeight: 1.5 }}>
+                    Atendimento <strong style={{ color: "var(--text)" }}>apenas no salão</strong>. A profissional ainda não habilitou visitas a domicílio.
+                  </p>
+                </div>
+              )}
             </div>
 
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, color: "var(--text)", margin: "0 0 18px" }}>Escolha a data</h2>

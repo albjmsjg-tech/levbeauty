@@ -1,14 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Clock, ChevronRight, Calendar, Star } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { defaultServices } from "@/lib/data";
 import { fmt } from "@/lib/utils";
+
+const DAYS_PT  = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+function formatApptDate(dateStr: string): string {
+  // Parse as local date to avoid UTC-offset shifting the day
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  return `${DAYS_PT[d.getDay()]}, ${day} ${MONTHS_PT[month - 1]}`;
+}
+
+interface NextAppt {
+  service_name: string;
+  appt_date: string;
+  appt_time: string;
+}
 
 export default function ClientHomePage() {
   const router = useRouter();
   const [services] = useState(defaultServices);
+  const [clientName, setClientName] = useState("");
+  const [nextAppt, setNextAppt] = useState<NextAppt | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      if (profile?.full_name) setClientName((profile.full_name as string).split(" ")[0]);
+
+      // Fetch next appointment — use local date string to avoid UTC timezone shift
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const { data: appt } = await supabase
+        .from("appointments")
+        .select("service_name, appt_date, appt_time")
+        .eq("client_id", user.id)
+        .gte("appt_date", today)
+        .neq("status", "cancelado")
+        .order("appt_date", { ascending: true })
+        .order("appt_time", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (appt) setNextAppt(appt as NextAppt);
+    }
+    load();
+  }, []);
 
   const history = [
     { s: "Esmaltação em Gel", d: "15 Abr", p: 90 },
@@ -23,19 +74,26 @@ export default function ClientHomePage() {
         <div style={{ position: "absolute", bottom: -20, left: 10, width: 80, height: 80, borderRadius: "50%", background: "oklch(72% 0.115 75 / 0.2)" }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
           <div>
-            <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "oklch(40% 0.05 340)", letterSpacing: "0.05em" }}>Olá, Fernanda 👋</p>
+            <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "oklch(40% 0.05 340)", letterSpacing: "0.05em" }}>
+              Olá{clientName ? `, ${clientName}` : ""} 👋
+            </p>
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 28, fontWeight: 600, color: "var(--mauve-dark)", marginTop: 2, lineHeight: 1.1 }}>Pronta para arrasar?</h2>
           </div>
           <button style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", border: "none" }}>
             <Bell size={16} color="white" />
           </button>
         </div>
+
         {/* Next appointment */}
         <div style={{ marginTop: 16, background: "white", borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, boxShadow: "0 2px 12px oklch(40% 0.05 10 / 0.12)" }}>
           <Calendar size={16} color="var(--gold)" />
           <div>
             <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>Próximo agendamento</p>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", marginTop: 1 }}>Alongamento em Gel · Seg, 12 Mai · 10:00</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", marginTop: 1 }}>
+              {nextAppt
+                ? `${nextAppt.service_name} · ${formatApptDate(nextAppt.appt_date)} · ${nextAppt.appt_time}`
+                : "Nenhum agendamento próximo"}
+            </p>
           </div>
         </div>
       </div>
