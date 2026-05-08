@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, BarChart3, Calendar, ChevronRight } from "lucide-react";
 import type { FixedCost } from "@/types";
-import { defaultFixedCosts } from "@/lib/data";
+import { createClient } from "@/lib/supabase/client";
+import { mapDbCost, getOwnerSalon } from "@/lib/supabase/queries";
 import { fmt } from "@/lib/utils";
 
 function CostRow({ cost, onSave, onDelete }: { cost: FixedCost; onSave: (c: FixedCost) => void; onDelete: (id: number | string) => void }) {
@@ -42,48 +43,108 @@ function CostRow({ cost, onSave, onDelete }: { cost: FixedCost; onSave: (c: Fixe
 }
 
 export default function FinanceiroPage() {
-  const [costs, setCosts] = useState<FixedCost[]>(defaultFixedCosts);
+  const [salonId, setSalonId] = useState<string | null>(null);
+  const [costs, setCosts] = useState<FixedCost[]>([]);
+  const [monthRevenue, setMonthRevenue] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newVal, setNewVal] = useState("");
   const [exportModal, setExportModal] = useState(false);
 
-  const receita = 6840;
-  const totalFixed = costs.reduce((a, c) => a + c.val, 0);
-  const resultado = receita - totalFixed;
+  // Load salon + data
+  useEffect(() => {
+    const supabase = createClient();
+    getOwnerSalon(supabase).then(async salon => {
+      if (!salon) { setLoading(false); return; }
+      const id = salon.id as string;
+      setSalonId(id);
 
-  const saveCost = (updated: FixedCost) => setCosts(prev => prev.map(c => c.id === updated.id ? updated : c));
-  const deleteCost = (id: number | string) => setCosts(prev => prev.filter(c => c.id !== id));
-  const addCost = () => {
-    if (!newName.trim() || !newVal) return;
-    setCosts(prev => [...prev, { id: Date.now(), name: newName.trim(), val: Number(newVal) }]);
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+      const lastDay  = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+
+      const [{ data: costRows }, { data: apptRows }] = await Promise.all([
+        supabase.from("fixed_costs").select("*").eq("salon_id", id).order("created_at"),
+        supabase.from("appointments").select("price").eq("salon_id", id).gte("appt_date", firstDay).lte("appt_date", lastDay).neq("status", "cancelado"),
+      ]);
+
+      setCosts((costRows ?? []).map(r => mapDbCost(r as Record<string, unknown>)));
+      setMonthRevenue((apptRows ?? []).reduce((s, r) => s + Number(r.price), 0));
+      setLoading(false);
+    });
+  }, []);
+
+  const totalFixed = costs.reduce((a, c) => a + c.val, 0);
+  const resultado   = monthRevenue - totalFixed;
+
+  const saveCost = useCallback(async (updated: FixedCost) => {
+    setCosts(prev => prev.map(c => c.id === updated.id ? updated : c));
+    const supabase = createClient();
+    await supabase.from("fixed_costs").update({ name: updated.name, amount: updated.val }).eq("id", updated.id);
+  }, []);
+
+  const deleteCost = useCallback(async (id: number | string) => {
+    setCosts(prev => prev.filter(c => c.id !== id));
+    const supabase = createClient();
+    await supabase.from("fixed_costs").delete().eq("id", id);
+  }, []);
+
+  const addCost = async () => {
+    if (!newName.trim() || !newVal || !salonId) return;
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("fixed_costs")
+      .insert({ salon_id: salonId, name: newName.trim(), amount: Number(newVal) })
+      .select("*")
+      .single();
+    if (!error && data) {
+      setCosts(prev => [...prev, mapDbCost(data as Record<string, unknown>)]);
+    }
     setNewName(""); setNewVal(""); setAdding(false);
   };
 
-  const exportCSV = (period: "weekly" | "monthly") => {
-    const label = period === "weekly" ? "Semanal" : "Mensal";
-    const date = period === "weekly" ? "28 Abr - 04 Mai 2026" : "Maio 2026";
-    const appts = [
-      { data: "28/04", cliente: "Ana Costa", servico: "Alongamento em Gel", pagamento: "Pix", valor: 180 },
-      { data: "29/04", cliente: "Mariana Lima", servico: "Banho de Gel", pagamento: "Cartão", valor: 120 },
-      { data: "30/04", cliente: "Julia Santos", servico: "Esmaltação em Gel", pagamento: "Pix", valor: 90 },
-      { data: "01/05", cliente: "Beatriz Rocha", servico: "Manutencao", pagamento: "Presencial", valor: 80 },
-      { data: "02/05", cliente: "Ana Costa", servico: "Banho de Gel", pagamento: "Pix", valor: 120 },
-      ...(period === "monthly" ? [
-        { data: "05/05", cliente: "Carla Mendes", servico: "Alongamento em Gel", pagamento: "Pix", valor: 180 },
-        { data: "08/05", cliente: "Mariana Lima", servico: "Esmaltação em Gel", pagamento: "Cartão", valor: 90 },
-        { data: "12/05", cliente: "Julia Santos", servico: "Alongamento em Gel", pagamento: "Pix", valor: 180 },
-      ] : []),
-    ];
-    const totalRec = appts.reduce((a, r) => a + r.valor, 0);
-    const rows = [
+  const exportCSV = async (period: "weekly" | "monthly") => {
+    if (!salonId) return;
+    const supabase = createClient();
+    const now = new Date();
+    let firstDay: string, lastDay: string, label: string, dateLabel: string;
+
+    if (period === "weekly") {
+      const dow = now.getDay();
+      const sun = new Date(now); sun.setDate(now.getDate() - dow); sun.setHours(0,0,0,0);
+      const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
+      firstDay  = sun.toISOString().split("T")[0];
+      lastDay   = sat.toISOString().split("T")[0];
+      label     = "Semanal";
+      dateLabel = `${sun.toLocaleDateString("pt-BR")} - ${sat.toLocaleDateString("pt-BR")}`;
+    } else {
+      firstDay  = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+      lastDay   = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+      label     = "Mensal";
+      dateLabel = now.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    }
+
+    const { data: appts } = await supabase
+      .from("appointments")
+      .select("appt_date, client_name, service_name, payment_method, price")
+      .eq("salon_id", salonId)
+      .gte("appt_date", firstDay)
+      .lte("appt_date", lastDay)
+      .neq("status", "cancelado")
+      .order("appt_date");
+
+    const rows = appts ?? [];
+    const totalRec = rows.reduce((s, r) => s + Number(r.price), 0);
+
+    const lines = [
       `LEVBEAUTY — RELATORIO ${label.toUpperCase()}`,
-      `Periodo: ${date}`,
+      `Periodo: ${dateLabel}`,
       "",
       "Data,Cliente,Servico,Pagamento,Valor (R$)",
-      ...appts.map(r => `${r.data},${r.cliente},${r.servico},${r.pagamento},${r.valor.toFixed(2)}`),
+      ...rows.map(r => `${r.appt_date},${r.client_name},${r.service_name},${r.payment_method ?? ""},${Number(r.price).toFixed(2)}`),
       "",
-      `Total Atendimentos,${appts.length}`,
+      `Total Atendimentos,${rows.length}`,
       `Receita Total,${totalRec.toFixed(2)}`,
       "",
       "CUSTOS FIXOS DO MES",
@@ -93,18 +154,22 @@ export default function FinanceiroPage() {
       "",
       `RESULTADO,${(totalRec - totalFixed).toFixed(2)}`,
     ];
-    const blob = new Blob(["﻿" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+
+    const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `LevBeauty_Relatorio_${label}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `LevBeauty_${label}_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     setExportModal(false);
   };
 
+  const monthLabel = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
   return (
     <div style={{ padding: "28px 32px" }}>
+
       {/* Export Modal */}
       {exportModal && (
         <div style={{ position: "fixed", inset: 0, background: "oklch(22% 0.04 340 / 0.5)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)", padding: 16 }}>
@@ -113,12 +178,12 @@ export default function FinanceiroPage() {
               <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, fontWeight: 600, color: "var(--text)" }}>Exportar Relatório</h2>
               <button onClick={() => setExportModal(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: "var(--text-light)", lineHeight: 1 }}>×</button>
             </div>
-            <p style={{ fontSize: 13, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", marginBottom: 20, lineHeight: 1.6 }}>Escolha o período. O arquivo CSV pode ser aberto no Excel ou Google Sheets.</p>
+            <p style={{ fontSize: 13, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", marginBottom: 20, lineHeight: 1.6 }}>Dados reais do banco. Compatível com Excel e Google Sheets.</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                { period: "weekly" as const, label: "Relatório Semanal", sub: "28 Abr — 04 Mai 2026", icon: Calendar },
-                { period: "monthly" as const, label: "Relatório Mensal", sub: "Maio 2026 — completo", icon: BarChart3 },
-              ].map(opt => {
+              {([
+                { period: "weekly" as const, label: "Relatório Semanal", sub: "Esta semana", icon: Calendar },
+                { period: "monthly" as const, label: "Relatório Mensal", sub: monthLabel, icon: BarChart3 },
+              ]).map(opt => {
                 const Icon = opt.icon;
                 return (
                   <button key={opt.period} onClick={() => exportCSV(opt.period)}
@@ -139,7 +204,6 @@ export default function FinanceiroPage() {
                 );
               })}
             </div>
-            <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 16, textAlign: "center" }}>Formato CSV — compatível com Excel e Google Sheets</p>
           </div>
         </div>
       )}
@@ -147,7 +211,7 @@ export default function FinanceiroPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--text)" }}>Financeiro</h1>
         <button onClick={() => setExportModal(true)}
-          style={{ padding: "10px 20px", borderRadius: 12, border: "1.5px solid var(--gold)", background: "white", cursor: "pointer", fontSize: 12, fontFamily: "var(--font-poppins)", color: "var(--gold)", fontWeight: 600, display: "flex", alignItems: "center", gap: 7, transition: "all 0.15s" }}
+          style={{ padding: "10px 20px", borderRadius: 12, border: "1.5px solid var(--gold)", background: "white", cursor: "pointer", fontSize: 12, fontFamily: "var(--font-poppins)", color: "var(--gold)", fontWeight: 600, display: "flex", alignItems: "center", gap: 7 }}
           onMouseEnter={e => { e.currentTarget.style.background = "oklch(98% 0.04 75)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "white"; }}>
           <BarChart3 size={14} color="var(--gold)" /> Exportar Relatório
@@ -157,9 +221,9 @@ export default function FinanceiroPage() {
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
         {[
-          { l: "Receita Bruta", v: fmt(receita), sub: "Maio 2026", color: "oklch(38% 0.1 145)" },
-          { l: "Custos Fixos", v: fmt(totalFixed), sub: "Despesas mensais", color: "oklch(50% 0.1 20)" },
-          { l: "Resultado", v: fmt(resultado), sub: "Lucro do mês", color: resultado >= 0 ? "oklch(38% 0.1 145)" : "oklch(50% 0.1 20)" },
+          { l: "Receita Bruta", v: loading ? "..." : fmt(monthRevenue), sub: monthLabel, color: "oklch(38% 0.1 145)" },
+          { l: "Custos Fixos",  v: loading ? "..." : fmt(totalFixed),   sub: "Despesas mensais", color: "oklch(50% 0.1 20)" },
+          { l: "Resultado",     v: loading ? "..." : fmt(resultado),     sub: "Lucro do mês", color: resultado >= 0 ? "oklch(38% 0.1 145)" : "oklch(50% 0.1 20)" },
         ].map((k, i) => (
           <div key={i} style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid var(--border)" }}>
             <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 8 }}>{k.l}</p>
@@ -192,13 +256,20 @@ export default function FinanceiroPage() {
 
         <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 8 }}>Passe o mouse sobre uma linha para editar ou excluir</p>
 
-        {costs.map(c => <CostRow key={c.id} cost={c} onSave={saveCost} onDelete={deleteCost} />)}
-
-        {costs.length === 0 && <p style={{ textAlign: "center", padding: 20, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 13 }}>Nenhum custo fixo cadastrado.</p>}
+        {loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[1, 2, 3, 4].map(i => <div key={i} style={{ height: 38, borderRadius: 6, background: "var(--border)" }} />)}
+          </div>
+        ) : (
+          <>
+            {costs.map(c => <CostRow key={c.id} cost={c} onSave={saveCost} onDelete={deleteCost} />)}
+            {costs.length === 0 && <p style={{ textAlign: "center", padding: 20, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 13 }}>Nenhum custo fixo cadastrado.</p>}
+          </>
+        )}
 
         <div style={{ paddingTop: 14, marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "var(--font-poppins)", color: "var(--text)" }}>Total Mensal</span>
-          <span style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-playfair)", color: "oklch(50% 0.1 20)" }}>{fmt(totalFixed)}</span>
+          <span style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-playfair)", color: "oklch(50% 0.1 20)" }}>{loading ? "..." : fmt(totalFixed)}</span>
         </div>
       </div>
     </div>

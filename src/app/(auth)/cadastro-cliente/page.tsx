@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function CadastroPage() {
+export default function CadastroClientePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -22,10 +22,10 @@ export default function CadastroPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name, role: "owner" } },
+        options: { data: { full_name: name, role: "client" } },
       });
       if (error) { setError(error.message); return; }
-      router.push("/onboarding");
+      router.push("/app");
     } catch {
       setError("Erro ao cadastrar. Tente novamente.");
     } finally {
@@ -41,13 +41,13 @@ export default function CadastroPage() {
       <div style={{ textAlign: "center", marginBottom: 28 }}>
         <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 14px" }}>💅</div>
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--mauve-dark)" }}>Criar sua conta</h1>
-        <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 6 }}>Gerencie seu salão com o LevBeauty</p>
+        <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 6 }}>Veja seu histórico de agendamentos</p>
       </div>
 
       <div style={{ background: "white", borderRadius: 20, padding: "28px 24px", boxShadow: "0 4px 24px oklch(40% 0.04 340 / 0.08)", border: "1px solid var(--border)" }}>
         <form onSubmit={handleCadastro} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
-            <label style={label}>Nome completo</label>
+            <label style={label}>Seu nome</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Fernanda Silva" required style={field} />
           </div>
           <div>
@@ -66,7 +66,7 @@ export default function CadastroPage() {
           )}
 
           <button type="submit" disabled={loading} style={{ padding: "14px", borderRadius: 12, border: "none", background: loading ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: loading ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: loading ? "not-allowed" : "pointer" }}>
-            {loading ? "Criando conta…" : "Criar conta"}
+            {loading ? "Criando conta…" : "Criar conta grátis"}
           </button>
         </form>
 
