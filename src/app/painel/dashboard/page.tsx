@@ -18,6 +18,8 @@ export default function DashboardPage() {
   const [monthRevenue, setMonthRevenue] = useState(0);
   const [monthCount, setMonthCount] = useState(0);
   const [hasSalon, setHasSalon] = useState(true);
+  const [salonSlug, setSalonSlug] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -37,12 +39,13 @@ export default function DashboardPage() {
       // Salon
       const { data: salon } = await supabase
         .from("salons")
-        .select("id")
+        .select("id, slug")
         .eq("owner_id", user.id)
         .single();
 
       if (!salon) { setHasSalon(false); setLoading(false); return; }
       const salonId = salon.id as string;
+      if (salon.slug) setSalonSlug(salon.slug as string);
 
       // Today's appointments
       const today = new Date().toISOString().split("T")[0];
@@ -81,6 +84,13 @@ export default function DashboardPage() {
     }
     load();
   }, [router]);
+
+  const copyPublicLink = () => {
+    if (!salonSlug) return;
+    navigator.clipboard.writeText(`${window.location.origin}/s/${salonSlug}`).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const todayRevenue = appts.filter(a => a.status !== "cancelado").reduce((s, a) => s + a.price, 0);
   const totalFixed = costs.reduce((s, c) => s + c.val, 0);
@@ -152,6 +162,33 @@ export default function DashboardPage() {
           );
         })}
       </div>
+
+      {/* Public link banner */}
+      {salonSlug && (
+        <div style={{ background: "linear-gradient(135deg, oklch(28% 0.055 340), oklch(22% 0.04 340))", borderRadius: 16, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "oklch(72% 0.115 75)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🔗</div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <p style={{ fontFamily: "var(--font-poppins)", fontSize: 11, fontWeight: 700, color: "oklch(72% 0.115 75)", letterSpacing: "0.06em", margin: "0 0 3px" }}>SEU LINK PÚBLICO DE AGENDAMENTO</p>
+            <code style={{ fontFamily: "monospace", fontSize: 13, color: "white" }}>
+              {typeof window !== "undefined" ? `${window.location.origin}/s/${salonSlug}` : `/s/${salonSlug}`}
+            </code>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button
+              onClick={copyPublicLink}
+              style={{ padding: "8px 16px", borderRadius: 9, border: "1.5px solid oklch(60% 0.04 340)", background: copied ? "oklch(65% 0.15 145)" : "transparent", color: copied ? "white" : "oklch(80% 0.02 340)", fontFamily: "var(--font-poppins)", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>
+              {copied ? "✓ Copiado!" : "Copiar"}
+            </button>
+            <a
+              href={`/s/${salonSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ padding: "8px 16px", borderRadius: 9, border: "none", background: "oklch(72% 0.115 75)", color: "white", fontFamily: "var(--font-poppins)", fontSize: 12, fontWeight: 600, cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center" }}>
+              Abrir →
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Bottom grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}>
