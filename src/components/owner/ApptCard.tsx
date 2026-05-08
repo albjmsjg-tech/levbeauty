@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import type { Appointment } from "@/types";
-import { statusColors, statusList, allTimes, allServiceNames } from "@/lib/data";
+import { statusColors, statusList } from "@/lib/data";
 import { fmt } from "@/lib/utils";
 
-function StatusBadge({ status, onClick }: { status: string; onClick?: (e: React.MouseEvent) => void }) {
+function StatusBadge({ status }: { status: string }) {
   const s = statusColors[status] || statusColors.pendente;
   return (
-    <span onClick={onClick} style={{ fontSize: 10, fontWeight: 600, fontFamily: "var(--font-poppins)", padding: "4px 11px", borderRadius: 10, background: s.bg, color: s.color, cursor: onClick ? "pointer" : "default", border: onClick ? `1.5px solid ${s.color}40` : "none", userSelect: "none", whiteSpace: "nowrap" }}>
+    <span style={{ fontSize: 10, fontWeight: 600, fontFamily: "var(--font-poppins)", padding: "4px 11px", borderRadius: 10, background: s.bg, color: s.color, border: `1.5px solid ${s.color}40`, userSelect: "none", whiteSpace: "nowrap" }}>
       {status}
     </span>
   );
@@ -19,12 +19,18 @@ interface Props {
   appt: Appointment;
   onUpdate: (a: Appointment) => void;
   onDelete: (id: number | string) => void;
+  onOpen?: (a: Appointment) => void;
 }
 
-export function ApptCard({ appt, onUpdate, onDelete }: Props) {
+export function ApptCard({ appt, onUpdate, onDelete, onOpen }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Appointment>({ ...appt });
+
+  const handleCardClick = () => {
+    if (onOpen) { onOpen(appt); return; }
+    setExpanded(p => !p);
+  };
 
   const cycleStatus = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -38,7 +44,7 @@ export function ApptCard({ appt, onUpdate, onDelete }: Props) {
 
   return (
     <div style={{ marginBottom: 10 }}>
-      <div onClick={() => setExpanded(p => !p)}
+      <div onClick={handleCardClick}
         style={{ display: "flex", gap: 14, alignItems: "stretch", cursor: "pointer", background: "white", borderRadius: 14, border: `1.5px solid ${expanded ? "var(--gold)" : "var(--border)"}`, overflow: "hidden", boxShadow: expanded ? "0 4px 18px oklch(72% 0.115 75 / 0.12)" : "0 1px 4px oklch(40% 0.04 340 / 0.05)", transition: "all 0.2s" }}>
         <div style={{ width: 64, background: expanded ? "var(--gold)" : "oklch(98% 0.015 75)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "14px 0", flexShrink: 0, transition: "background 0.2s" }}>
           <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-poppins)", color: expanded ? "white" : "var(--text)", lineHeight: 1 }}>{appt.time}</span>
@@ -50,15 +56,19 @@ export function ApptCard({ appt, onUpdate, onDelete }: Props) {
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{fmt(appt.price)}</span>
-            <StatusBadge status={appt.status} onClick={cycleStatus} />
-            <div style={{ transition: "transform 0.2s", transform: expanded ? "rotate(90deg)" : "none" }}>
-              <ChevronRight size={14} color="var(--text-light)" />
-            </div>
+            <StatusBadge status={appt.status} />
+            {!onOpen && (
+              <div style={{ transition: "transform 0.2s", transform: expanded ? "rotate(90deg)" : "none" }}>
+                <ChevronRight size={14} color="var(--text-light)" />
+              </div>
+            )}
+            {onOpen && <ChevronRight size={14} color="var(--text-light)" />}
           </div>
         </div>
       </div>
 
-      {expanded && (
+      {/* Inline expand (only when onOpen is not provided) */}
+      {!onOpen && expanded && (
         <div style={{ background: "white", borderRadius: "0 0 14px 14px", border: "1.5px solid var(--gold)", borderTop: "none", padding: "16px 18px", marginTop: -2 }}>
           {!editing ? (
             <>
@@ -82,7 +92,7 @@ export function ApptCard({ appt, onUpdate, onDelete }: Props) {
                   {statusList.map(s => {
                     const sc = statusColors[s];
                     return (
-                      <button key={s} onClick={() => onUpdate({ ...appt, status: s })}
+                      <button key={s} onClick={(e) => { e.stopPropagation(); onUpdate({ ...appt, status: s }); }}
                         style={{ padding: "6px 14px", borderRadius: 8, border: `1.5px solid ${appt.status === s ? sc.color : "var(--border)"}`, background: appt.status === s ? sc.bg : "white", cursor: "pointer", fontSize: 11, fontWeight: appt.status === s ? 700 : 400, color: appt.status === s ? sc.color : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
                         {appt.status === s && "✓ "}{s}
                       </button>
@@ -92,11 +102,11 @@ export function ApptCard({ appt, onUpdate, onDelete }: Props) {
               </div>
 
               <div style={{ display: "flex", gap: 8, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
-                <button onClick={() => { setDraft({ ...appt }); setEditing(true); }}
+                <button onClick={(e) => { e.stopPropagation(); setDraft({ ...appt }); setEditing(true); }}
                   style={{ flex: 1, padding: 9, borderRadius: 9, border: "1.5px solid var(--gold)", background: "oklch(98% 0.04 75)", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>
                   ✏️ Editar
                 </button>
-                <button onClick={() => onDelete(appt.id)}
+                <button onClick={(e) => { e.stopPropagation(); onDelete(appt.id); }}
                   style={{ padding: "9px 16px", borderRadius: 9, border: "1.5px solid oklch(90% 0.04 15)", background: "oklch(98% 0.02 15)", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "oklch(50% 0.12 15)", fontFamily: "var(--font-poppins)" }}>
                   🗑️ Excluir
                 </button>
@@ -109,24 +119,12 @@ export function ApptCard({ appt, onUpdate, onDelete }: Props) {
                 {[
                   { l: "Nome", key: "name", type: "text" },
                   { l: "Telefone", key: "phone", type: "text" },
-                ] .map(f => (
+                ].map(f => (
                   <div key={f.key}>
                     <label style={{ fontSize: 11, fontWeight: 500, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 4 }}>{f.l}</label>
                     <input value={String(draft[f.key as keyof Appointment])} onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))} style={fieldStyle} />
                   </div>
                 ))}
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 500, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 4 }}>Horário</label>
-                  <select value={draft.time} onChange={e => setDraft(d => ({ ...d, time: e.target.value }))} style={fieldStyle}>
-                    {allTimes.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 500, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 4 }}>Serviço</label>
-                  <select value={draft.svc} onChange={e => setDraft(d => ({ ...d, svc: e.target.value }))} style={fieldStyle}>
-                    {allServiceNames.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 500, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 4 }}>Valor (R$)</label>
                   <input type="number" value={draft.price} onChange={e => setDraft(d => ({ ...d, price: Number(e.target.value) }))} style={fieldStyle} />
