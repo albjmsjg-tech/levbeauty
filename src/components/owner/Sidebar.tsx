@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Home, Calendar, DollarSign, Package, BarChart3, Settings, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,6 +18,22 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [ownerName, setOwnerName] = useState("");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.full_name) setOwnerName(data.full_name as string);
+        });
+    });
+  }, []);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -57,7 +74,7 @@ export function Sidebar() {
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 12px", marginBottom: 4 }}>
           <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, oklch(85% 0.07 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>👩</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Levi Santos</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ownerName || "—"}</p>
             <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>Proprietária</p>
           </div>
         </div>
