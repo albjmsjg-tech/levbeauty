@@ -161,17 +161,19 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       salon_id: salon.id,
       client_id: null,
       client_name: clientName.trim(),
-      client_phone: clientPhone.trim(),
-      service_id: selectedSvc.id,
+      client_phone: clientPhone.trim() || null,
       service_name: selectedSvc.name,
       appt_date: selectedDate,
       appt_time: selectedTime,
       duration_min: selectedSvc.duration_min,
       price: selectedSvc.price,
-      location,
+      status: "pendente",
+      payment_method: "local",
+      location: location === "home" ? "domicilio" : "salao",
     });
     if (error) {
-      setSubmitError("Erro ao confirmar agendamento. Tente novamente.");
+      console.error("Guest booking error:", error);
+      setSubmitError(`Erro ao confirmar agendamento: ${error.message}`);
       setSubmitting(false);
       return;
     }

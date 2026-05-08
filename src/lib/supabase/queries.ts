@@ -60,10 +60,10 @@ export async function getOwnerSalon(supabase: SupabaseClient): Promise<DbRow | n
 
 const PT_DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export function getWeekDates(): Date[] {
+export function getWeekDates(weekOffset: number = 0): Date[] {
   const today = new Date();
   const sunday = new Date(today);
-  sunday.setDate(today.getDate() - today.getDay());
+  sunday.setDate(today.getDate() - today.getDay() + weekOffset * 7);
   sunday.setHours(0, 0, 0, 0);
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(sunday);

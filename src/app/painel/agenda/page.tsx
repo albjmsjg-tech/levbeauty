@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { ApptCard } from "@/components/owner/ApptCard";
 import { NewApptModal } from "@/components/owner/NewApptModal";
 import type { Appointment } from "@/types";
@@ -10,7 +10,21 @@ import { mapDbAppt, apptToDbRow, getOwnerSalon, getWeekDates, weekDayLabel, toIS
 import { statusColors, statusList, allTimes, allServiceNames } from "@/lib/data";
 import { fmt } from "@/lib/utils";
 
-// ─── Detail Modal ────────────────────────────────────────────────────────────
+const MONTHS_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+function weekRangeLabel(weekDates: Date[], weekOffset: number): string {
+  if (weekOffset === 0) return "Semana atual";
+  if (weekOffset === -1) return "Semana passada";
+  if (weekOffset === 1) return "Próxima semana";
+  const first = weekDates[0];
+  const last = weekDates[6];
+  if (first.getMonth() === last.getMonth()) {
+    return `${first.getDate()} – ${last.getDate()} de ${MONTHS_SHORT[first.getMonth()]}`;
+  }
+  return `${first.getDate()} ${MONTHS_SHORT[first.getMonth()]} – ${last.getDate()} ${MONTHS_SHORT[last.getMonth()]}`;
+}
+
+// ─── Detail Modal ─────────────────────────────────────────────────────────────
 function ApptModal({
   appt,
   onClose,
@@ -40,35 +54,15 @@ function ApptModal({
 
   const saveEdit = () => { onUpdate(draft); setEditing(false); };
 
-  const handleDelete = () => {
-    onDelete(appt.id);
-    onClose();
-  };
+  const handleDelete = () => { onDelete(appt.id); onClose(); };
 
   const sc = statusColors[appt.status] || statusColors.pendente;
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: "fixed", inset: 0, background: "oklch(20% 0.03 340 / 0.5)", zIndex: 100, backdropFilter: "blur(2px)" }}
-      />
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "oklch(20% 0.03 340 / 0.5)", zIndex: 100, backdropFilter: "blur(2px)" }} />
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 101, width: "min(520px, calc(100vw - 48px))", maxHeight: "calc(100vh - 64px)", overflowY: "auto", background: "white", borderRadius: 20, boxShadow: "0 20px 60px oklch(20% 0.04 340 / 0.25)" }}>
 
-      {/* Sheet */}
-      <div style={{
-        position: "fixed",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        zIndex: 101,
-        width: "min(520px, calc(100vw - 48px))",
-        maxHeight: "calc(100vh - 64px)",
-        overflowY: "auto",
-        background: "white",
-        borderRadius: 20,
-        boxShadow: "0 20px 60px oklch(20% 0.04 340 / 0.25)",
-      }}>
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
@@ -184,11 +178,12 @@ export default function AgendaPage() {
   const [salonId, setSalonId] = useState<string | null>(null);
   const [appts, setAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState(new Date().getDay());
   const [showNewModal, setShowNewModal] = useState(false);
   const [modalAppt, setModalAppt] = useState<Appointment | null>(null);
 
-  const weekDates = getWeekDates();
+  const weekDates = getWeekDates(weekOffset);
   const selectedDate = toISODate(weekDates[selectedDay]);
 
   useEffect(() => {
@@ -217,7 +212,6 @@ export default function AgendaPage() {
   const update = async (updated: Appointment) => {
     if (!salonId) return;
     setAppts(prev => prev.map(a => a.id === updated.id ? updated : a));
-    // Keep modal in sync
     setModalAppt(prev => prev?.id === updated.id ? updated : prev);
     const supabase = createClient();
     await supabase
@@ -257,6 +251,12 @@ export default function AgendaPage() {
     setShowNewModal(false);
   };
 
+  const navigateWeek = (delta: number) => {
+    setWeekOffset(w => w + delta);
+    // When jumping to the current week, snap selection to today's weekday
+    if (weekOffset + delta === 0) setSelectedDay(new Date().getDay());
+  };
+
   const dayRevTotal = appts.filter(a => a.status !== "cancelado").reduce((s, a) => s + Number(a.price), 0);
 
   return (
@@ -285,20 +285,50 @@ export default function AgendaPage() {
         </button>
       </div>
 
-      {/* Day picker */}
+      {/* Week navigation + Day picker */}
       <div style={{ background: "white", borderRadius: 16, padding: 16, border: "1px solid var(--border)", marginBottom: 20 }}>
+        {/* Week nav */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <button onClick={() => navigateWeek(-1)}
+            style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ChevronLeft size={16} color="var(--text-mid)" />
+          </button>
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", margin: 0 }}>
+              {weekRangeLabel(weekDates, weekOffset)}
+            </p>
+            {weekOffset !== 0 && (
+              <button onClick={() => { setWeekOffset(0); setSelectedDay(new Date().getDay()); }}
+                style={{ fontSize: 10, color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 2 }}>
+                Ir para hoje
+              </button>
+            )}
+          </div>
+          <button onClick={() => navigateWeek(1)}
+            style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ChevronRight size={16} color="var(--text-mid)" />
+          </button>
+        </div>
+
+        {/* Day pills */}
         <div style={{ display: "flex", gap: 4 }}>
-          {weekDates.map((d, i) => (
-            <button key={i} onClick={() => setSelectedDay(i)}
-              style={{ flex: 1, padding: "10px 4px", borderRadius: 10, border: "none", background: i === selectedDay ? "var(--gold)" : "oklch(98% 0.01 75)", cursor: "pointer", textAlign: "center", transition: "all 0.15s" }}>
-              <p style={{ fontSize: 10, color: i === selectedDay ? "oklch(94% 0.04 75)" : "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 500, marginBottom: 2 }}>
-                {weekDayLabel(d).split(" ")[0]}
-              </p>
-              <p style={{ fontSize: 17, fontWeight: 700, color: i === selectedDay ? "white" : "var(--text)", fontFamily: "var(--font-poppins)" }}>
-                {d.getDate()}
-              </p>
-            </button>
-          ))}
+          {weekDates.map((d, i) => {
+            const isToday = toISODate(d) === toISODate(new Date());
+            return (
+              <button key={i} onClick={() => setSelectedDay(i)}
+                style={{ flex: 1, padding: "10px 4px", borderRadius: 10, border: "none", background: i === selectedDay ? "var(--gold)" : "oklch(98% 0.01 75)", cursor: "pointer", textAlign: "center", transition: "all 0.15s", position: "relative" }}>
+                <p style={{ fontSize: 10, color: i === selectedDay ? "oklch(94% 0.04 75)" : "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 500, marginBottom: 2 }}>
+                  {weekDayLabel(d).split(" ")[0]}
+                </p>
+                <p style={{ fontSize: 17, fontWeight: 700, color: i === selectedDay ? "white" : "var(--text)", fontFamily: "var(--font-poppins)" }}>
+                  {d.getDate()}
+                </p>
+                {isToday && (
+                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: i === selectedDay ? "white" : "var(--gold)", margin: "2px auto 0" }} />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
