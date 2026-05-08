@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const plans = [
   {
@@ -35,23 +35,10 @@ const plans = [
 ];
 
 export default function AssinaturaPage() {
-  const [loading, setLoading] = useState<string | null>(null);
+  const router = useRouter();
 
-  const handleSubscribe = async (planId: string) => {
-    setLoading(planId);
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-      alert("Erro ao criar assinatura. Configure suas chaves Stripe.");
-    } finally {
-      setLoading(null);
-    }
+  const handleSubscribe = () => {
+    router.push("/cadastro");
   };
 
   return (
@@ -134,8 +121,7 @@ export default function AssinaturaPage() {
 
               {/* CTA */}
               <button
-                onClick={() => handleSubscribe(plan.id)}
-                disabled={loading === plan.id}
+                onClick={handleSubscribe}
                 style={{
                   width: "100%",
                   padding: "14px",
@@ -147,11 +133,10 @@ export default function AssinaturaPage() {
                   fontWeight: 600,
                   fontFamily: "var(--font-poppins)",
                   boxShadow: plan.recommended ? "0 4px 16px oklch(72% 0.115 75 / 0.35)" : "none",
-                  cursor: loading === plan.id ? "not-allowed" : "pointer",
-                  opacity: loading === plan.id ? 0.7 : 1,
+                  cursor: "pointer",
                   transition: "all 0.2s",
                 }}>
-                {loading === plan.id ? "Carregando…" : "Começar grátis"}
+                Começar grátis
               </button>
             </div>
           ))}

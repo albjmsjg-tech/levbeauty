@@ -20,6 +20,7 @@ export default function LoginPage() {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { setError("E-mail ou senha incorretos."); return; }
+      router.refresh();
       router.push("/painel/dashboard");
     } catch {
       setError("Erro ao conectar. Tente novamente.");
@@ -56,7 +57,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button type="submit" disabled={loading} style={{ padding: "14px", borderRadius: 12, border: "none", background: loading ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: loading ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", transition: "all 0.2s" }}>
+          <button type="submit" disabled={loading} style={{ padding: "14px", borderRadius: 12, border: "none", background: loading ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: loading ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", transition: "all 0.2s", cursor: loading ? "not-allowed" : "pointer" }}>
             {loading ? "Entrando…" : "Entrar"}
           </button>
         </form>
