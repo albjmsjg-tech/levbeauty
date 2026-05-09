@@ -73,10 +73,11 @@ export default function OnboardingPage() {
         if (salonErr.code === "23505") {
           slugToUse = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
         } else {
-          throw salonErr;
+          console.error("Salon insert error:", salonErr);
+          throw new Error(`Erro ao criar salão: ${salonErr.message}`);
         }
       }
-      if (!salonRow) throw new Error("Não foi possível criar o salão.");
+      if (!salonRow) throw new Error("Não foi possível criar o salão (slug conflict).");
       setSavedSlug(salonRow.slug ?? slugToUse);
 
       // Create selected services
@@ -85,21 +86,28 @@ export default function OnboardingPage() {
           salon_id: salonRow!.id,
           name,
           ...SVC_DEFAULTS[name],
+          active: true,
         }));
         const { error: svcErr } = await supabase.from("services").insert(rows);
-        if (svcErr) throw svcErr;
+        if (svcErr) {
+          console.error("Services insert error:", svcErr);
+          throw new Error(`Erro ao criar serviços: ${svcErr.message}`);
+        }
       }
 
-      // Create trialing subscription
-      await supabase.from("subscriptions").insert({
+      // Create trialing subscription — non-fatal, no RLS INSERT policy needed
+      const { error: subErr } = await supabase.from("subscriptions").insert({
         owner_id: user.id,
         plan: "pro",
         status: "trialing",
       });
+      if (subErr) console.warn("Subscription insert skipped:", subErr.message);
 
       setSaved(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao salvar. Tente novamente.");
+      const msg = e instanceof Error ? e.message : (e as { message?: string }).message;
+      console.error("Onboarding handleFinish error:", e);
+      setError(msg ?? "Erro ao salvar. Tente novamente.");
     } finally {
       setSaving(false);
     }

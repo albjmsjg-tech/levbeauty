@@ -10,18 +10,19 @@ import { mapDbAppt, apptToDbRow, getOwnerSalon, getWeekDates, weekDayLabel, toIS
 import { statusColors, statusList, allTimes, allServiceNames } from "@/lib/data";
 import { fmt } from "@/lib/utils";
 
+const MONTHS_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const MONTHS_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
-function weekRangeLabel(weekDates: Date[], weekOffset: number): string {
-  if (weekOffset === 0) return "Semana atual";
-  if (weekOffset === -1) return "Semana passada";
-  if (weekOffset === 1) return "Próxima semana";
+function weekRangeLabel(weekDates: Date[]): string {
   const first = weekDates[0];
   const last = weekDates[6];
+  // Same month: "4 – 10 de Maio 2026"
   if (first.getMonth() === last.getMonth()) {
-    return `${first.getDate()} – ${last.getDate()} de ${MONTHS_SHORT[first.getMonth()]}`;
+    return `${first.getDate()} – ${last.getDate()} de ${MONTHS_FULL[first.getMonth()]} ${last.getFullYear()}`;
   }
-  return `${first.getDate()} ${MONTHS_SHORT[first.getMonth()]} – ${last.getDate()} ${MONTHS_SHORT[last.getMonth()]}`;
+  // Crosses month boundary: "28 Abr – 4 Mai 2026"
+  const yearSuffix = last.getFullYear();
+  return `${first.getDate()} ${MONTHS_SHORT[first.getMonth()]} – ${last.getDate()} ${MONTHS_SHORT[last.getMonth()]} ${yearSuffix}`;
 }
 
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
@@ -252,9 +253,11 @@ export default function AgendaPage() {
   };
 
   const navigateWeek = (delta: number) => {
-    setWeekOffset(w => w + delta);
-    // When jumping to the current week, snap selection to today's weekday
-    if (weekOffset + delta === 0) setSelectedDay(new Date().getDay());
+    setWeekOffset(prev => {
+      const next = prev + delta;
+      if (next === 0) setSelectedDay(new Date().getDay());
+      return next;
+    });
   };
 
   const dayRevTotal = appts.filter(a => a.status !== "cancelado").reduce((s, a) => s + Number(a.price), 0);
@@ -295,7 +298,7 @@ export default function AgendaPage() {
           </button>
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", margin: 0 }}>
-              {weekRangeLabel(weekDates, weekOffset)}
+              {weekRangeLabel(weekDates)}
             </p>
             {weekOffset !== 0 && (
               <button onClick={() => { setWeekOffset(0); setSelectedDay(new Date().getDay()); }}
