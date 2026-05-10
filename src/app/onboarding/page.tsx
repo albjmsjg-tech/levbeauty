@@ -50,7 +50,7 @@ export default function OnboardingPage() {
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr || !user) throw new Error("Sessão expirada. Faça login novamente.");
 
-      const baseSlug = generateSlug(salon.name);
+      const baseSlug = generateSlug(salon.name) || `salao-${user.id.slice(0, 8)}`;
       let slugToUse = baseSlug;
       let salonRow: { id: string; slug: string } | null = null;
 

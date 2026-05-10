@@ -19,12 +19,18 @@ export default function CadastroPage() {
     setError("");
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { full_name: name, role: "owner" } },
       });
       if (error) { setError(error.message); return; }
+      if (!data.session) {
+        // Email confirmation required — tell user to check inbox
+        setError("Verifique seu e-mail para confirmar a conta antes de continuar.");
+        return;
+      }
+      router.refresh();
       router.push("/onboarding");
     } catch {
       setError("Erro ao cadastrar. Tente novamente.");
