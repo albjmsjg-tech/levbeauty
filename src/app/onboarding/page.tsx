@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { saveSalon, saveServices } from "./actions";
 
 const steps = ["Salão", "Serviços", "Plano"];
 
@@ -46,80 +46,44 @@ export default function OnboardingPage() {
     setSaving(true);
     setError("");
     try {
-      const supabase = createClient();
+      const baseName = salon.name.trim();
+      const baseSlug = generateSlug(baseName);
 
-      // Verify session is valid (getSession reads from storage, getUser validates with server)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Sessão expirada. Faça login novamente.");
-      const user = session.user;
-
-      const baseSlug = generateSlug(salon.name) || `salao-${user.id.slice(0, 8)}`;
-      let slugToUse = baseSlug;
+      // Try slug variants until one is unique (up to 3 attempts)
       let salonRow: { id: string; slug: string } | null = null;
-
-      // Retry with random suffix if slug collides
       for (let attempt = 0; attempt < 3; attempt++) {
-        const { data, error: salonErr } = await supabase
-          .from("salons")
-          .insert({
-            owner_id: user.id,
-            name: salon.name.trim(),
-            phone: salon.phone.trim() || null,
-            address: salon.address.trim() || null,
-            cep_base: salon.cep.trim() || null,
-            slug: slugToUse,
-          })
-          .select("id, slug")
-          .single();
+        const slug = attempt === 0
+          ? (baseSlug || `salao-${Math.random().toString(36).slice(2, 10)}`)
+          : `${baseSlug || "salao"}-${Math.random().toString(36).slice(2, 6)}`;
 
-        if (!salonErr) { salonRow = data; break; }
-        if (salonErr.code === "23505") {
-          slugToUse = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
-        } else {
-          console.error("Salon insert error:", salonErr);
-          throw new Error(`Erro ao criar salão: ${salonErr.message}`);
+        const result = await saveSalon({
+          name: baseName,
+          phone: salon.phone.trim() || null,
+          address: salon.address.trim() || null,
+          cep_base: salon.cep.trim() || null,
+          slug,
+        });
+
+        if (!result.error) { salonRow = result; break; }
+        // 23505 = unique violation on slug — retry with suffix
+        if (!result.error.includes("unique") && !result.error.includes("23505")) {
+          throw new Error(`Erro ao criar salão: ${result.error}`);
         }
       }
-      if (!salonRow) throw new Error("Não foi possível criar o salão (slug conflict).");
-      setSavedSlug(salonRow.slug ?? slugToUse);
+      if (!salonRow) throw new Error("Não foi possível criar o salão (slug já em uso).");
+      setSavedSlug(salonRow.slug);
 
-      // Create selected services
+      // Services
       if (services.length > 0) {
-        const rows = services.map(name => ({
-          salon_id: salonRow!.id,
-          name,
-          ...SVC_DEFAULTS[name],
-          active: true,
-        }));
-        const { error: svcErr } = await supabase.from("services").insert(rows);
-        if (svcErr) {
-          console.error("Services insert error:", svcErr);
-          throw new Error(`Erro ao criar serviços: ${svcErr.message}`);
-        }
+        const svcRows = services.map(name => ({ name, ...SVC_DEFAULTS[name], active: true }));
+        const { error: svcErr } = await saveServices(salonRow.id, svcRows);
+        if (svcErr) throw new Error(`Erro ao criar serviços: ${svcErr}`);
       }
-
-      // Create trialing subscription — non-fatal, no RLS INSERT policy needed
-      const { error: subErr } = await supabase.from("subscriptions").insert({
-        owner_id: user.id,
-        plan: "pro",
-        status: "trialing",
-      });
-      if (subErr) console.warn("Subscription insert skipped:", subErr.message);
 
       setSaved(true);
     } catch (e) {
-      console.error("=== Onboarding error ===", e);
-      let msg = "Erro desconhecido";
-      if (e instanceof Error) {
-        msg = e.message;
-      } else if (e && typeof (e as Record<string, unknown>).message === "string") {
-        msg = (e as { message: string }).message;
-      } else if (typeof e === "string") {
-        msg = e;
-      } else {
-        try { msg = JSON.stringify(e); } catch { msg = String(e); }
-      }
-      setError(msg || "Erro ao salvar — veja o console para detalhes.");
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg || "Erro ao salvar. Tente novamente.");
     } finally {
       setSaving(false);
     }
