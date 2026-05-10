@@ -47,8 +47,11 @@ export default function OnboardingPage() {
     setError("");
     try {
       const supabase = createClient();
-      const { data: { user }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !user) throw new Error("Sessão expirada. Faça login novamente.");
+
+      // Verify session is valid (getSession reads from storage, getUser validates with server)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada. Faça login novamente.");
+      const user = session.user;
 
       const baseSlug = generateSlug(salon.name) || `salao-${user.id.slice(0, 8)}`;
       let slugToUse = baseSlug;
@@ -105,9 +108,18 @@ export default function OnboardingPage() {
 
       setSaved(true);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : (e as { message?: string }).message;
-      console.error("Onboarding handleFinish error:", e);
-      setError(msg ?? "Erro ao salvar. Tente novamente.");
+      console.error("=== Onboarding error ===", e);
+      let msg = "Erro desconhecido";
+      if (e instanceof Error) {
+        msg = e.message;
+      } else if (e && typeof (e as Record<string, unknown>).message === "string") {
+        msg = (e as { message: string }).message;
+      } else if (typeof e === "string") {
+        msg = e;
+      } else {
+        try { msg = JSON.stringify(e); } catch { msg = String(e); }
+      }
+      setError(msg || "Erro ao salvar — veja o console para detalhes.");
     } finally {
       setSaving(false);
     }
