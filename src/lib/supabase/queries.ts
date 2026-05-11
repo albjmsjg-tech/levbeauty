@@ -50,7 +50,7 @@ export async function getOwnerSalon(supabase: SupabaseClient): Promise<DbRow | n
   if (!user) return null;
   const { data } = await supabase
     .from("salons")
-    .select("id, name, owner_id")
+    .select("id, name, slug, phone, owner_id")
     .eq("owner_id", user.id)
     .single();
   return data as DbRow | null;

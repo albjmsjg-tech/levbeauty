@@ -45,6 +45,13 @@ export default function ConfiguracoesPage() {
   const [pricePerKm, setPricePerKm] = useState(2);
   const [minFee, setMinFee] = useState(20);
 
+  // WhatsApp / Z-API state
+  const [zapiInstanceId, setZapiInstanceId] = useState("");
+  const [zapiToken, setZapiToken] = useState("");
+  const [zapiConnected, setZapiConnected] = useState(false);
+  const [zapiSaving, setZapiSaving] = useState(false);
+  const [zapiStatus, setZapiStatus] = useState<"idle" | "ok" | "fail">("idle");
+
   // UI state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -60,7 +67,7 @@ export default function ConfiguracoesPage() {
 
       const { data: salon } = await supabase
         .from("salons")
-        .select("id, name, phone, address, slug, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee")
+        .select("id, name, phone, address, slug, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee, zapi_instance_id, zapi_token, zapi_connected")
         .eq("owner_id", user.id)
         .single();
 
@@ -77,11 +84,54 @@ export default function ConfiguracoesPage() {
         setMaxRadius((salon.max_radius_km as number) ?? 10);
         setPricePerKm((salon.price_per_km as number) ?? 2);
         setMinFee((salon.min_travel_fee as number) ?? 20);
+        setZapiInstanceId((salon.zapi_instance_id as string) ?? "");
+        setZapiToken((salon.zapi_token as string) ?? "");
+        setZapiConnected((salon.zapi_connected as boolean) ?? false);
       }
       setLoading(false);
     }
     load();
   }, [router]);
+
+  const handleSaveWhatsApp = async () => {
+    if (!salonId) return;
+    setZapiSaving(true);
+    setZapiStatus("idle");
+
+    const supabase = createClient();
+
+    await supabase
+      .from("salons")
+      .update({
+        zapi_instance_id: zapiInstanceId.trim() || null,
+        zapi_token: zapiToken.trim() || null,
+        zapi_connected: false,
+      })
+      .eq("id", salonId);
+
+    if (!zapiInstanceId.trim() || !zapiToken.trim()) {
+      setZapiConnected(false);
+      setZapiStatus("fail");
+      setZapiSaving(false);
+      return;
+    }
+
+    const res = await fetch("/api/whatsapp/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ instanceId: zapiInstanceId.trim(), token: zapiToken.trim() }),
+    });
+    const data = await res.json() as { connected: boolean };
+
+    await supabase
+      .from("salons")
+      .update({ zapi_connected: data.connected })
+      .eq("id", salonId);
+
+    setZapiConnected(data.connected);
+    setZapiStatus(data.connected ? "ok" : "fail");
+    setZapiSaving(false);
+  };
 
   const handleSlugChange = (v: string) => {
     setSlug(sanitizeSlug(v));
@@ -388,6 +438,66 @@ export default function ConfiguracoesPage() {
             </p>
           </div>
         )}
+      </div>
+
+      {/* ── WhatsApp / Z-API ─────────────────────── */}
+      <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+          <div>
+            <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 18, fontWeight: 600, color: "var(--text)" }}>WhatsApp (Z-API)</h3>
+            <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 2 }}>Envie notificações automáticas para clientes</p>
+          </div>
+          {zapiConnected ? (
+            <span style={{ fontSize: 12, fontWeight: 600, fontFamily: "var(--font-poppins)", color: "oklch(38% 0.12 145)", background: "oklch(94% 0.06 145)", border: "1px solid oklch(80% 0.1 145)", borderRadius: 20, padding: "3px 10px", whiteSpace: "nowrap" }}>✅ Conectado</span>
+          ) : (
+            <span style={{ fontSize: 12, fontWeight: 600, fontFamily: "var(--font-poppins)", color: "oklch(48% 0.12 15)", background: "oklch(96% 0.04 15)", border: "1px solid oklch(85% 0.08 15)", borderRadius: 20, padding: "3px 10px", whiteSpace: "nowrap" }}>❌ Desconectado</span>
+          )}
+        </div>
+
+        <div style={{ background: "oklch(97% 0.03 75)", borderRadius: 10, padding: "10px 14px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 18, marginTop: 12 }}>
+          <p style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", margin: 0, lineHeight: 1.6 }}>
+            Acesse <strong>app.z-api.io</strong>, crie uma instância, copie o <strong>ID</strong> e o <strong>Token</strong> e cole abaixo para conectar seu WhatsApp.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={lbl}>ID da Instância</label>
+            <input
+              value={zapiInstanceId}
+              onChange={e => { setZapiInstanceId(e.target.value); setZapiStatus("idle"); }}
+              placeholder="Ex: 3AB12CD34EF..."
+              style={field}
+            />
+          </div>
+          <div>
+            <label style={lbl}>Token</label>
+            <input
+              value={zapiToken}
+              onChange={e => { setZapiToken(e.target.value); setZapiStatus("idle"); }}
+              placeholder="Ex: F4E3D2C1B0A9..."
+              style={field}
+            />
+          </div>
+        </div>
+
+        {zapiStatus === "ok" && (
+          <div style={{ marginTop: 14, background: "oklch(94% 0.06 145)", border: "1px solid oklch(80% 0.1 145)", borderRadius: 10, padding: "10px 14px" }}>
+            <p style={{ fontSize: 13, color: "oklch(32% 0.1 145)", fontFamily: "var(--font-poppins)", fontWeight: 600, margin: 0 }}>✅ WhatsApp conectado com sucesso!</p>
+          </div>
+        )}
+        {zapiStatus === "fail" && (
+          <div style={{ marginTop: 14, background: "oklch(96% 0.04 15)", border: "1px solid oklch(85% 0.08 15)", borderRadius: 10, padding: "10px 14px" }}>
+            <p style={{ fontSize: 13, color: "oklch(40% 0.12 15)", fontFamily: "var(--font-poppins)", fontWeight: 600, margin: 0 }}>❌ Não foi possível conectar. Verifique o ID e Token.</p>
+          </div>
+        )}
+
+        <button
+          onClick={handleSaveWhatsApp}
+          disabled={zapiSaving}
+          style={{ marginTop: 16, width: "100%", padding: 12, borderRadius: 12, border: "none", background: zapiSaving ? "var(--border)" : "oklch(28% 0.055 340)", color: "white", fontFamily: "var(--font-poppins)", fontSize: 13, fontWeight: 600, cursor: zapiSaving ? "not-allowed" : "pointer", transition: "background 0.2s" }}>
+          {zapiSaving ? "Conectando..." : "Salvar e conectar"}
+        </button>
       </div>
 
       {/* Save */}

@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { sendWhatsApp } from "@/lib/zapi";
 
 export async function POST(req: NextRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -65,6 +66,27 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error("Supabase insert error:", error);
+    } else {
+      // WhatsApp notifications after deposit booking
+      const { data: salon } = await supabase
+        .from("salons")
+        .select("zapi_instance_id, zapi_token, zapi_connected, phone, address, name")
+        .eq("id", m.salon_id)
+        .single();
+
+      if (salon?.zapi_connected && salon.zapi_instance_id && salon.zapi_token) {
+        const dateLabel = m.appt_date;
+        const loc = (salon.address as string | null) || (salon.name as string);
+        const clientMsg = `Olá ${m.client_name}! 🎉 Seu agendamento foi confirmado!\n📅 ${m.service_name} — ${dateLabel} às ${m.appt_time}\n📍 ${loc}\nQualquer dúvida me chama aqui! 😊`;
+        const proMsg = `Novo agendamento! 🔔\nCliente: ${m.client_name} — ${m.client_phone || "—"}\nServiço: ${m.service_name} — ${dateLabel} às ${m.appt_time}`;
+
+        if (m.client_phone) {
+          await sendWhatsApp(m.client_phone, clientMsg, salon.zapi_instance_id as string, salon.zapi_token as string);
+        }
+        if (salon.phone) {
+          await sendWhatsApp(salon.phone as string, proMsg, salon.zapi_instance_id as string, salon.zapi_token as string);
+        }
+      }
     }
   }
 

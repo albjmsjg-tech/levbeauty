@@ -308,6 +308,7 @@ function ApptModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AgendaPage() {
   const [salonId, setSalonId] = useState<string | null>(null);
+  const [salonSlug, setSalonSlug] = useState<string | null>(null);
   const [appts, setAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -321,7 +322,10 @@ export default function AgendaPage() {
   useEffect(() => {
     const supabase = createClient();
     getOwnerSalon(supabase).then(salon => {
-      if (salon) setSalonId(salon.id as string);
+      if (salon) {
+        setSalonId(salon.id as string);
+        setSalonSlug((salon.slug as string) ?? null);
+      }
     });
   }, []);
 
@@ -359,6 +363,16 @@ export default function AgendaPage() {
         location: updated.location === "home" ? "domicilio" : "salao",
       })
       .eq("id", updated.id);
+
+    if (updated.status === "concluído" && updated.phone && salonSlug) {
+      const publicLink = `${window.location.origin}/s/${salonSlug}`;
+      const msg = `Obrigada pela visita, ${updated.name}! 💕\nEsperamos que tenha amado o resultado.\nAgende sua próxima visita: ${publicLink}`;
+      fetch("/api/whatsapp/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ salonId, phone: updated.phone, message: msg }),
+      }).catch(() => {});
+    }
   };
 
   const deleteAppt = async (id: number | string) => {
