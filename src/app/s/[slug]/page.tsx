@@ -404,14 +404,14 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     // WhatsApp notifications (fire-and-forget)
     const dateLabel = formatDateDisplay(dates.find(d => toISODate(d) === selectedDate)!);
     const loc = salon.address || salon.name;
-    const clientMsg = `Olá ${clientName.trim()}! 🎉 Seu agendamento foi confirmado!\n📅 ${selectedSvc.name} — ${dateLabel} às ${selectedTime}\n📍 ${loc}\nQualquer dúvida me chama aqui! 😊`;
-    const proMsg = `Novo agendamento! 🔔\nCliente: ${clientName.trim()} — ${clientPhone.trim()}\nServiço: ${selectedSvc.name} — ${dateLabel} às ${selectedTime}`;
+    const clientMsg = `Olá ${clientName.trim()}! 🎉 Seu agendamento foi confirmado pelo LevBeauty!\n💅 ${selectedSvc.name} com ${salon.name}\n📅 ${dateLabel} às ${selectedTime}\n📍 ${loc}\nQualquer dúvida entre em contato: ${salon.phone || "—"}`;
+    const proMsg = `🔔 Novo agendamento via LevBeauty!\nCliente: ${clientName.trim()} — ${clientPhone.trim()}\nServiço: ${selectedSvc.name}\n📅 ${dateLabel} às ${selectedTime}`;
     const notifyBase = { method: "POST", headers: { "Content-Type": "application/json" } };
     if (clientPhone.trim()) {
-      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ salonId: salon.id, phone: clientPhone.trim(), message: clientMsg }) }).catch(() => {});
+      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ phone: clientPhone.trim(), message: clientMsg }) }).catch(() => {});
     }
     if (salon.phone) {
-      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ salonId: salon.id, phone: salon.phone, message: proMsg }) }).catch(() => {});
+      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ phone: salon.phone, message: proMsg }) }).catch(() => {});
     }
   };
 

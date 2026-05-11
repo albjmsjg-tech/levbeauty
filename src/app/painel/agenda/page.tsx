@@ -370,7 +370,7 @@ export default function AgendaPage() {
       fetch("/api/whatsapp/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ salonId, phone: updated.phone, message: msg }),
+        body: JSON.stringify({ phone: updated.phone, message: msg }),
       }).catch(() => {});
     }
   };

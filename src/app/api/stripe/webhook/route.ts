@@ -67,25 +67,24 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error("Supabase insert error:", error);
     } else {
-      // WhatsApp notifications after deposit booking
-      const { data: salon } = await supabase
-        .from("salons")
-        .select("zapi_instance_id, zapi_token, zapi_connected, phone, address, name")
-        .eq("id", m.salon_id)
-        .single();
+      // WhatsApp notifications via centralized LevBeauty account
+      const zapiId = process.env.ZAPI_INSTANCE_ID;
+      const zapiToken = process.env.ZAPI_TOKEN;
+      if (zapiId && zapiToken) {
+        const { data: salon } = await supabase
+          .from("salons")
+          .select("name, phone, address")
+          .eq("id", m.salon_id)
+          .single();
 
-      if (salon?.zapi_connected && salon.zapi_instance_id && salon.zapi_token) {
-        const dateLabel = m.appt_date;
-        const loc = (salon.address as string | null) || (salon.name as string);
-        const clientMsg = `Olá ${m.client_name}! 🎉 Seu agendamento foi confirmado!\n📅 ${m.service_name} — ${dateLabel} às ${m.appt_time}\n📍 ${loc}\nQualquer dúvida me chama aqui! 😊`;
-        const proMsg = `Novo agendamento! 🔔\nCliente: ${m.client_name} — ${m.client_phone || "—"}\nServiço: ${m.service_name} — ${dateLabel} às ${m.appt_time}`;
+        const salonName = (salon?.name as string | null) ?? "";
+        const salonPhone = (salon?.phone as string | null) ?? "";
+        const loc = (salon?.address as string | null) || salonName;
+        const clientMsg = `Olá ${m.client_name}! 🎉 Seu agendamento foi confirmado pelo LevBeauty!\n💅 ${m.service_name} com ${salonName}\n📅 ${m.appt_date} às ${m.appt_time}\n📍 ${loc}\nQualquer dúvida entre em contato: ${salonPhone || "—"}`;
+        const proMsg = `🔔 Novo agendamento via LevBeauty!\nCliente: ${m.client_name} — ${m.client_phone || "—"}\nServiço: ${m.service_name}\n📅 ${m.appt_date} às ${m.appt_time}`;
 
-        if (m.client_phone) {
-          await sendWhatsApp(m.client_phone, clientMsg, salon.zapi_instance_id as string, salon.zapi_token as string);
-        }
-        if (salon.phone) {
-          await sendWhatsApp(salon.phone as string, proMsg, salon.zapi_instance_id as string, salon.zapi_token as string);
-        }
+        if (m.client_phone) await sendWhatsApp(m.client_phone, clientMsg, zapiId, zapiToken);
+        if (salonPhone) await sendWhatsApp(salonPhone, proMsg, zapiId, zapiToken);
       }
     }
   }
