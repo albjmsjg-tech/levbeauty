@@ -347,12 +347,11 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* ── Modalidades ──────────────────────────────── */}
-      <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 20 }}>
+      <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 16 }}>
         <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 18, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>Modalidades de Atendimento</h3>
         <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 18 }}>Defina como você atende as clientes</p>
 
-        {/* Atendimento no salão */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 16, borderBottom: "1px solid var(--border)", marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: "0 0 2px" }}>Atendimento no salão</p>
             <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: 0 }}>Permite que clientes agendem no espaço físico</p>
@@ -363,19 +362,32 @@ export default function ConfiguracoesPage() {
             <div style={{ position: "absolute", top: 3, left: homeSalon ? 24 : 3, width: 20, height: 20, borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 4px oklch(22% 0.04 340 / 0.2)" }} />
           </button>
         </div>
+      </div>
 
-        {/* Cobrar sinal */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: "0 0 2px" }}>Cobrar sinal de 20% no agendamento</p>
-            <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: 0 }}>A cliente paga via Stripe antes de confirmar</p>
+      {/* ── Sinal de pagamento ───────────────────────── */}
+      <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 18, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>Cobrar sinal de 20% para agendar</h3>
+            <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", lineHeight: 1.6, margin: 0 }}>
+              A cliente paga 20% do valor do serviço para confirmar o agendamento. O restante é cobrado no dia do atendimento.
+            </p>
           </div>
           <button
             onClick={() => setRequiresDeposit(v => !v)}
-            style={{ width: 48, height: 26, borderRadius: 13, border: "none", background: requiresDeposit ? "var(--gold)" : "var(--border)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+            style={{ width: 48, height: 26, borderRadius: 13, border: "none", background: requiresDeposit ? "var(--gold)" : "var(--border)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0, marginTop: 4 }}>
             <div style={{ position: "absolute", top: 3, left: requiresDeposit ? 24 : 3, width: 20, height: 20, borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 4px oklch(22% 0.04 340 / 0.2)" }} />
           </button>
         </div>
+
+        {requiresDeposit && (
+          <div style={{ marginTop: 14, background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "12px 14px", border: "1px solid oklch(90% 0.04 75)", display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>💳</span>
+            <p style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", lineHeight: 1.6, margin: 0 }}>
+              O pagamento do sinal é processado via <strong>Stripe</strong>. Certifique-se de que a variável <code style={{ background: "oklch(93% 0.02 75)", padding: "1px 5px", borderRadius: 4, fontFamily: "monospace" }}>STRIPE_SECRET_KEY</code> está configurada no seu projeto Vercel.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Save */}
