@@ -14,6 +14,13 @@ export async function saveSalon(input: {
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return { id: "", slug: "", error: "Sessão expirada. Faça login novamente." };
 
+  // Ensure profile row exists — trigger may not have run yet for new signups
+  const { error: profileErr } = await supabase
+    .from("profiles")
+    .upsert({ id: user.id, role: "owner", full_name: user.user_metadata?.full_name ?? "" }, { onConflict: "id" });
+
+  if (profileErr) return { id: "", slug: "", error: `Erro ao criar perfil: ${profileErr.message}` };
+
   const { data, error } = await supabase
     .from("salons")
     .insert({ owner_id: user.id, ...input })

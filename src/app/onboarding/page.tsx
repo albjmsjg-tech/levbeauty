@@ -206,11 +206,8 @@ export default function OnboardingPage() {
                   <button
                     onClick={handleFinish}
                     disabled={saving}
-                    style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: saving ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: saving ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", marginBottom: 12, cursor: saving ? "not-allowed" : "pointer" }}>
+                    style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: saving ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: saving ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: saving ? "not-allowed" : "pointer" }}>
                     {saving ? "Criando salão..." : "Iniciar período gratuito →"}
-                  </button>
-                  <button onClick={() => router.push("/assinatura")} style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1.5px solid var(--border)", background: "white", color: "var(--text-mid)", fontSize: 14, fontFamily: "var(--font-poppins)", cursor: "pointer" }}>
-                    Ver planos e preços
                   </button>
                 </>
               )}
