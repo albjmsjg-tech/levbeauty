@@ -91,6 +91,7 @@ function ApptModal({
       const cur = prev[id] ?? 0;
       const next = Math.max(0, cur + delta);
       if (next === 0) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [id]: _, ...rest } = prev;
         return rest;
       }

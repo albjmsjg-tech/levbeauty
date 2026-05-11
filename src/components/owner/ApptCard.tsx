@@ -32,12 +32,6 @@ export function ApptCard({ appt, onUpdate, onDelete, onOpen }: Props) {
     setExpanded(p => !p);
   };
 
-  const cycleStatus = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const idx = statusList.indexOf(appt.status as typeof statusList[number]);
-    onUpdate({ ...appt, status: statusList[(idx + 1) % statusList.length] });
-  };
-
   const saveEdit = () => { onUpdate(draft); setEditing(false); };
 
   const fieldStyle: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid var(--border)", fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text)", background: "white", outline: "none" };

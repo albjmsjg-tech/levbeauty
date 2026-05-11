@@ -474,8 +474,6 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     );
   }
 
-  const locationMode = getLocationMode(salon);
-
   // ── page ─────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, oklch(97% 0.012 75), oklch(93% 0.03 10))" }}>
