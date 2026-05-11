@@ -25,20 +25,35 @@ function weekRangeLabel(weekDates: Date[]): string {
   return `${first.getDate()} ${MONTHS_SHORT[first.getMonth()]} – ${last.getDate()} ${MONTHS_SHORT[last.getMonth()]} ${yearSuffix}`;
 }
 
+interface SalonSvc {
+  id: string;
+  name: string;
+  price: number;
+  emoji: string;
+}
+
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 function ApptModal({
   appt,
+  salonId,
   onClose,
   onUpdate,
   onDelete,
 }: {
   appt: Appointment;
+  salonId: string | null;
   onClose: () => void;
   onUpdate: (a: Appointment) => void;
   onDelete: (id: number | string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Appointment>({ ...appt });
+
+  // Comanda state
+  const [showComanda, setShowComanda] = useState(false);
+  const [salonSvcs, setSalonSvcs] = useState<SalonSvc[]>([]);
+  const [extras, setExtras] = useState<Record<string, number>>({});
+  const [extraAmt, setExtraAmt] = useState(0);
 
   const fieldStyle: React.CSSProperties = {
     width: "100%",
@@ -57,6 +72,40 @@ function ApptModal({
 
   const handleDelete = () => { onDelete(appt.id); onClose(); };
 
+  const openComanda = async () => {
+    if (!salonId) return;
+    setShowComanda(true);
+    if (salonSvcs.length === 0) {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("services")
+        .select("id, name, price, emoji")
+        .eq("salon_id", salonId)
+        .eq("active", true);
+      setSalonSvcs((data ?? []) as SalonSvc[]);
+    }
+  };
+
+  const changeQty = (id: string, delta: number) => {
+    setExtras(prev => {
+      const cur = prev[id] ?? 0;
+      const next = Math.max(0, cur + delta);
+      if (next === 0) {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [id]: next };
+    });
+  };
+
+  const extraTotal = salonSvcs.reduce((s, svc) => s + (extras[svc.id] ?? 0) * svc.price, 0);
+  const comandaTotal = appt.price + extraTotal + extraAmt;
+
+  const handleFecharComanda = () => {
+    onUpdate({ ...appt, price: comandaTotal, status: "concluído" });
+    onClose();
+  };
+
   const sc = statusColors[appt.status] || statusColors.pendente;
 
   return (
@@ -67,9 +116,20 @@ function ApptModal({
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.06em", marginBottom: 4 }}>AGENDAMENTO · {appt.time}</p>
-            <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, fontWeight: 600, color: "var(--text)", margin: 0 }}>{appt.name}</h2>
-            <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 2 }}>{appt.svc}</p>
+            {showComanda ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button onClick={() => setShowComanda(false)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", fontSize: 13, padding: 0 }}>
+                  ← Voltar
+                </button>
+                <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, fontWeight: 600, color: "var(--text)", margin: 0 }}>Comanda</h2>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.06em", marginBottom: 4 }}>AGENDAMENTO · {appt.time}</p>
+                <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, fontWeight: 600, color: "var(--text)", margin: 0 }}>{appt.name}</h2>
+                <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 2 }}>{appt.svc}</p>
+              </>
+            )}
           </div>
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "50%", border: "1.5px solid var(--border)", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <X size={14} color="var(--text-mid)" />
@@ -77,7 +137,71 @@ function ApptModal({
         </div>
 
         <div style={{ padding: "20px 24px" }}>
-          {!editing ? (
+          {showComanda ? (
+            <>
+              {/* Serviço original */}
+              <div style={{ background: "oklch(97% 0.03 75)", borderRadius: 10, padding: "12px 16px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 20 }}>
+                <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 4 }}>SERVIÇO ORIGINAL</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>{appt.svc}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{fmt(appt.price)}</span>
+                </div>
+              </div>
+
+              {/* Adicionar serviços */}
+              <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 10 }}>ADICIONAR SERVIÇOS</p>
+              {salonSvcs.length === 0 ? (
+                <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 16 }}>Nenhum serviço cadastrado.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                  {salonSvcs.map(svc => {
+                    const qty = extras[svc.id] ?? 0;
+                    return (
+                      <div key={svc.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)", background: qty > 0 ? "oklch(97% 0.04 75)" : "white" }}>
+                        <span style={{ fontSize: 18 }}>{svc.emoji}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{svc.name}</p>
+                          <p style={{ fontFamily: "var(--font-poppins)", fontSize: 11, color: "var(--gold)", margin: 0, fontWeight: 600 }}>{fmt(svc.price)}</p>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button onClick={() => changeQty(svc.id, -1)} style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", fontFamily: "var(--font-poppins)", fontSize: 16, fontWeight: 700, color: "var(--text-mid)", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                          <span style={{ fontFamily: "var(--font-poppins)", fontSize: 14, fontWeight: 700, color: "var(--text)", minWidth: 20, textAlign: "center" }}>{qty}</span>
+                          <button onClick={() => changeQty(svc.id, 1)} style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid var(--gold)", background: "var(--gold)", cursor: "pointer", fontFamily: "var(--font-poppins)", fontSize: 16, fontWeight: 700, color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Valor adicional */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>VALOR ADICIONAL (R$)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={extraAmt || ""}
+                  onChange={e => setExtraAmt(Number(e.target.value) || 0)}
+                  placeholder="0,00"
+                  style={{ ...fieldStyle }}
+                />
+              </div>
+
+              {/* Total */}
+              <div style={{ background: "oklch(22% 0.04 340)", borderRadius: 10, padding: "14px 16px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontFamily: "var(--font-poppins)", fontSize: 14, fontWeight: 600, color: "white" }}>Total</span>
+                <span style={{ fontFamily: "var(--font-playfair)", fontSize: 22, fontWeight: 700, color: "var(--gold)" }}>{fmt(comandaTotal)}</span>
+              </div>
+
+              {/* Fechar comanda */}
+              <button
+                onClick={handleFecharComanda}
+                style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.3)" }}>
+                Fechar comanda · {fmt(comandaTotal)}
+              </button>
+            </>
+          ) : !editing ? (
             <>
               {/* Details grid */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
@@ -119,6 +243,12 @@ function ApptModal({
                   style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1.5px solid var(--gold)", background: "oklch(98% 0.04 75)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>
                   ✏️ Editar
                 </button>
+                {appt.status === "confirmado" && (
+                  <button onClick={openComanda}
+                    style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.3)" }}>
+                    🧾 Abrir Comanda
+                  </button>
+                )}
                 <button onClick={handleDelete}
                   style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid oklch(88% 0.05 15)", background: "oklch(98% 0.02 15)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "oklch(48% 0.14 15)", fontFamily: "var(--font-poppins)" }}>
                   🗑️ Excluir
@@ -268,6 +398,7 @@ export default function AgendaPage() {
       {modalAppt && (
         <ApptModal
           appt={modalAppt}
+          salonId={salonId}
           onClose={() => setModalAppt(null)}
           onUpdate={update}
           onDelete={deleteAppt}

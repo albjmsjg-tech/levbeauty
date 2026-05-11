@@ -11,6 +11,12 @@ interface SalonData {
   phone: string | null;
   address: string | null;
   home_enabled: boolean;
+  home_salon: boolean;
+  requires_deposit: boolean;
+  cep_base: string | null;
+  max_radius_km: number;
+  price_per_km: number;
+  min_travel_fee: number;
 }
 
 interface ServiceData {
@@ -77,6 +83,40 @@ function fmt(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function formatCEP(v: string): string {
+  const digits = v.replace(/\D/g, "").slice(0, 8);
+  if (digits.length > 5) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  return digits;
+}
+
+async function geocodeCEP(cep: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const clean = cep.replace(/\D/g, "");
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?postalcode=${clean}&country=BR&format=json&limit=1`,
+      { headers: { "User-Agent": "LevBeauty/1.0" } }
+    );
+    const data = await res.json() as Array<{ lat: string; lon: string }>;
+    if (!data || data.length === 0) return null;
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch {
+    return null;
+  }
+}
+
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
+  const aCos =
+    sinLat * sinLat +
+    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sinLng * sinLng;
+  const c = 2 * Math.atan2(Math.sqrt(aCos), Math.sqrt(1 - aCos));
+  return R * c;
+}
+
 const ALL_SLOTS = generateAllSlots();
 
 export default function SalonPage({ params }: { params: { slug: string } }) {
@@ -97,15 +137,52 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
   const [clientPhone, setClientPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [paymentDone, setPaymentDone] = useState(false);
+
+  // CEP state
+  const [clientCep, setClientCep] = useState("");
+  const [cepChecking, setCepChecking] = useState(false);
+  const [cepValid, setCepValid] = useState<boolean | null>(null);
+  const [cepError, setCepError] = useState("");
+  const [travelFee, setTravelFee] = useState(0);
 
   const dates = getNext14Days();
+
+  // Handle payment_done redirect
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("payment_done") === "1") {
+      try {
+        const saved = sessionStorage.getItem("lbpb");
+        if (saved) {
+          const data = JSON.parse(saved) as {
+            svc: ServiceData;
+            date: string;
+            time: string;
+            clientName: string;
+            clientPhone: string;
+          };
+          setSelectedSvc(data.svc);
+          setSelectedDate(data.date);
+          setSelectedTime(data.time);
+          setClientName(data.clientName);
+          setClientPhone(data.clientPhone);
+          sessionStorage.removeItem("lbpb");
+        }
+      } catch {
+        // ignore
+      }
+      setPaymentDone(true);
+      setStep("done");
+    }
+  }, []);
 
   useEffect(() => {
     async function load() {
       const supabase = createClient();
       const { data: salonData, error: salonErr } = await supabase
         .from("salons")
-        .select("id, name, slug, phone, address, home_enabled")
+        .select("id, name, slug, phone, address, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee")
         .eq("slug", params.slug)
         .single();
 
@@ -115,7 +192,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
         return;
       }
 
-      setSalon(salonData);
+      setSalon(salonData as SalonData);
 
       const { data: svcData } = await supabase
         .from("services")
@@ -124,21 +201,119 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
         .eq("active", true)
         .order("name");
 
-      setServices(svcData ?? []);
+      setServices((svcData ?? []) as ServiceData[]);
       setLoading(false);
     }
     load();
   }, [params.slug]);
 
+  // CEP auto-validate when 8 digits
+  useEffect(() => {
+    const digits = clientCep.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      if (cepValid !== null) {
+        setCepValid(null);
+        setCepError("");
+        setTravelFee(0);
+      }
+      return;
+    }
+
+    let cancelled = false;
+    async function validate() {
+      if (!salon) return;
+      setCepChecking(true);
+      setCepValid(null);
+      setCepError("");
+      setTravelFee(0);
+
+      // Step 1: ViaCEP format check
+      try {
+        const viares = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+        const viaData = await viares.json() as { erro?: boolean };
+        if (cancelled) return;
+        if (viaData.erro) {
+          setCepValid(false);
+          setCepError("CEP inválido ou não encontrado.");
+          setCepChecking(false);
+          return;
+        }
+      } catch {
+        if (cancelled) return;
+        // ViaCEP failed, continue to geocode
+      }
+
+      if (!salon.cep_base) {
+        // No base CEP configured, allow with min fee
+        if (!cancelled) {
+          setCepValid(true);
+          setTravelFee(salon.min_travel_fee);
+        }
+        setCepChecking(false);
+        return;
+      }
+
+      // Step 2: Geocode both CEPs
+      const [clientCoords, salonCoords] = await Promise.all([
+        geocodeCEP(digits),
+        geocodeCEP(salon.cep_base),
+      ]);
+
+      if (cancelled) return;
+
+      if (!clientCoords || !salonCoords) {
+        // Geocoding failed, allow with min fee as graceful fallback
+        setCepValid(true);
+        setTravelFee(salon.min_travel_fee);
+        setCepChecking(false);
+        return;
+      }
+
+      const distKm = haversineKm(clientCoords, salonCoords);
+
+      if (distKm > salon.max_radius_km) {
+        setCepValid(false);
+        setCepError(`Fora da nossa área de atendimento (${distKm.toFixed(1)} km, raio máx ${salon.max_radius_km} km)`);
+        setCepChecking(false);
+        return;
+      }
+
+      const fee = Math.max(salon.min_travel_fee, distKm * 2 * salon.price_per_km);
+      setCepValid(true);
+      setTravelFee(fee);
+      setCepChecking(false);
+    }
+
+    validate();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientCep, salon]);
+
+  // Location logic based on home_salon and home_enabled
+  function getLocationMode(s: SalonData): "picker" | "force-salon" | "force-home" {
+    if (s.home_salon && s.home_enabled) return "picker";
+    if (s.home_enabled && !s.home_salon) return "force-home";
+    return "force-salon";
+  }
+
   const handleSelectService = (svc: ServiceData) => {
     setSelectedSvc(svc);
     setSelectedDate("");
     setSelectedTime("");
+    if (salon) {
+      const mode = getLocationMode(salon);
+      if (mode === "force-home") setLocation("home");
+      else setLocation("salon");
+    }
     setStep("date");
   };
 
   const handlePickDate = async (dateStr: string) => {
     if (!salon || !selectedSvc) return;
+    // Block if home location and CEP validation required but not done
+    if (location === "home" && salon.home_enabled && salon.cep_base && cepValid !== true) {
+      return;
+    }
     setSelectedDate(dateStr);
     setSelectedTime("");
     setLoadingSlots(true);
@@ -156,6 +331,49 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     if (!salon || !selectedSvc || !selectedDate || !selectedTime) return;
     setSubmitting(true);
     setSubmitError("");
+
+    // Feature 4: Stripe deposit
+    if (salon.requires_deposit) {
+      sessionStorage.setItem("lbpb", JSON.stringify({
+        svc: selectedSvc,
+        date: selectedDate,
+        time: selectedTime,
+        clientName,
+        clientPhone,
+      }));
+      try {
+        const res = await fetch("/api/stripe/deposit-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            salon_id: salon.id,
+            service_name: selectedSvc.name,
+            duration_min: selectedSvc.duration_min,
+            price: selectedSvc.price,
+            client_name: clientName.trim(),
+            client_phone: clientPhone.trim(),
+            appt_date: selectedDate,
+            appt_time: selectedTime,
+            location,
+            slug: salon.slug,
+            client_cep: clientCep || undefined,
+            travel_fee: travelFee || undefined,
+          }),
+        });
+        const data = await res.json() as { url?: string; error?: string };
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+        setSubmitError(data.error ?? "Erro ao iniciar pagamento.");
+      } catch {
+        setSubmitError("Erro ao conectar com servidor de pagamento.");
+      }
+      setSubmitting(false);
+      return;
+    }
+
+    // Normal booking (no deposit)
     const supabase = createClient();
     const { error } = await supabase.from("appointments").insert({
       salon_id: salon.id,
@@ -170,6 +388,8 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       status: "pendente",
       payment_method: "local",
       location: location === "home" ? "domicilio" : "salao",
+      client_cep: clientCep || null,
+      travel_fee: travelFee || 0,
     });
     if (error) {
       console.error("Guest booking error:", error);
@@ -189,7 +409,12 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setSelectedTime("");
     setClientName("");
     setClientPhone("");
+    setClientCep("");
+    setCepValid(null);
+    setCepError("");
+    setTravelFee(0);
     setSubmitError("");
+    setPaymentDone(false);
   };
 
   // ── styles ──────────────────────────────────────────
@@ -246,6 +471,10 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       </div>
     );
   }
+
+  const locationMode = getLocationMode(salon);
+  const showCepField = location === "home" && salon.home_enabled && !!salon.cep_base;
+  const cepBlocking = showCepField && cepValid !== true;
 
   // ── page ─────────────────────────────────────────────
   return (
@@ -325,10 +554,10 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             {/* Location selector */}
             <div style={{ marginBottom: 22 }}>
               <p style={{ fontFamily: "var(--font-poppins)", fontSize: 11, fontWeight: 700, color: "var(--text-mid)", letterSpacing: "0.07em", margin: "0 0 10px" }}>LOCAL DO ATENDIMENTO</p>
-              {salon.home_enabled ? (
+              {locationMode === "picker" ? (
                 <div style={{ display: "flex", gap: 10 }}>
                   {(["salon", "home"] as const).map(loc => (
-                    <button key={loc} onClick={() => setLocation(loc)}
+                    <button key={loc} onClick={() => { setLocation(loc); setCepValid(null); setCepError(""); setTravelFee(0); setClientCep(""); }}
                       style={{ flex: 1, padding: "11px 8px", borderRadius: 11, border: `1.5px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, transition: "all 0.15s" }}>
                       <span style={{ fontSize: 18 }}>{loc === "salon" ? "🏪" : "🏠"}</span>
                       <span style={{ fontSize: 12, fontWeight: location === loc ? 700 : 400, color: location === loc ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
@@ -337,15 +566,56 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                     </button>
                   ))}
                 </div>
+              ) : locationMode === "force-home" ? (
+                <div style={{ background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "10px 14px", border: "1px solid oklch(90% 0.04 75)", display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={{ fontSize: 16 }}>🏠</span>
+                  <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-mid)", margin: 0 }}>
+                    Atendimento <strong style={{ color: "var(--text)" }}>somente a domicílio</strong>.
+                  </p>
+                </div>
               ) : (
                 <div style={{ background: "oklch(97% 0.01 0)", borderRadius: 10, padding: "10px 14px", border: "1px solid var(--border)", display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <span style={{ fontSize: 16, flexShrink: 0 }}>ℹ️</span>
                   <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: 0, lineHeight: 1.5 }}>
-                    Atendimento <strong style={{ color: "var(--text)" }}>apenas no salão</strong>. A profissional ainda não habilitou visitas a domicílio.
+                    Atendimento <strong style={{ color: "var(--text)" }}>apenas no salão</strong>.
                   </p>
                 </div>
               )}
             </div>
+
+            {/* CEP field — shown when home location + home_enabled + cep_base configured */}
+            {showCepField && (
+              <div style={{ marginBottom: 22 }}>
+                <label style={labelStyle}>Seu CEP</label>
+                <input
+                  value={clientCep}
+                  onChange={e => setClientCep(formatCEP(e.target.value))}
+                  placeholder="00000-000"
+                  maxLength={9}
+                  style={{ ...fieldStyle, borderColor: cepValid === false ? "oklch(65% 0.15 15)" : cepValid === true ? "oklch(55% 0.12 145)" : "var(--border)" }}
+                />
+                {cepChecking && (
+                  <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "6px 0 0" }}>
+                    Verificando CEP...
+                  </p>
+                )}
+                {!cepChecking && cepValid === true && (
+                  <p style={{ fontSize: 12, color: "oklch(38% 0.12 145)", fontFamily: "var(--font-poppins)", margin: "6px 0 0", fontWeight: 600 }}>
+                    ✓ Dentro do raio · taxa {fmt(travelFee)}
+                  </p>
+                )}
+                {!cepChecking && cepValid === false && cepError && (
+                  <p style={{ fontSize: 12, color: "oklch(48% 0.14 15)", fontFamily: "var(--font-poppins)", margin: "6px 0 0" }}>
+                    ✗ {cepError}
+                  </p>
+                )}
+                {cepBlocking && (
+                  <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "4px 0 0" }}>
+                    Informe seu CEP para escolher a data.
+                  </p>
+                )}
+              </div>
+            )}
 
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, color: "var(--text)", margin: "0 0 18px" }}>Escolha a data</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
@@ -353,9 +623,11 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                 const dateStr = toISODate(d);
                 const isToday = toISODate(new Date()) === dateStr;
                 const isSelected = selectedDate === dateStr;
+                const blocked = cepBlocking;
                 return (
-                  <button key={dateStr} onClick={() => handlePickDate(dateStr)}
-                    style={{ padding: "12px 6px", borderRadius: 10, border: `1.5px solid ${isSelected ? "var(--gold)" : "var(--border)"}`, background: isSelected ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, transition: "all 0.15s" }}>
+                  <button key={dateStr} onClick={() => !blocked && handlePickDate(dateStr)}
+                    disabled={blocked}
+                    style={{ padding: "12px 6px", borderRadius: 10, border: `1.5px solid ${isSelected ? "var(--gold)" : "var(--border)"}`, background: blocked ? "oklch(96% 0.003 0)" : isSelected ? "oklch(97% 0.04 75)" : "white", cursor: blocked ? "not-allowed" : "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, transition: "all 0.15s", opacity: blocked ? 0.5 : 1 }}>
                     <span style={{ fontFamily: "var(--font-poppins)", fontSize: 10, color: isSelected ? "var(--gold)" : "var(--text-light)", fontWeight: 500 }}>{DAYS_PT[d.getDay()]}</span>
                     <span style={{ fontFamily: "var(--font-poppins)", fontSize: 20, fontWeight: 700, color: isSelected ? "var(--gold)" : "var(--text)", lineHeight: 1.2 }}>{d.getDate()}</span>
                     <span style={{ fontFamily: "var(--font-poppins)", fontSize: 10, color: isSelected ? "var(--gold)" : "var(--text-light)" }}>{MONTHS_PT[d.getMonth()]}</span>
@@ -438,8 +710,22 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                 <strong style={{ color: "var(--text)" }}>{selectedSvc.emoji} {selectedSvc.name}</strong><br />
                 {formatDateDisplay(dates.find(d => toISODate(d) === selectedDate)!)} às {selectedTime}<br />
                 <strong style={{ color: "var(--gold)" }}>{fmt(selectedSvc.price)}</strong>
+                {travelFee > 0 && <><br /><span style={{ color: "var(--text-mid)", fontSize: 12 }}>+ taxa de deslocamento {fmt(travelFee)}</span></>}
               </p>
             </div>
+
+            {/* Deposit notice */}
+            {salon.requires_deposit && (
+              <div style={{ background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "12px 16px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>💳</span>
+                <div>
+                  <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 13, color: "var(--text)", margin: "0 0 2px" }}>Sinal de 20% necessário</p>
+                  <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: 0 }}>
+                    Você será redirecionada para pagar {fmt(selectedSvc.price * 0.2)} via cartão. O restante é pago no dia.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
               <div>
@@ -474,13 +760,17 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                 boxShadow: submitting || !clientName.trim() || !clientPhone.trim() ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)",
                 cursor: submitting || !clientName.trim() || !clientPhone.trim() ? "not-allowed" : "pointer",
               }}>
-              {submitting ? "Confirmando..." : "Confirmar agendamento ✓"}
+              {submitting
+                ? "Aguarde..."
+                : salon.requires_deposit
+                  ? `Pagar sinal ${fmt(selectedSvc.price * 0.2)} e confirmar`
+                  : "Confirmar agendamento ✓"}
             </button>
           </>
         )}
 
         {/* ── STEP: done ────────────────────────────── */}
-        {step === "done" && selectedSvc && selectedDate && selectedTime && (
+        {step === "done" && (
           <div style={{ textAlign: "center", paddingTop: 16 }}>
             <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg, oklch(88% 0.055 10), var(--gold))", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 18px oklch(72% 0.115 75 / 0.35)" }}>
               <span style={{ color: "white", fontSize: 32 }}>✓</span>
@@ -490,17 +780,29 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
               Seu agendamento foi confirmado.
             </p>
 
+            {/* Sinal recebido badge */}
+            {paymentDone && (
+              <div style={{ background: "oklch(92% 0.06 145)", borderRadius: 10, padding: "12px 16px", border: "1px solid oklch(78% 0.1 145)", marginBottom: 20, display: "flex", gap: 10, alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 18 }}>💚</span>
+                <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, fontWeight: 600, color: "oklch(32% 0.1 145)", margin: 0 }}>
+                  Sinal recebido! Agendamento confirmado.
+                </p>
+              </div>
+            )}
+
             {/* Booking details */}
-            <div style={{ background: "white", borderRadius: 14, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 20, textAlign: "left" }}>
-              <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text)", margin: 0, lineHeight: 1.8 }}>
-                <strong>{selectedSvc.emoji} {selectedSvc.name}</strong><br />
-                <span style={{ color: "var(--text-mid)" }}>
-                  {formatDateDisplay(dates.find(d => toISODate(d) === selectedDate)!)} às {selectedTime}
-                </span><br />
-                <span style={{ color: "var(--text-mid)" }}>{salon.name}</span>
-                {salon.phone && <><br /><span style={{ color: "var(--text-mid)" }}>📞 {salon.phone}</span></>}
-              </p>
-            </div>
+            {selectedSvc && selectedDate && selectedTime && (
+              <div style={{ background: "white", borderRadius: 14, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 20, textAlign: "left" }}>
+                <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text)", margin: 0, lineHeight: 1.8 }}>
+                  <strong>{selectedSvc.emoji} {selectedSvc.name}</strong><br />
+                  <span style={{ color: "var(--text-mid)" }}>
+                    {formatDateDisplay(dates.find(d => toISODate(d) === selectedDate) ?? new Date())} às {selectedTime}
+                  </span><br />
+                  <span style={{ color: "var(--text-mid)" }}>{salon.name}</span>
+                  {salon.phone && <><br /><span style={{ color: "var(--text-mid)" }}>📞 {salon.phone}</span></>}
+                </p>
+              </div>
+            )}
 
             {/* CTA: criar conta */}
             <div style={{ background: "oklch(97% 0.03 75)", borderRadius: 14, padding: "20px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 24 }}>

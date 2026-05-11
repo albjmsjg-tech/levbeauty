@@ -38,6 +38,8 @@ export default function ConfiguracoesPage() {
 
   // Home visit state
   const [homeEnabled, setHomeEnabled] = useState(false);
+  const [homeSalon, setHomeSalon] = useState(true);
+  const [requiresDeposit, setRequiresDeposit] = useState(false);
   const [cepBase, setCepBase] = useState("");
   const [maxRadius, setMaxRadius] = useState(10);
   const [pricePerKm, setPricePerKm] = useState(2);
@@ -58,7 +60,7 @@ export default function ConfiguracoesPage() {
 
       const { data: salon } = await supabase
         .from("salons")
-        .select("id, name, phone, address, slug, home_enabled, cep_base, max_radius_km, price_per_km, min_travel_fee")
+        .select("id, name, phone, address, slug, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee")
         .eq("owner_id", user.id)
         .single();
 
@@ -69,6 +71,8 @@ export default function ConfiguracoesPage() {
         setAddress((salon.address as string) ?? "");
         setSlug((salon.slug as string) ?? "");
         setHomeEnabled((salon.home_enabled as boolean) ?? false);
+        setHomeSalon((salon.home_salon as boolean) ?? true);
+        setRequiresDeposit((salon.requires_deposit as boolean) ?? false);
         setCepBase((salon.cep_base as string) ?? "");
         setMaxRadius((salon.max_radius_km as number) ?? 10);
         setPricePerKm((salon.price_per_km as number) ?? 2);
@@ -99,6 +103,8 @@ export default function ConfiguracoesPage() {
         address: address.trim() || null,
         slug: slug || null,
         home_enabled: homeEnabled,
+        home_salon: homeSalon,
+        requires_deposit: requiresDeposit,
         cep_base: cepBase || null,
         max_radius_km: maxRadius,
         price_per_km: pricePerKm,
@@ -338,6 +344,38 @@ export default function ConfiguracoesPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Modalidades ──────────────────────────────── */}
+      <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 20 }}>
+        <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 18, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>Modalidades de Atendimento</h3>
+        <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 18 }}>Defina como você atende as clientes</p>
+
+        {/* Atendimento no salão */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 16, borderBottom: "1px solid var(--border)", marginBottom: 16 }}>
+          <div>
+            <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: "0 0 2px" }}>Atendimento no salão</p>
+            <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: 0 }}>Permite que clientes agendem no espaço físico</p>
+          </div>
+          <button
+            onClick={() => setHomeSalon(v => !v)}
+            style={{ width: 48, height: 26, borderRadius: 13, border: "none", background: homeSalon ? "var(--gold)" : "var(--border)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+            <div style={{ position: "absolute", top: 3, left: homeSalon ? 24 : 3, width: 20, height: 20, borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 4px oklch(22% 0.04 340 / 0.2)" }} />
+          </button>
+        </div>
+
+        {/* Cobrar sinal */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: "0 0 2px" }}>Cobrar sinal de 20% no agendamento</p>
+            <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: 0 }}>A cliente paga via Stripe antes de confirmar</p>
+          </div>
+          <button
+            onClick={() => setRequiresDeposit(v => !v)}
+            style={{ width: 48, height: 26, borderRadius: 13, border: "none", background: requiresDeposit ? "var(--gold)" : "var(--border)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+            <div style={{ position: "absolute", top: 3, left: requiresDeposit ? 24 : 3, width: 20, height: 20, borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 4px oklch(22% 0.04 340 / 0.2)" }} />
+          </button>
+        </div>
       </div>
 
       {/* Save */}

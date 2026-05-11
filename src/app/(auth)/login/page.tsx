@@ -51,6 +51,12 @@ export default function LoginPage() {
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required style={field} />
           </div>
 
+          <div style={{ textAlign: "right", marginTop: -8 }}>
+            <Link href="/recuperar-senha" style={{ fontSize: 12, color: "var(--gold)", fontWeight: 500, textDecoration: "none", fontFamily: "var(--font-poppins)" }}>
+              Esqueci minha senha
+            </Link>
+          </div>
+
           {error && (
             <div style={{ padding: "10px 14px", borderRadius: 9, background: "oklch(96% 0.03 15)", border: "1px solid oklch(88% 0.06 15)" }}>
               <p style={{ fontSize: 13, color: "oklch(48% 0.12 15)", fontFamily: "var(--font-poppins)" }}>{error}</p>

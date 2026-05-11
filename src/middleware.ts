@@ -31,11 +31,12 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const publicRoutes = ["/", "/login", "/cadastro", "/cadastro-cliente", "/assinatura"];
+  const publicRoutes = ["/", "/login", "/cadastro", "/cadastro-cliente", "/assinatura", "/recuperar-senha", "/nova-senha"];
   const isPublic =
     publicRoutes.some((r) => pathname === r) ||
     pathname.startsWith("/api/") ||
-    pathname.startsWith("/s/");
+    pathname.startsWith("/s/") ||
+    pathname.startsWith("/auth/");
 
   if (!user && !isPublic) {
     const url = new URL("/login", request.url);
