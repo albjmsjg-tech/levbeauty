@@ -207,87 +207,78 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     load();
   }, [params.slug]);
 
-  // CEP auto-validate when 8 digits
+  // Reset CEP validation state when input changes
   useEffect(() => {
     const digits = clientCep.replace(/\D/g, "");
-    if (digits.length !== 8) {
-      if (cepValid !== null) {
-        setCepValid(null);
-        setCepError("");
-        setTravelFee(0);
-      }
-      return;
-    }
-
-    let cancelled = false;
-    async function validate() {
-      if (!salon) return;
-      setCepChecking(true);
+    if (digits.length < 8) {
       setCepValid(null);
       setCepError("");
       setTravelFee(0);
+    }
+  }, [clientCep]);
 
-      // Step 1: ViaCEP format check
-      try {
-        const viares = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-        const viaData = await viares.json() as { erro?: boolean };
-        if (cancelled) return;
-        if (viaData.erro) {
-          setCepValid(false);
-          setCepError("CEP inválido ou não encontrado.");
-          setCepChecking(false);
-          return;
-        }
-      } catch {
-        if (cancelled) return;
-        // ViaCEP failed, continue to geocode
-      }
+  const verifyCep = async () => {
+    if (!salon) return;
+    const digits = clientCep.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      setCepError("Digite o CEP completo (8 dígitos).");
+      return;
+    }
+    setCepChecking(true);
+    setCepValid(null);
+    setCepError("");
+    setTravelFee(0);
 
-      if (!salon.cep_base) {
-        // No base CEP configured, allow with min fee
-        if (!cancelled) {
-          setCepValid(true);
-          setTravelFee(salon.min_travel_fee);
-        }
-        setCepChecking(false);
-        return;
-      }
-
-      // Step 2: Geocode both CEPs
-      const [clientCoords, salonCoords] = await Promise.all([
-        geocodeCEP(digits),
-        geocodeCEP(salon.cep_base),
-      ]);
-
-      if (cancelled) return;
-
-      if (!clientCoords || !salonCoords) {
-        // Geocoding failed, allow with min fee as graceful fallback
-        setCepValid(true);
-        setTravelFee(salon.min_travel_fee);
-        setCepChecking(false);
-        return;
-      }
-
-      const distKm = haversineKm(clientCoords, salonCoords);
-
-      if (distKm > salon.max_radius_km) {
+    // Step 1: ViaCEP format check
+    try {
+      const viares = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const viaData = await viares.json() as { erro?: boolean };
+      if (viaData.erro) {
         setCepValid(false);
-        setCepError(`Fora da nossa área de atendimento (${distKm.toFixed(1)} km, raio máx ${salon.max_radius_km} km)`);
+        setCepError("CEP inválido ou não encontrado.");
         setCepChecking(false);
         return;
       }
-
-      const fee = Math.max(salon.min_travel_fee, distKm * 2 * salon.price_per_km);
-      setCepValid(true);
-      setTravelFee(fee);
-      setCepChecking(false);
+    } catch {
+      // ViaCEP failed, continue to geocode
     }
 
-    validate();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientCep, salon]);
+    if (!salon.cep_base) {
+      // No base CEP configured — allow with min travel fee
+      setCepValid(true);
+      setTravelFee(salon.min_travel_fee);
+      setCepChecking(false);
+      return;
+    }
+
+    // Step 2: Geocode both CEPs and check radius
+    const [clientCoords, salonCoords] = await Promise.all([
+      geocodeCEP(digits),
+      geocodeCEP(salon.cep_base),
+    ]);
+
+    if (!clientCoords || !salonCoords) {
+      // Geocoding failed — graceful fallback with min fee
+      setCepValid(true);
+      setTravelFee(salon.min_travel_fee);
+      setCepChecking(false);
+      return;
+    }
+
+    const distKm = haversineKm(clientCoords, salonCoords);
+
+    if (distKm > salon.max_radius_km) {
+      setCepValid(false);
+      setCepError(`Fora da nossa área de atendimento (${distKm.toFixed(1)} km — raio máximo ${salon.max_radius_km} km).`);
+      setCepChecking(false);
+      return;
+    }
+
+    const fee = Math.max(salon.min_travel_fee, distKm * 2 * salon.price_per_km);
+    setCepValid(true);
+    setTravelFee(fee);
+    setCepChecking(false);
+  };
 
   // Location logic based on home_salon and home_enabled
   function getLocationMode(s: SalonData): "picker" | "force-salon" | "force-home" {
@@ -473,7 +464,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
   }
 
   const locationMode = getLocationMode(salon);
-  const showCepField = location === "home" && salon.home_enabled && !!salon.cep_base;
+  const showCepField = location === "home" && salon.home_enabled;
   const cepBlocking = showCepField && cepValid !== true;
 
   // ── page ─────────────────────────────────────────────
@@ -583,25 +574,59 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
               )}
             </div>
 
-            {/* CEP field — shown when home location + home_enabled + cep_base configured */}
+            {/* CEP field — shown when "Em Casa" is selected */}
             {showCepField && (
               <div style={{ marginBottom: 22 }}>
                 <label style={labelStyle}>Seu CEP</label>
-                <input
-                  value={clientCep}
-                  onChange={e => setClientCep(formatCEP(e.target.value))}
-                  placeholder="00000-000"
-                  maxLength={9}
-                  style={{ ...fieldStyle, borderColor: cepValid === false ? "oklch(65% 0.15 15)" : cepValid === true ? "oklch(55% 0.12 145)" : "var(--border)" }}
-                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    value={clientCep}
+                    onChange={e => setClientCep(formatCEP(e.target.value))}
+                    onKeyDown={e => e.key === "Enter" && verifyCep()}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    style={{
+                      ...fieldStyle,
+                      flex: 1,
+                      borderColor: cepValid === false
+                        ? "oklch(65% 0.15 15)"
+                        : cepValid === true
+                          ? "oklch(55% 0.12 145)"
+                          : "var(--border)",
+                    }}
+                  />
+                  <button
+                    onClick={verifyCep}
+                    disabled={cepChecking || clientCep.replace(/\D/g, "").length !== 8}
+                    style={{
+                      padding: "0 18px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: cepChecking || clientCep.replace(/\D/g, "").length !== 8
+                        ? "var(--border)"
+                        : "var(--gold)",
+                      color: "white",
+                      fontFamily: "var(--font-poppins)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: cepChecking || clientCep.replace(/\D/g, "").length !== 8
+                        ? "not-allowed"
+                        : "pointer",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                      transition: "background 0.15s",
+                    }}>
+                    {cepChecking ? "..." : "Verificar"}
+                  </button>
+                </div>
                 {cepChecking && (
                   <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "6px 0 0" }}>
-                    Verificando CEP...
+                    Verificando localização...
                   </p>
                 )}
                 {!cepChecking && cepValid === true && (
                   <p style={{ fontSize: 12, color: "oklch(38% 0.12 145)", fontFamily: "var(--font-poppins)", margin: "6px 0 0", fontWeight: 600 }}>
-                    ✓ Dentro do raio · taxa {fmt(travelFee)}
+                    ✓ Dentro da área de atendimento{travelFee > 0 ? ` · taxa de deslocamento ${fmt(travelFee)}` : ""}
                   </p>
                 )}
                 {!cepChecking && cepValid === false && cepError && (
@@ -609,9 +634,9 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                     ✗ {cepError}
                   </p>
                 )}
-                {cepBlocking && (
-                  <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "4px 0 0" }}>
-                    Informe seu CEP para escolher a data.
+                {!cepChecking && cepValid === null && (
+                  <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "6px 0 0" }}>
+                    Informe seu CEP para verificar se estamos na sua área.
                   </p>
                 )}
               </div>
