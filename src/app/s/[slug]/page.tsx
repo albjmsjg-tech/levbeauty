@@ -27,7 +27,7 @@ interface ServiceData {
   price: number;
 }
 
-type Step = "list" | "date" | "time" | "info" | "done";
+type Step = "list" | "location" | "cep" | "date" | "time" | "info" | "done";
 
 const DAYS_PT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -192,7 +192,9 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
         return;
       }
 
-      setSalon(salonData as SalonData);
+      const sd = salonData as SalonData;
+      console.log("[LevBeauty] salon loaded:", { name: sd.name, home_enabled: sd.home_enabled, home_salon: sd.home_salon, cep_base: sd.cep_base });
+      setSalon(sd);
 
       const { data: svcData } = await supabase
         .from("services")
@@ -291,20 +293,28 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setSelectedSvc(svc);
     setSelectedDate("");
     setSelectedTime("");
+    setCepValid(null);
+    setCepError("");
+    setTravelFee(0);
+    setClientCep("");
+
     if (salon) {
       const mode = getLocationMode(salon);
-      if (mode === "force-home") setLocation("home");
-      else setLocation("salon");
+      if (mode === "force-home") {
+        setLocation("home");
+        setStep("cep");           // home-only: go straight to CEP step
+      } else if (mode === "picker") {
+        setLocation("salon");
+        setStep("location");      // show location picker first
+      } else {
+        setLocation("salon");
+        setStep("date");          // salon-only: skip straight to calendar
+      }
     }
-    setStep("date");
   };
 
   const handlePickDate = async (dateStr: string) => {
     if (!salon || !selectedSvc) return;
-    // Block if home location and CEP validation required but not done
-    if (location === "home" && salon.home_enabled && salon.cep_base && cepValid !== true) {
-      return;
-    }
     setSelectedDate(dateStr);
     setSelectedTime("");
     setLoadingSlots(true);
@@ -406,6 +416,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setTravelFee(0);
     setSubmitError("");
     setPaymentDone(false);
+    setBookedSlots([]);
   };
 
   // ── styles ──────────────────────────────────────────
@@ -464,8 +475,6 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
   }
 
   const locationMode = getLocationMode(salon);
-  const showCepField = location === "home" && salon.home_enabled;
-  const cepBlocking = showCepField && cepValid !== true;
 
   // ── page ─────────────────────────────────────────────
   return (
@@ -528,13 +537,12 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
           </>
         )}
 
-        {/* ── STEP: date ────────────────────────────── */}
-        {step === "date" && selectedSvc && (
+        {/* ── STEP: location ───────────────────────── */}
+        {step === "location" && selectedSvc && salon && (
           <>
             <button onClick={() => setStep("list")} style={backBtn}>← Voltar</button>
 
-            {/* Selected service summary */}
-            <div style={{ background: "white", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--border)", marginBottom: 24, display: "flex", gap: 12, alignItems: "center" }}>
+            <div style={{ background: "white", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--border)", marginBottom: 28, display: "flex", gap: 12, alignItems: "center" }}>
               <span style={{ fontSize: 24 }}>{selectedSvc.emoji}</span>
               <div>
                 <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{selectedSvc.name}</p>
@@ -542,105 +550,160 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
               </div>
             </div>
 
-            {/* Location selector */}
-            <div style={{ marginBottom: 22 }}>
-              <p style={{ fontFamily: "var(--font-poppins)", fontSize: 11, fontWeight: 700, color: "var(--text-mid)", letterSpacing: "0.07em", margin: "0 0 10px" }}>LOCAL DO ATENDIMENTO</p>
-              {locationMode === "picker" ? (
-                <div style={{ display: "flex", gap: 10 }}>
-                  {(["salon", "home"] as const).map(loc => (
-                    <button key={loc} onClick={() => { setLocation(loc); setCepValid(null); setCepError(""); setTravelFee(0); setClientCep(""); }}
-                      style={{ flex: 1, padding: "11px 8px", borderRadius: 11, border: `1.5px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, transition: "all 0.15s" }}>
-                      <span style={{ fontSize: 18 }}>{loc === "salon" ? "🏪" : "🏠"}</span>
-                      <span style={{ fontSize: 12, fontWeight: location === loc ? 700 : 400, color: location === loc ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
-                        {loc === "salon" ? "No Salão" : "Em Casa"}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : locationMode === "force-home" ? (
-                <div style={{ background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "10px 14px", border: "1px solid oklch(90% 0.04 75)", display: "flex", gap: 10, alignItems: "center" }}>
-                  <span style={{ fontSize: 16 }}>🏠</span>
-                  <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-mid)", margin: 0 }}>
-                    Atendimento <strong style={{ color: "var(--text)" }}>somente a domicílio</strong>.
+            <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 22, color: "var(--text)", margin: "0 0 6px" }}>Onde será o atendimento?</h2>
+            <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text-light)", margin: "0 0 22px" }}>Escolha o local</p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
+              {(["salon", "home"] as const).map(loc => (
+                <button key={loc}
+                  onClick={() => setLocation(loc)}
+                  style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 14, border: `2px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+                  <span style={{ fontSize: 32 }}>{loc === "salon" ? "🏪" : "🏠"}</span>
+                  <div>
+                    <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 700, fontSize: 15, color: location === loc ? "var(--gold)" : "var(--text)", margin: "0 0 2px" }}>
+                      {loc === "salon" ? "No Salão" : "Em Casa"}
+                    </p>
+                    <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: 0 }}>
+                      {loc === "salon" ? salon.address || "Atendimento no nosso espaço" : "Enviamos uma profissional até você"}
+                    </p>
+                  </div>
+                  <div style={{ marginLeft: "auto", width: 20, height: 20, borderRadius: "50%", border: `2px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "var(--gold)" : "white", flexShrink: 0 }} />
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => {
+                if (location === "home") setStep("cep");
+                else setStep("date");
+              }}
+              style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: "pointer" }}>
+              Próximo →
+            </button>
+          </>
+        )}
+
+        {/* ── STEP: cep ─────────────────────────────── */}
+        {step === "cep" && selectedSvc && (
+          <>
+            <button onClick={() => setStep(getLocationMode(salon!) === "force-home" ? "list" : "location")} style={backBtn}>← Voltar</button>
+
+            <div style={{ background: "white", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--border)", marginBottom: 28, display: "flex", gap: 12, alignItems: "center" }}>
+              <span style={{ fontSize: 24 }}>{selectedSvc.emoji}</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{selectedSvc.name}</p>
+                <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: "2px 0 0" }}>{selectedSvc.duration_min} min · {fmt(selectedSvc.price)}</p>
+              </div>
+              <span style={{ fontSize: 12, background: "oklch(97% 0.04 75)", border: "1px solid oklch(90% 0.04 75)", color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, padding: "4px 10px", borderRadius: 8 }}>🏠 Em Casa</span>
+            </div>
+
+            <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 22, color: "var(--text)", margin: "0 0 6px" }}>Qual o seu CEP?</h2>
+            <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text-light)", margin: "0 0 22px", lineHeight: 1.5 }}>
+              Vamos verificar se estamos dentro da sua área de atendimento e calcular a taxa de deslocamento.
+            </p>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>CEP</label>
+              <div style={{ display: "flex", gap: 10 }}>
+                <input
+                  value={clientCep}
+                  onChange={e => setClientCep(formatCEP(e.target.value))}
+                  onKeyDown={e => e.key === "Enter" && verifyCep()}
+                  placeholder="00000-000"
+                  maxLength={9}
+                  autoFocus
+                  style={{
+                    ...fieldStyle,
+                    flex: 1,
+                    borderColor: cepValid === false
+                      ? "oklch(65% 0.15 15)"
+                      : cepValid === true
+                        ? "oklch(55% 0.12 145)"
+                        : "var(--border)",
+                  }}
+                />
+                <button
+                  onClick={verifyCep}
+                  disabled={cepChecking || clientCep.replace(/\D/g, "").length !== 8}
+                  style={{
+                    padding: "0 20px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: cepChecking || clientCep.replace(/\D/g, "").length !== 8 ? "var(--border)" : "var(--gold)",
+                    color: "white",
+                    fontFamily: "var(--font-poppins)",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: cepChecking || clientCep.replace(/\D/g, "").length !== 8 ? "not-allowed" : "pointer",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    transition: "background 0.15s",
+                  }}>
+                  {cepChecking ? "Verificando..." : "Verificar"}
+                </button>
+              </div>
+
+              {cepValid === null && !cepChecking && (
+                <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "8px 0 0" }}>
+                  Digite o CEP e clique em Verificar.
+                </p>
+              )}
+              {cepChecking && (
+                <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "8px 0 0" }}>
+                  Consultando ViaCEP e calculando distância...
+                </p>
+              )}
+              {!cepChecking && cepValid === true && (
+                <div style={{ background: "oklch(94% 0.06 145)", border: "1px solid oklch(80% 0.1 145)", borderRadius: 10, padding: "12px 14px", marginTop: 12 }}>
+                  <p style={{ fontSize: 13, color: "oklch(32% 0.1 145)", fontFamily: "var(--font-poppins)", fontWeight: 600, margin: 0 }}>
+                    ✓ Dentro da área de atendimento
                   </p>
+                  {travelFee > 0 && (
+                    <p style={{ fontSize: 12, color: "oklch(38% 0.1 145)", fontFamily: "var(--font-poppins)", margin: "4px 0 0" }}>
+                      Taxa de deslocamento: {fmt(travelFee)}
+                    </p>
+                  )}
                 </div>
-              ) : (
-                <div style={{ background: "oklch(97% 0.01 0)", borderRadius: 10, padding: "10px 14px", border: "1px solid var(--border)", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 16, flexShrink: 0 }}>ℹ️</span>
-                  <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: 0, lineHeight: 1.5 }}>
-                    Atendimento <strong style={{ color: "var(--text)" }}>apenas no salão</strong>.
+              )}
+              {!cepChecking && cepValid === false && cepError && (
+                <div style={{ background: "oklch(96% 0.04 15)", border: "1px solid oklch(85% 0.08 15)", borderRadius: 10, padding: "12px 14px", marginTop: 12 }}>
+                  <p style={{ fontSize: 13, color: "oklch(40% 0.12 15)", fontFamily: "var(--font-poppins)", fontWeight: 600, margin: 0 }}>
+                    ✗ Fora da área de atendimento
+                  </p>
+                  <p style={{ fontSize: 12, color: "oklch(48% 0.1 15)", fontFamily: "var(--font-poppins)", margin: "4px 0 0" }}>
+                    {cepError}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* CEP field — shown when "Em Casa" is selected */}
-            {showCepField && (
-              <div style={{ marginBottom: 22 }}>
-                <label style={labelStyle}>Seu CEP</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    value={clientCep}
-                    onChange={e => setClientCep(formatCEP(e.target.value))}
-                    onKeyDown={e => e.key === "Enter" && verifyCep()}
-                    placeholder="00000-000"
-                    maxLength={9}
-                    style={{
-                      ...fieldStyle,
-                      flex: 1,
-                      borderColor: cepValid === false
-                        ? "oklch(65% 0.15 15)"
-                        : cepValid === true
-                          ? "oklch(55% 0.12 145)"
-                          : "var(--border)",
-                    }}
-                  />
-                  <button
-                    onClick={verifyCep}
-                    disabled={cepChecking || clientCep.replace(/\D/g, "").length !== 8}
-                    style={{
-                      padding: "0 18px",
-                      borderRadius: 10,
-                      border: "none",
-                      background: cepChecking || clientCep.replace(/\D/g, "").length !== 8
-                        ? "var(--border)"
-                        : "var(--gold)",
-                      color: "white",
-                      fontFamily: "var(--font-poppins)",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: cepChecking || clientCep.replace(/\D/g, "").length !== 8
-                        ? "not-allowed"
-                        : "pointer",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                      transition: "background 0.15s",
-                    }}>
-                    {cepChecking ? "..." : "Verificar"}
-                  </button>
-                </div>
-                {cepChecking && (
-                  <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "6px 0 0" }}>
-                    Verificando localização...
-                  </p>
-                )}
-                {!cepChecking && cepValid === true && (
-                  <p style={{ fontSize: 12, color: "oklch(38% 0.12 145)", fontFamily: "var(--font-poppins)", margin: "6px 0 0", fontWeight: 600 }}>
-                    ✓ Dentro da área de atendimento{travelFee > 0 ? ` · taxa de deslocamento ${fmt(travelFee)}` : ""}
-                  </p>
-                )}
-                {!cepChecking && cepValid === false && cepError && (
-                  <p style={{ fontSize: 12, color: "oklch(48% 0.14 15)", fontFamily: "var(--font-poppins)", margin: "6px 0 0" }}>
-                    ✗ {cepError}
-                  </p>
-                )}
-                {!cepChecking && cepValid === null && (
-                  <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "6px 0 0" }}>
-                    Informe seu CEP para verificar se estamos na sua área.
-                  </p>
-                )}
-              </div>
+            {cepValid === true && (
+              <button
+                onClick={() => setStep("date")}
+                style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: "pointer" }}>
+                Escolher data →
+              </button>
             )}
+          </>
+        )}
+
+        {/* ── STEP: date ────────────────────────────── */}
+        {step === "date" && selectedSvc && (
+          <>
+            <button
+              onClick={() => location === "home" ? setStep("cep") : (getLocationMode(salon!) === "picker" ? setStep("location") : setStep("list"))}
+              style={backBtn}>← Voltar</button>
+
+            <div style={{ background: "white", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--border)", marginBottom: 24, display: "flex", gap: 12, alignItems: "center" }}>
+              <span style={{ fontSize: 24 }}>{selectedSvc.emoji}</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{selectedSvc.name}</p>
+                <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: "2px 0 0" }}>{selectedSvc.duration_min} min · {fmt(selectedSvc.price)}</p>
+              </div>
+              <span style={{ fontSize: 12, background: "oklch(97% 0.01 0)", border: "1px solid var(--border)", color: "var(--text-mid)", fontFamily: "var(--font-poppins)", fontWeight: 600, padding: "4px 10px", borderRadius: 8 }}>
+                {location === "home" ? "🏠 Em Casa" : "🏪 No Salão"}
+              </span>
+            </div>
 
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, color: "var(--text)", margin: "0 0 18px" }}>Escolha a data</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
@@ -648,11 +711,9 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                 const dateStr = toISODate(d);
                 const isToday = toISODate(new Date()) === dateStr;
                 const isSelected = selectedDate === dateStr;
-                const blocked = cepBlocking;
                 return (
-                  <button key={dateStr} onClick={() => !blocked && handlePickDate(dateStr)}
-                    disabled={blocked}
-                    style={{ padding: "12px 6px", borderRadius: 10, border: `1.5px solid ${isSelected ? "var(--gold)" : "var(--border)"}`, background: blocked ? "oklch(96% 0.003 0)" : isSelected ? "oklch(97% 0.04 75)" : "white", cursor: blocked ? "not-allowed" : "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, transition: "all 0.15s", opacity: blocked ? 0.5 : 1 }}>
+                  <button key={dateStr} onClick={() => handlePickDate(dateStr)}
+                    style={{ padding: "12px 6px", borderRadius: 10, border: `1.5px solid ${isSelected ? "var(--gold)" : "var(--border)"}`, background: isSelected ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, transition: "all 0.15s" }}>
                     <span style={{ fontFamily: "var(--font-poppins)", fontSize: 10, color: isSelected ? "var(--gold)" : "var(--text-light)", fontWeight: 500 }}>{DAYS_PT[d.getDay()]}</span>
                     <span style={{ fontFamily: "var(--font-poppins)", fontSize: 20, fontWeight: 700, color: isSelected ? "var(--gold)" : "var(--text)", lineHeight: 1.2 }}>{d.getDate()}</span>
                     <span style={{ fontFamily: "var(--font-poppins)", fontSize: 10, color: isSelected ? "var(--gold)" : "var(--text-light)" }}>{MONTHS_PT[d.getMonth()]}</span>
