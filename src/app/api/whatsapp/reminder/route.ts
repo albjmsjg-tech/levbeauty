@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   let sent = 0;
   for (const appt of appts ?? []) {
-    const salonName = (appt.salons as { name: string }).name;
+    const salonName = (appt.salons as unknown as { name: string }).name;
     const time = String(appt.appt_time).slice(0, 5);
     const msg = `Oi ${appt.client_name}! 💅 Lembrando que amanhã você tem ${appt.service_name} com ${salonName} às ${time}.\nTe esperamos! 🌸`;
 

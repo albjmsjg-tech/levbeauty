@@ -17,11 +17,13 @@ export async function saveSalon(input: {
   // Ensure profile row exists — trigger may not have run yet for new signups.
   // Ignore errors: if trigger already created it the upsert is a no-op;
   // if INSERT policy is missing the row was already created by the trigger.
-  await supabase
-    .from("profiles")
-    .upsert({ id: user.id, role: "owner", full_name: user.user_metadata?.full_name ?? "" }, { onConflict: "id" })
-    .then(() => null)
-    .catch(() => null);
+  try {
+    await supabase
+      .from("profiles")
+      .upsert({ id: user.id, role: "owner", full_name: user.user_metadata?.full_name ?? "" }, { onConflict: "id" });
+  } catch {
+    // non-fatal: trigger may have already created the profile
+  }
 
   const { data, error } = await supabase
     .from("salons")
