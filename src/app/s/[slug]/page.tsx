@@ -407,11 +407,14 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     const clientMsg = `Olá ${clientName.trim()}! 🎉 Seu agendamento foi confirmado pelo LevBeauty!\n💅 ${selectedSvc.name} com ${salon.name}\n📅 ${dateLabel} às ${selectedTime}\n📍 ${loc}\nQualquer dúvida entre em contato: ${salon.phone || "—"}`;
     const proMsg = `🔔 Novo agendamento via LevBeauty!\nCliente: ${clientName.trim()} — ${clientPhone.trim()}\nServiço: ${selectedSvc.name}\n📅 ${dateLabel} às ${selectedTime}`;
     const notifyBase = { method: "POST", headers: { "Content-Type": "application/json" } };
+    console.log("[booking] dispatching WhatsApp | client:", clientPhone.trim(), "| salon:", salon.phone);
     if (clientPhone.trim()) {
-      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ phone: clientPhone.trim(), message: clientMsg }) }).catch(() => {});
+      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ phone: clientPhone.trim(), message: clientMsg }) })
+        .then(r => r.json()).then(d => console.log("[booking] client notify:", d)).catch(e => console.error("[booking] client notify error:", e));
     }
     if (salon.phone) {
-      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ phone: salon.phone, message: proMsg }) }).catch(() => {});
+      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ phone: salon.phone, message: proMsg }) })
+        .then(r => r.json()).then(d => console.log("[booking] pro notify:", d)).catch(e => console.error("[booking] pro notify error:", e));
     }
   };
 

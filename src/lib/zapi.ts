@@ -1,4 +1,4 @@
-function formatPhoneBR(phone: string): string {
+export function formatPhoneBR(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.startsWith("55") && digits.length >= 12) return digits;
   return `55${digits}`;
@@ -9,18 +9,28 @@ export async function sendWhatsApp(
   message: string,
   instanceId: string,
   token: string
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; error?: string }> {
+  const formatted = formatPhoneBR(phone);
+  const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
+
+  console.log("[ZAPI] sending to:", formatted, "| url:", url);
+
   try {
-    const res = await fetch(
-      `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: formatPhoneBR(phone), message }),
-      }
-    );
-    return { ok: res.ok };
-  } catch {
-    return { ok: false };
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: formatted, message }),
+    });
+
+    const body = await res.text();
+    console.log("[ZAPI] response:", res.status, body);
+
+    if (!res.ok) {
+      return { ok: false, error: `${res.status} ${body}` };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error("[ZAPI] fetch error:", err);
+    return { ok: false, error: String(err) };
   }
 }
