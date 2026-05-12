@@ -10,6 +10,9 @@ export async function sendWhatsApp(
   instanceId: string,
   token: string
 ): Promise<{ ok: boolean; error?: string }> {
+  const clientToken = process.env.ZAPI_CLIENT_TOKEN;
+  if (!clientToken) throw new Error("ZAPI_CLIENT_TOKEN env var não configurada");
+
   const formatted = formatPhoneBR(phone);
   const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
 
@@ -18,7 +21,10 @@ export async function sendWhatsApp(
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Client-Token": clientToken,
+      },
       body: JSON.stringify({ phone: formatted, message }),
     });
 

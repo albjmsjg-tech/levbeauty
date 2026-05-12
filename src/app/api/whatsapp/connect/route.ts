@@ -10,10 +10,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ connected: false });
   }
 
+  const clientToken = process.env.ZAPI_CLIENT_TOKEN;
+  if (!clientToken) throw new Error("ZAPI_CLIENT_TOKEN env var não configurada");
+
   try {
     const res = await fetch(
       `https://api.z-api.io/instances/${instanceId}/token/${token}/status`,
-      { method: "GET" }
+      { method: "GET", headers: { "Client-Token": clientToken } }
     );
 
     if (!res.ok) {
