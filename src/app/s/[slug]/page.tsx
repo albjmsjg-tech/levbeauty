@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { bookAppointment } from "./actions";
 
 interface SalonData {
   id: string;
@@ -138,6 +139,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [paymentDone, setPaymentDone] = useState(false);
+  const [bookingFailed, setBookingFailed] = useState(false);
 
   // CEP state
   const [clientCep, setClientCep] = useState("");
@@ -374,48 +376,30 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       return;
     }
 
-    // Normal booking (no deposit)
-    const supabase = createClient();
-    const { error } = await supabase.from("appointments").insert({
-      salon_id: salon.id,
-      client_id: null,
-      client_name: clientName.trim(),
-      client_phone: clientPhone.trim() || null,
-      service_name: selectedSvc.name,
-      appt_date: selectedDate,
-      appt_time: selectedTime,
-      duration_min: selectedSvc.duration_min,
+    // Normal booking (no deposit) — handled server-side via bookAppointment()
+    const result = await bookAppointment({
+      salonId: salon.id,
+      serviceId: selectedSvc.id,
+      serviceName: selectedSvc.name,
+      apptDate: selectedDate,
+      apptTime: selectedTime,
+      durationMin: selectedSvc.duration_min,
+      clientName,
+      clientPhone,
+      paymentMethod: "local",
       price: selectedSvc.price,
-      status: "pendente",
-      payment_method: "local",
       location: location === "home" ? "domicilio" : "salao",
-      client_cep: clientCep || null,
-      travel_fee: travelFee || 0,
+      clientCep: clientCep || undefined,
+      travelFee: travelFee || undefined,
+      salonName: salon.name,
+      salonPhone: salon.phone,
+      salonAddress: salon.address,
     });
-    if (error) {
-      console.error("Guest booking error:", error);
-      setSubmitError(`Erro ao confirmar agendamento: ${error.message}`);
-      setSubmitting(false);
-      return;
+    if (!result.ok) {
+      setBookingFailed(true);
     }
     setStep("done");
     setSubmitting(false);
-
-    // WhatsApp notifications (fire-and-forget)
-    const dateLabel = formatDateDisplay(dates.find(d => toISODate(d) === selectedDate)!);
-    const loc = salon.address || salon.name;
-    const clientMsg = `Olá ${clientName.trim()}! 🎉 Seu agendamento foi confirmado pelo LevBeauty!\n💅 ${selectedSvc.name} com ${salon.name}\n📅 ${dateLabel} às ${selectedTime}\n📍 ${loc}\nQualquer dúvida entre em contato: ${salon.phone || "—"}`;
-    const proMsg = `🔔 Novo agendamento via LevBeauty!\nCliente: ${clientName.trim()} — ${clientPhone.trim()}\nServiço: ${selectedSvc.name}\n📅 ${dateLabel} às ${selectedTime}`;
-    const notifyBase = { method: "POST", headers: { "Content-Type": "application/json" } };
-    console.log("[booking] dispatching WhatsApp | client:", clientPhone.trim(), "| salon:", salon.phone);
-    if (clientPhone.trim()) {
-      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ phone: clientPhone.trim(), message: clientMsg }) })
-        .then(r => r.json()).then(d => console.log("[booking] client notify:", d)).catch(e => console.error("[booking] client notify error:", e));
-    }
-    if (salon.phone) {
-      fetch("/api/whatsapp/notify", { ...notifyBase, body: JSON.stringify({ phone: salon.phone, message: proMsg }) })
-        .then(r => r.json()).then(d => console.log("[booking] pro notify:", d)).catch(e => console.error("[booking] pro notify error:", e));
-    }
   };
 
   const resetBooking = () => {
@@ -432,6 +416,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setTravelFee(0);
     setSubmitError("");
     setPaymentDone(false);
+    setBookingFailed(false);
     setBookedSlots([]);
   };
 
@@ -869,8 +854,26 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
           </>
         )}
 
-        {/* ── STEP: done ────────────────────────────── */}
-        {step === "done" && (
+        {/* ── STEP: done — erro ─────────────────────── */}
+        {step === "done" && bookingFailed && (
+          <div style={{ textAlign: "center", paddingTop: 16 }}>
+            <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg, oklch(65% 0.15 15), oklch(50% 0.18 15))", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 18px oklch(50% 0.18 15 / 0.3)" }}>
+              <span style={{ color: "white", fontSize: 32 }}>✗</span>
+            </div>
+            <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, color: "var(--text)", margin: "0 0 10px" }}>Não foi possível concluir</h2>
+            <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text-light)", margin: "0 0 32px", lineHeight: 1.6 }}>
+              Horário indisponível. Por favor, escolha outro horário.
+            </p>
+            <button
+              onClick={resetBooking}
+              style={{ padding: "14px 32px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontFamily: "var(--font-poppins)", fontSize: 15, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)" }}>
+              Escolher outro horário
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP: done — sucesso ──────────────────── */}
+        {step === "done" && !bookingFailed && (
           <div style={{ textAlign: "center", paddingTop: 16 }}>
             <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg, oklch(88% 0.055 10), var(--gold))", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 18px oklch(72% 0.115 75 / 0.35)" }}>
               <span style={{ color: "white", fontSize: 32 }}>✓</span>
