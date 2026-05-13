@@ -28,8 +28,9 @@ export function Sidebar() {
         .from("profiles")
         .select("full_name")
         .eq("id", user.id)
-        .single()
-        .then(({ data }) => {
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error) console.error("[sidebar] profile fetch:", error.message);
           if (data?.full_name) setOwnerName(data.full_name as string);
         });
     });

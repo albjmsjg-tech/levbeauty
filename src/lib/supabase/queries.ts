@@ -52,7 +52,7 @@ export async function getOwnerSalon(supabase: SupabaseClient): Promise<DbRow | n
     .from("salons")
     .select("id, name, slug, phone, owner_id")
     .eq("owner_id", user.id)
-    .single();
+    .maybeSingle();
   return data as DbRow | null;
 }
 

@@ -51,12 +51,14 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const { data: profile } = await supabase
-        .from("profiles").select("full_name").eq("id", user.id).single();
+      const { data: profile, error: profileErr } = await supabase
+        .from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+      if (profileErr) console.error("[dashboard] profile fetch:", profileErr.message);
       if (profile?.full_name) setOwnerName((profile.full_name as string).split(" ")[0]);
 
-      const { data: salon } = await supabase
-        .from("salons").select("id, slug").eq("owner_id", user.id).single();
+      const { data: salon, error: salonErr } = await supabase
+        .from("salons").select("id, slug").eq("owner_id", user.id).maybeSingle();
+      if (salonErr) console.error("[dashboard] salon fetch:", salonErr.message);
       if (!salon) { setHasSalon(false); setLoading(false); return; }
       setSalonId(salon.id as string);
 
