@@ -93,6 +93,21 @@ function formatCEP(v: string): string {
 async function geocodeCEP(cep: string): Promise<{ lat: number; lng: number } | null> {
   try {
     const clean = cep.replace(/\D/g, "");
+
+    // BrasilAPI v2 retorna coordenadas direto para CEPs brasileiros
+    const brasilRes = await fetch(`https://brasilapi.com.br/api/cep/v2/${clean}`);
+    if (brasilRes.ok) {
+      const brasilData = await brasilRes.json() as {
+        location?: { coordinates?: { latitude?: string; longitude?: string } };
+      };
+      const lat = brasilData.location?.coordinates?.latitude;
+      const lng = brasilData.location?.coordinates?.longitude;
+      if (lat && lng) {
+        return { lat: parseFloat(lat), lng: parseFloat(lng) };
+      }
+    }
+
+    // Fallback: Nominatim com postalcode
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?postalcode=${clean}&country=BR&format=json&limit=1`,
       { headers: { "User-Agent": "LevBeauty/1.0" } }
@@ -250,7 +265,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     if (!salon.cep_base) {
       // No base CEP configured — allow with min travel fee
       setCepValid(true);
-      setTravelFee(salon.min_travel_fee);
+      setTravelFee(Number(salon.min_travel_fee));
       setCepChecking(false);
       return;
     }
@@ -264,21 +279,21 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     if (!clientCoords || !salonCoords) {
       // Geocoding failed — graceful fallback with min fee
       setCepValid(true);
-      setTravelFee(salon.min_travel_fee);
+      setTravelFee(Number(salon.min_travel_fee));
       setCepChecking(false);
       return;
     }
 
     const distKm = haversineKm(clientCoords, salonCoords);
 
-    if (distKm > salon.max_radius_km) {
+    if (distKm > Number(salon.max_radius_km)) {
       setCepValid(false);
       setCepError(`Fora da nossa área de atendimento (${distKm.toFixed(1)} km — raio máximo ${salon.max_radius_km} km).`);
       setCepChecking(false);
       return;
     }
 
-    const fee = Math.max(salon.min_travel_fee, distKm * 2 * salon.price_per_km);
+    const fee = Math.max(Number(salon.min_travel_fee), distKm * 2 * Number(salon.price_per_km));
     setCepValid(true);
     setTravelFee(fee);
     setCepChecking(false);
