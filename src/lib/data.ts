@@ -15,34 +15,38 @@ export const defaultServices: Service[] = [
   {
     id: 1, name: "Alongamento em Gel", emoji: "", duration: "2h 30min", price: 180,
     active: true, desc: "Unhas longas e naturais com gel resistente.", rating: 4.9,
-    inputs: [0, 1, 2, 4, 5, 6, 7], profitMargin: 35, taxPct: 7, cardPct: 3.29, mktPct: 5, manicurePct: 0,
+    inputs: ["local-0", "local-1", "local-2", "local-4", "local-5", "local-6", "local-7"],
+    manicurePct: 0,
   },
   {
     id: 2, name: "Banho de Gel", emoji: "", duration: "1h 30min", price: 120,
     active: true, desc: "Capa protetora de gel brilhante sobre as unhas naturais.", rating: 4.8,
-    inputs: [0, 2, 4, 5, 6, 7], profitMargin: 30, taxPct: 7, cardPct: 3.29, mktPct: 5, manicurePct: 0,
+    inputs: ["local-0", "local-2", "local-4", "local-5", "local-6", "local-7"],
+    manicurePct: 0,
   },
   {
     id: 3, name: "Esmaltação em Gel", emoji: "", duration: "1h", price: 90,
     active: true, desc: "Esmalte em gel de longa duração, até 3 semanas.", rating: 4.9,
-    inputs: [2, 4, 5, 6, 7], profitMargin: 28, taxPct: 7, cardPct: 3.29, mktPct: 5, manicurePct: 0,
+    inputs: ["local-2", "local-4", "local-5", "local-6", "local-7"],
+    manicurePct: 0,
   },
   {
     id: 4, name: "Manutenção", emoji: "", duration: "1h 15min", price: 80,
     active: true, desc: "Manutenção do alongamento com preenchimento.", rating: 4.7,
-    inputs: [0, 2, 4], profitMargin: 30, taxPct: 7, cardPct: 3.29, mktPct: 5, manicurePct: 0,
+    inputs: ["local-0", "local-2", "local-4"],
+    manicurePct: 0,
   },
 ];
 
 export const defaultInputs: Input[] = [
-  { name: "Builder Gel (10g)", unit: "g", pkgQty: 10, pkgCost: 45.0, perApplication: 2 },
-  { name: "Tips Soft Gel (cx 240un)", unit: "un", pkgQty: 240, pkgCost: 38.0, perApplication: 10 },
-  { name: "Primer (15ml)", unit: "ml", pkgQty: 15, pkgCost: 22.0, perApplication: 0.5 },
-  { name: "Acetona (500ml)", unit: "ml", pkgQty: 500, pkgCost: 8.0, perApplication: 10 },
-  { name: "Lixa de Arquivo", unit: "un", pkgQty: 12, pkgCost: 18.0, perApplication: 0.33 },
-  { name: "Esmalte Gel UV (6ml)", unit: "ml", pkgQty: 6, pkgCost: 35.0, perApplication: 0.4 },
-  { name: "Base Coat (8ml)", unit: "ml", pkgQty: 8, pkgCost: 28.0, perApplication: 0.5 },
-  { name: "Top Coat (8ml)", unit: "ml", pkgQty: 8, pkgCost: 32.0, perApplication: 0.5 },
+  { id: "local-0", name: "Builder Gel (10g)", unit: "g", pkgQty: 10, pkgCost: 45.0, perApplication: 2 },
+  { id: "local-1", name: "Tips Soft Gel (cx 240un)", unit: "un", pkgQty: 240, pkgCost: 38.0, perApplication: 10 },
+  { id: "local-2", name: "Primer (15ml)", unit: "ml", pkgQty: 15, pkgCost: 22.0, perApplication: 0.5 },
+  { id: "local-3", name: "Acetona (500ml)", unit: "ml", pkgQty: 500, pkgCost: 8.0, perApplication: 10 },
+  { id: "local-4", name: "Lixa de Arquivo", unit: "un", pkgQty: 12, pkgCost: 18.0, perApplication: 0.33 },
+  { id: "local-5", name: "Esmalte Gel UV (6ml)", unit: "ml", pkgQty: 6, pkgCost: 35.0, perApplication: 0.4 },
+  { id: "local-6", name: "Base Coat (8ml)", unit: "ml", pkgQty: 8, pkgCost: 28.0, perApplication: 0.5 },
+  { id: "local-7", name: "Top Coat (8ml)", unit: "ml", pkgQty: 8, pkgCost: 32.0, perApplication: 0.5 },
 ];
 
 export const defaultAppointments: Appointment[] = [

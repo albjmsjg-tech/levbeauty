@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Appointment, FixedCost } from "@/types";
+import type { Appointment, FixedCost, Input, Service } from "@/types";
 
 type DbRow = Record<string, unknown>;
 
@@ -40,6 +40,31 @@ export function mapDbCost(row: DbRow): FixedCost {
     id: row.id as string,
     name: row.name as string,
     val: Number(row.amount),
+  };
+}
+
+export function mapDbService(row: DbRow): Service {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    emoji: (row.emoji as string) ?? "",
+    duration: (row.duration as string) ?? "",
+    price: Number(row.price),
+    active: Boolean(row.active),
+    desc: (row.description as string) ?? undefined,
+    inputs: Array.isArray(row.inputs) ? (row.inputs as string[]) : [],
+    manicurePct: Number(row.manicure_pct ?? 0),
+  };
+}
+
+export function mapDbInput(row: DbRow): Input {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    unit: (row.unit as string) ?? "un",
+    pkgQty: Number(row.pkg_qty),
+    pkgCost: Number(row.pkg_cost),
+    perApplication: Number(row.per_application),
   };
 }
 

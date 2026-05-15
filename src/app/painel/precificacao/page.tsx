@@ -1,43 +1,108 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 import { ServiceModal } from "@/components/owner/ServiceModal";
-import type { Service } from "@/types";
-import { defaultServices, defaultInputs } from "@/lib/data";
-import { fmt, pct, calcPricing, computeUnitCost } from "@/lib/utils";
+import type { Service, Input, PricingConfig } from "@/types";
+import { DEFAULT_PRICING_CONFIG } from "@/types";
+import { fmt, pct, calcPricing, calcRealProfit, computeUnitCost } from "@/lib/utils";
+import { getPrecificacaoData, upsertService, removeService, updateServicePrice } from "./actions";
 
 export default function PrecificacaoPage() {
-  const [catalog, setCatalog] = useState<Service[]>(defaultServices);
-  const [inputs] = useState(defaultInputs);
-  const [selectedId, setSelectedId] = useState<number | string>(1);
+  const [services, setServices] = useState<Service[]>([]);
+  const [inputs, setInputs] = useState<Input[]>([]);
+  const [pricingConfig, setPricingConfig] = useState<PricingConfig>(DEFAULT_PRICING_CONFIG);
+  const [salonId, setSalonId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
   const [modal, setModal] = useState<Service | "new" | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [opError, setOpError] = useState<string | null>(null);
+  const [applyingPrice, setApplyingPrice] = useState(false);
 
-  const selected = catalog.find(s => s.id === selectedId) || catalog[0];
-  const { selectedInpCost, idealPrice, grossProfit, netProfit, manicureCost } = calcPricing(selected, inputs);
-
-  const saveService = (draft: Service) => {
-    setCatalog(prev => {
-      const exists = prev.find(s => s.id === draft.id);
-      return exists ? prev.map(s => s.id === draft.id ? draft : s) : [...prev, draft];
+  useEffect(() => {
+    getPrecificacaoData().then(({ services, inputs, salonId, pricingConfig, error }) => {
+      if (error) setFetchError(error);
+      setServices(services);
+      setInputs(inputs);
+      setSalonId(salonId);
+      setPricingConfig(pricingConfig);
+      setSelectedId(services[0]?.id ?? null);
+      setLoading(false);
     });
-    setSelectedId(draft.id);
+  }, []);
+
+  const selected = services.find(s => s.id === selectedId) ?? services[0] ?? null;
+
+  const saveService = async (draft: Service) => {
+    if (!salonId) return;
+    setOpError(null);
     setModal(null);
+
+    const isNew = typeof draft.id === "number";
+    setServices(prev => isNew ? [...prev, draft] : prev.map(s => s.id === draft.id ? draft : s));
+    if (isNew) setSelectedId(draft.id);
+
+    const { id, error } = await upsertService(draft, salonId);
+    if (error) {
+      setOpError(error);
+      if (isNew) {
+        setServices(prev => prev.filter(s => s.id !== draft.id));
+        setSelectedId(services[0]?.id ?? null);
+      }
+      return;
+    }
+
+    if (isNew) {
+      setServices(prev => prev.map(s => s.id === draft.id ? { ...s, id } : s));
+      setSelectedId(id);
+    }
   };
 
-  const deleteService = (id: number | string) => {
-    setCatalog(prev => prev.filter(s => s.id !== id));
-    if (selectedId === id) setSelectedId(catalog[0]?.id);
+  const deleteService = async (id: string | number) => {
+    if (typeof id !== "string") return;
+    const remaining = services.filter(s => s.id !== id);
+    setServices(remaining);
+    if (selectedId === id) setSelectedId(remaining[0]?.id ?? null);
+    const { error } = await removeService(id);
+    if (error) setOpError(error);
   };
 
-  const breakdownRows = [
-    { label: "Custo dos Insumos", val: selectedInpCost, color: "oklch(55% 0.08 10)", pctVal: selectedInpCost / idealPrice * 100 },
-    { label: `Impostos (${pct(selected.taxPct)})`, val: idealPrice * selected.taxPct / 100, color: "oklch(60% 0.1 250)", pctVal: selected.taxPct },
-    { label: `Taxa Cartão (${pct(selected.cardPct)})`, val: idealPrice * selected.cardPct / 100, color: "oklch(60% 0.1 320)", pctVal: selected.cardPct },
-    { label: `Custo Fixo (${pct(selected.mktPct)})`, val: idealPrice * selected.mktPct / 100, color: "oklch(60% 0.1 145)", pctVal: selected.mktPct },
-    ...(selected.manicurePct > 0 ? [{ label: `Comissão Manicure (${pct(selected.manicurePct)})`, val: manicureCost, color: "oklch(60% 0.1 320)", pctVal: selected.manicurePct }] : []),
-    { label: `Lucro Líquido (${pct(selected.profitMargin)})`, val: netProfit, color: "oklch(72% 0.115 75)", pctVal: selected.profitMargin },
-  ];
+  const handleApplyIdealPrice = async () => {
+    if (!selected || typeof selected.id !== "string") return;
+    setApplyingPrice(true);
+    const { idealPrice } = calcPricing(selected, inputs, pricingConfig);
+    const rounded = Math.round(idealPrice * 100) / 100;
+    const { error } = await updateServicePrice(selected.id, rounded);
+    if (error) {
+      setOpError(error);
+    } else {
+      setServices(prev => prev.map(s => s.id === selected.id ? { ...s, price: rounded } : s));
+    }
+    setApplyingPrice(false);
+  };
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100%", color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 14 }}>
+      Carregando serviços…
+    </div>
+  );
+
+  if (fetchError) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100%", flexDirection: "column", gap: 6 }}>
+      <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, fontWeight: 600, color: "oklch(50% 0.12 15)" }}>Erro ao carregar</p>
+      <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)" }}>{fetchError}</p>
+    </div>
+  );
+
+  const calc = selected ? calcPricing(selected, inputs, pricingConfig) : null;
+  const { selectedInpCost = 0, idealPrice = 0, manicureCost = 0 } = calc ?? {};
+  const realProfit = selected ? calcRealProfit(selected.price, selectedInpCost, pricingConfig, selected.manicurePct) : 0;
+  const realMarginPct = selected && selected.price > 0 ? (realProfit / selected.price) * 100 : 0;
+  const priceDiff = selected ? idealPrice - selected.price : 0;
+  const priceIsLow = priceDiff > 0.5;
+  const priceIsHigh = priceDiff < -0.5;
 
   return (
     <div style={{ padding: "28px 32px", minHeight: "100%" }}>
@@ -50,10 +115,11 @@ export default function PrecificacaoPage() {
         />
       )}
 
+      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
         <div>
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--text)" }}>Módulo de Precificação</h1>
-          <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 3 }}>Cadastre serviços e calcule o preço ideal com custos reais</p>
+          <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 3 }}>Calcule o preço ideal e compare com o valor atual cobrado</p>
         </div>
         <button onClick={() => setModal("new")}
           style={{ padding: "10px 20px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)", flexShrink: 0 }}>
@@ -61,126 +127,215 @@ export default function PrecificacaoPage() {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 20, alignItems: "start" }}>
-        {/* Service list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.05em", marginBottom: 4 }}>SERVIÇOS CADASTRADOS</p>
-          {catalog.map(svc => {
-            const { idealPrice: ip } = calcPricing(svc, inputs);
-            const sel = svc.id === selectedId;
-            return (
-              <div key={svc.id} onClick={() => setSelectedId(svc.id)}
-                style={{ background: "white", borderRadius: 14, padding: "12px 14px", border: `1.5px solid ${sel ? "var(--gold)" : "var(--border)"}`, cursor: "pointer", boxShadow: sel ? "0 4px 16px oklch(72% 0.115 75 / 0.15)" : "0 1px 4px oklch(40% 0.04 340 / 0.05)", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: sel ? "linear-gradient(135deg, oklch(88% 0.055 10), oklch(82% 0.065 350))" : "oklch(97% 0.015 75)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, transition: "background 0.15s" }}>
-                  {svc.emoji || "💅"}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{svc.name}</p>
-                  <p style={{ fontSize: 11, color: sel ? "var(--gold)" : "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: sel ? 700 : 400, marginTop: 2 }}>{fmt(ip)}</p>
-                </div>
-                {sel && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)", flexShrink: 0 }} />}
-              </div>
-            );
-          })}
+      {opError && (
+        <div style={{ marginBottom: 14, padding: "10px 14px", borderRadius: 10, background: "oklch(94% 0.04 15)", border: "1px solid oklch(88% 0.08 15)", fontSize: 12, color: "oklch(42% 0.12 15)", fontFamily: "var(--font-poppins)" }}>
+          {opError}
         </div>
+      )}
 
-        {/* Calculator */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Service header */}
-          <div style={{ background: "white", borderRadius: 16, padding: "16px 20px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(82% 0.065 350))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
-              {selected.emoji || "💅"}
-            </div>
-            <div style={{ flex: 1 }}>
-              <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 22, fontWeight: 600, color: "var(--text)" }}>{selected.name}</h2>
-              <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 2 }}>
-                {selected.inputs.length} insumos · margem {selected.profitMargin}%{selected.manicurePct > 0 && ` · manicure ${selected.manicurePct}%`}
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => setModal(selected)} style={{ padding: "8px 16px", borderRadius: 9, border: "1.5px solid var(--gold)", background: "oklch(98% 0.04 75)", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>✏️ Editar</button>
-              <button onClick={() => deleteService(selected.id)} style={{ padding: "8px 12px", borderRadius: 9, border: "1.5px solid oklch(90% 0.04 15)", background: "oklch(98% 0.02 15)", cursor: "pointer", fontSize: 12, color: "oklch(50% 0.12 15)", fontFamily: "var(--font-poppins)" }}>🗑️</button>
-            </div>
+      {services.length === 0 ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 14 }}>
+          Nenhum serviço cadastrado. Clique em &quot;Novo Serviço&quot; para começar.
+        </div>
+      ) : (
+        <>
+          {/* Service pills + edit/delete */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 22 }}>
+            {services.map(svc => {
+              const sel = svc.id === selected?.id;
+              return (
+                <button key={String(svc.id)} onClick={() => setSelectedId(svc.id)}
+                  style={{ padding: "8px 16px", borderRadius: 20, border: `1.5px solid ${sel ? "var(--gold)" : "var(--border)"}`, background: sel ? "var(--gold)" : "white", color: sel ? "white" : "var(--text)", cursor: "pointer", fontSize: 13, fontWeight: sel ? 600 : 400, fontFamily: "var(--font-poppins)", display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s", boxShadow: sel ? "0 3px 10px oklch(72% 0.115 75 / 0.3)" : "none" }}>
+                  <span style={{ fontSize: 15 }}>{svc.emoji || "💅"}</span>
+                  {svc.name}
+                </button>
+              );
+            })}
+            {selected && (
+              <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+                <button onClick={() => setModal(selected)}
+                  style={{ padding: "8px 14px", borderRadius: 10, border: "1.5px solid var(--gold)", background: "oklch(98% 0.04 75)", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>
+                  ✏️ Editar
+                </button>
+                <button onClick={() => deleteService(selected.id)}
+                  style={{ padding: "8px 12px", borderRadius: 10, border: "1.5px solid oklch(90% 0.04 15)", background: "oklch(98% 0.02 15)", cursor: "pointer", fontSize: 12, color: "oklch(50% 0.12 15)", fontFamily: "var(--font-poppins)" }}>
+                  🗑️
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Price result */}
-          <div style={{ background: "linear-gradient(145deg, oklch(36% 0.06 340), oklch(28% 0.05 320))", borderRadius: 16, padding: "22px 24px", color: "white", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: "oklch(72% 0.115 75 / 0.15)" }} />
-            <div style={{ position: "absolute", bottom: -30, left: -10, width: 120, height: 120, borderRadius: "50%", background: "oklch(88% 0.055 10 / 0.08)" }} />
-            <p style={{ fontSize: 11, color: "oklch(80% 0.04 340)", fontFamily: "var(--font-poppins)", letterSpacing: "0.07em", fontWeight: 500, position: "relative" }}>PREÇO IDEAL SUGERIDO</p>
-            <p style={{ fontFamily: "var(--font-playfair)", fontSize: 50, fontWeight: 600, color: "white", lineHeight: 1.1, margin: "6px 0 14px", position: "relative" }}>{fmt(idealPrice)}</p>
-            <div style={{ display: "flex", gap: 12, position: "relative", flexWrap: "wrap" }}>
-              {[
-                { l: "Custo Insumos", v: fmt(selectedInpCost), c: "oklch(80% 0.04 340)" },
-                { l: "Lucro Bruto", v: fmt(grossProfit), c: "oklch(80% 0.04 340)" },
-                { l: "Lucro Líquido", v: fmt(netProfit), c: "oklch(85% 0.12 140)" },
-                ...(selected.manicurePct > 0 ? [{ l: `Manicure (${selected.manicurePct}%)`, v: fmt(manicureCost), c: "oklch(80% 0.08 320)" }] : []),
-              ].map((it, i) => (
-                <div key={i} style={{ flex: "1 1 120px", background: "oklch(100% 0 0 / 0.1)", borderRadius: 10, padding: "10px 12px" }}>
-                  <p style={{ fontSize: 10, color: "oklch(75% 0.04 340)", fontFamily: "var(--font-poppins)" }}>{it.l}</p>
-                  <p style={{ fontSize: 16, fontWeight: 700, fontFamily: "var(--font-playfair)", color: it.c, marginTop: 2 }}>{it.v}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          {selected && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
-          {/* Breakdown */}
-          <div style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid var(--border)" }}>
-            <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, fontWeight: 600, color: "var(--text)", marginBottom: 14 }}>Composição do Preço</h3>
-            {breakdownRows.map((r, i) => (
-              <div key={i} style={{ marginBottom: 11 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: r.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>{r.label}</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <span style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>{r.pctVal.toFixed(1)}%</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", minWidth: 65, textAlign: "right" }}>{fmt(r.val)}</span>
+              {/* Card 1: Preço Ideal */}
+              <div style={{ background: "linear-gradient(145deg, oklch(36% 0.06 340), oklch(28% 0.05 320))", borderRadius: 16, padding: "22px 24px", color: "white", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: "oklch(72% 0.115 75 / 0.15)" }} />
+                <div style={{ position: "absolute", bottom: -30, left: -10, width: 120, height: 120, borderRadius: "50%", background: "oklch(88% 0.055 10 / 0.08)" }} />
+
+                <p style={{ fontSize: 10, color: "oklch(75% 0.04 340)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600, position: "relative" }}>PREÇO IDEAL CALCULADO</p>
+                <p style={{ fontFamily: "var(--font-playfair)", fontSize: 46, fontWeight: 600, color: "white", lineHeight: 1.1, margin: "6px 0 4px", position: "relative" }}>{fmt(idealPrice)}</p>
+                <p style={{ fontSize: 12, color: "oklch(75% 0.04 340)", fontFamily: "var(--font-poppins)", marginBottom: 16, position: "relative" }}>
+                  com {pct(pricingConfig.profitMargin)} de margem · {selected.inputs.length} insumos
+                </p>
+
+                {/* Composition */}
+                <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 7 }}>
+                  {[
+                    { label: "Custo dos insumos", val: selectedInpCost },
+                    { label: `Impostos (${pct(pricingConfig.taxPct)})`, val: idealPrice * pricingConfig.taxPct / 100 },
+                    { label: `Cartão (${pct(pricingConfig.cardPct)})`, val: idealPrice * pricingConfig.cardPct / 100 },
+                    { label: `Custos fixos (${pct(pricingConfig.fixedCostPct)})`, val: idealPrice * pricingConfig.fixedCostPct / 100 },
+                    ...(selected.manicurePct > 0 ? [{ label: `Manicure (${pct(selected.manicurePct)})`, val: manicureCost }] : []),
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: "oklch(78% 0.03 340)", fontFamily: "var(--font-poppins)" }}>{row.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "oklch(90% 0.04 340)", fontFamily: "var(--font-poppins)" }}>{fmt(row.val)}</span>
+                    </div>
+                  ))}
+                  <div style={{ borderTop: "1px solid oklch(60% 0.04 340)", paddingTop: 7, display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 12, color: "oklch(88% 0.06 145)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>Lucro líquido</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "oklch(88% 0.12 145)", fontFamily: "var(--font-poppins)" }}>
+                      {fmt(idealPrice - selectedInpCost - idealPrice * (pricingConfig.taxPct + pricingConfig.cardPct + pricingConfig.fixedCostPct) / 100 - manicureCost)}
+                    </span>
                   </div>
                 </div>
-                <div style={{ height: 5, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ width: `${Math.min(r.pctVal, 100)}%`, height: "100%", background: r.color, borderRadius: 3, transition: "width 0.4s ease" }} />
+
+                {/* Apply button */}
+                {(priceIsLow || priceIsHigh) && (
+                  <button onClick={handleApplyIdealPrice} disabled={applyingPrice}
+                    style={{ position: "relative", marginTop: 16, width: "100%", padding: "10px", borderRadius: 10, border: "1px solid oklch(72% 0.115 75 / 0.6)", background: "oklch(72% 0.115 75 / 0.2)", color: "white", fontSize: 12, fontWeight: 600, fontFamily: "var(--font-poppins)", cursor: applyingPrice ? "not-allowed" : "pointer", transition: "background 0.2s" }}>
+                    {applyingPrice ? "Aplicando…" : `Aplicar ${fmt(idealPrice)} como preço atual`}
+                  </button>
+                )}
+              </div>
+
+              {/* Card 2: Lucro Real */}
+              <div style={{ background: "white", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", display: "flex", flexDirection: "column" }}>
+                <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600 }}>PREÇO ATUAL COBRADO</p>
+                <p style={{ fontFamily: "var(--font-playfair)", fontSize: 46, fontWeight: 600, color: "var(--text)", lineHeight: 1.1, margin: "6px 0 4px" }}>{fmt(selected.price)}</p>
+
+                {/* Delta badge */}
+                {priceIsLow && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "oklch(96% 0.04 15)", border: "1px solid oklch(90% 0.08 15)", marginBottom: 14, alignSelf: "flex-start" }}>
+                    <span style={{ fontSize: 11, color: "oklch(48% 0.12 15)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>
+                      ↓ {fmt(Math.abs(priceDiff))} abaixo do ideal
+                    </span>
+                  </div>
+                )}
+                {priceIsHigh && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "oklch(94% 0.05 145)", border: "1px solid oklch(88% 0.08 145)", marginBottom: 14, alignSelf: "flex-start" }}>
+                    <span style={{ fontSize: 11, color: "oklch(38% 0.1 145)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>
+                      ↑ {fmt(Math.abs(priceDiff))} acima do ideal
+                    </span>
+                  </div>
+                )}
+                {!priceIsLow && !priceIsHigh && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "oklch(94% 0.05 145)", border: "1px solid oklch(88% 0.08 145)", marginBottom: 14, alignSelf: "flex-start" }}>
+                    <span style={{ fontSize: 11, color: "oklch(38% 0.1 145)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>✓ Alinhado com o ideal</span>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                  {[
+                    { label: "Custo dos insumos", val: selectedInpCost, color: "oklch(55% 0.08 15)" },
+                    { label: "Deduções (imp + cartão + fixo)", val: selected.price * (pricingConfig.taxPct + pricingConfig.cardPct + pricingConfig.fixedCostPct) / 100, color: "oklch(55% 0.08 250)" },
+                    ...(selected.manicurePct > 0 ? [{ label: `Comissão manicure (${pct(selected.manicurePct)})`, val: selected.price * selected.manicurePct / 100, color: "oklch(55% 0.08 320)" }] : []),
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid var(--border)" }}>
+                      <span style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>{row.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: row.color, fontFamily: "var(--font-poppins)" }}>−{fmt(row.val)}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>Lucro real</span>
+                    <div style={{ textAlign: "right" }}>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: realProfit >= 0 ? "oklch(45% 0.12 145)" : "oklch(50% 0.12 15)", fontFamily: "var(--font-playfair)", display: "block" }}>{fmt(realProfit)}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>{realMarginPct.toFixed(1)}% sobre o preço</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            ))}
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>Preço de Venda Sugerido</span>
-              <span style={{ fontSize: 20, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-playfair)" }}>{fmt(idealPrice)}</span>
-            </div>
-          </div>
 
-          {/* Insumos detail */}
-          {selected.inputs.length > 0 && (
-            <div style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid var(--border)" }}>
-              <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 18, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>Insumos deste Serviço</h3>
-              {selected.inputs.map(idx => {
-                const inp = inputs[idx];
-                if (!inp) return null;
-                return (
-                  <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid var(--border)" }}>
-                    <span style={{ fontSize: 12, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>{inp.name}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{fmt(computeUnitCost(inp))}</span>
+              {/* Card 3: Parâmetros */}
+              <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>Parâmetros de Precificação</p>
+                  <Link href="/painel/configuracoes" style={{ fontSize: 11, color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, textDecoration: "none" }}>
+                    Alterar →
+                  </Link>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    { label: "Margem de lucro", val: pricingConfig.profitMargin },
+                    { label: "Impostos", val: pricingConfig.taxPct },
+                    { label: "Taxa do cartão", val: pricingConfig.cardPct },
+                    { label: "Custos fixos", val: pricingConfig.fixedCostPct },
+                    ...(selected.manicurePct > 0 ? [{ label: "Comissão manicure (neste serviço)", val: selected.manicurePct }] : []),
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>{row.label}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ width: 60, height: 5, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
+                          <div style={{ width: `${Math.min(row.val, 50) * 2}%`, height: "100%", background: "var(--gold)", borderRadius: 3 }} />
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)", minWidth: 38, textAlign: "right" }}>{pct(row.val)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: 4, padding: "8px 12px", borderRadius: 8, background: "oklch(97% 0.03 75)", border: "1px solid oklch(92% 0.04 75)" }}>
+                    <span style={{ fontSize: 11, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
+                      Total deduções: <strong style={{ color: "var(--gold)" }}>
+                        {pct(pricingConfig.profitMargin + pricingConfig.taxPct + pricingConfig.cardPct + pricingConfig.fixedCostPct + selected.manicurePct)}
+                      </strong>
+                    </span>
                   </div>
-                );
-              })}
-              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 2 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "var(--font-poppins)", color: "var(--text)" }}>Total insumos</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "oklch(55% 0.08 10)", fontFamily: "var(--font-poppins)" }}>{fmt(selectedInpCost)}</span>
+                </div>
               </div>
+
+              {/* Card 4: Insumos */}
+              <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>Insumos deste Serviço</p>
+                  <Link href="/painel/insumos" style={{ fontSize: 11, color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, textDecoration: "none" }}>
+                    Gerenciar →
+                  </Link>
+                </div>
+
+                {selected.inputs.length === 0 ? (
+                  <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>
+                    Nenhum insumo vinculado. Edite o serviço para adicionar.
+                  </p>
+                ) : (
+                  <>
+                    {selected.inputs.map(id => {
+                      const inp = inputs.find(i => i.id === id);
+                      if (!inp) return null;
+                      const cost = computeUnitCost(inp);
+                      return (
+                        <div key={id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid var(--border)" }}>
+                          <div>
+                            <span style={{ fontSize: 12, color: "var(--text)", fontFamily: "var(--font-poppins)", display: "block" }}>{inp.name}</span>
+                            <span style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>
+                              {inp.perApplication}{inp.unit} por aplicação · R$ {(inp.pkgCost / inp.pkgQty).toFixed(2)}/{inp.unit}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{fmt(cost)}</span>
+                        </div>
+                      );
+                    })}
+                    <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "var(--font-poppins)", color: "var(--text)" }}>Total insumos</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "oklch(55% 0.08 10)", fontFamily: "var(--font-poppins)" }}>{fmt(selectedInpCost)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
             </div>
           )}
-
-          {selected.manicurePct > 0 && (
-            <div style={{ background: "oklch(96% 0.03 320)", borderRadius: 12, padding: "12px 16px", border: "1px solid oklch(88% 0.06 320)", display: "flex", gap: 10 }}>
-              <Info size={15} color="oklch(55% 0.1 320)" style={{ flexShrink: 0, marginTop: 1 }} />
-              <p style={{ fontSize: 12, color: "oklch(35% 0.06 320)", fontFamily: "var(--font-poppins)", lineHeight: 1.6 }}>
-                Com manicure terceirizada a <strong>{selected.manicurePct}%</strong>, você repassa <strong>{fmt(manicureCost)}</strong> por atendimento. Seu lucro líquido real é <strong>{fmt(netProfit)}</strong>.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

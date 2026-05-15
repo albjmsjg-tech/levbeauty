@@ -22,10 +22,11 @@ export default function CadastroClientePage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name, role: "client" } },
+        options: { data: { full_name: name } },
       });
       if (error) { setError(error.message); return; }
-      router.push("/app");
+      router.refresh();
+      window.location.href = "/app";
     } catch {
       setError("Erro ao cadastrar. Tente novamente.");
     } finally {

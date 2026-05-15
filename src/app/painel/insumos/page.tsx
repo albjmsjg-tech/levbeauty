@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
 import type { Input } from "@/types";
-import { defaultInputs, unitOptions } from "@/lib/data";
+import { createClient } from "@/lib/supabase/client";
+import { getOwnerSalon, mapDbInput } from "@/lib/supabase/queries";
 import { fmt, computeUnitCost } from "@/lib/utils";
+import { unitOptions } from "@/lib/data";
 
-function InsumoRow({ inp, onSave, onDelete }: { inp: Input; onSave: (i: Input) => void; onDelete: (name: string) => void }) {
+function InsumoRow({ inp, onSave, onDelete }: { inp: Input; onSave: (i: Input) => void; onDelete: (id: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Input>({ ...inp });
   const set = (k: keyof Input, v: string | number) => setDraft(d => ({ ...d, [k]: v }));
@@ -62,7 +64,7 @@ function InsumoRow({ inp, onSave, onDelete }: { inp: Input; onSave: (i: Input) =
       <td style={cellStyle}>
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={() => setEditing(true)} style={{ padding: "5px 14px", borderRadius: 7, border: "1.5px solid var(--gold)", background: "oklch(98% 0.04 75)", cursor: "pointer", fontSize: 11, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>✏️ Editar</button>
-          <button onClick={() => onDelete(inp.name)} style={{ padding: "5px 10px", borderRadius: 7, border: "1.5px solid oklch(90% 0.04 15)", background: "oklch(99% 0.01 15)", cursor: "pointer", fontSize: 11, color: "oklch(50% 0.12 15)", fontFamily: "var(--font-poppins)" }}>🗑️</button>
+          <button onClick={() => inp.id && onDelete(inp.id)} style={{ padding: "5px 10px", borderRadius: 7, border: "1.5px solid oklch(90% 0.04 15)", background: "oklch(99% 0.01 15)", cursor: "pointer", fontSize: 11, color: "oklch(50% 0.12 15)", fontFamily: "var(--font-poppins)" }}>🗑️</button>
         </div>
       </td>
     </tr>
@@ -70,16 +72,73 @@ function InsumoRow({ inp, onSave, onDelete }: { inp: Input; onSave: (i: Input) =
 }
 
 export default function InsumosPage() {
-  const [inputs, setInputs] = useState<Input[]>(defaultInputs);
+  const [salonId, setSalonId] = useState<string | null>(null);
+  const [inputs, setInputs] = useState<Input[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [opError, setOpError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [newInp, setNewInp] = useState<Input>({ name: "", unit: "ml", pkgQty: 0, pkgCost: 0, perApplication: 0 });
 
+  useEffect(() => {
+    const supabase = createClient();
+    getOwnerSalon(supabase).then(async salon => {
+      if (!salon) { setLoading(false); return; }
+      const id = salon.id as string;
+      setSalonId(id);
+      const { data, error } = await supabase.from("inputs").select("*").eq("salon_id", id).order("name");
+      if (error) setOpError(error.message);
+      setInputs((data ?? []).map(r => mapDbInput(r as Record<string, unknown>)));
+      setLoading(false);
+    });
+  }, []);
+
   const setN = (k: keyof Input, v: string | number) => setNewInp(d => ({ ...d, [k]: v }));
-  const saveEdit = (updated: Input) => setInputs(prev => prev.map(i => i.name === updated.name ? updated : i));
-  const deleteInp = (name: string) => setInputs(prev => prev.filter(i => i.name !== name));
-  const addInp = () => {
-    if (!newInp.name.trim()) return;
-    setInputs(prev => [...prev, { ...newInp }]);
+
+  const saveEdit = useCallback(async (updated: Input) => {
+    if (!updated.id) return;
+    setInputs(prev => prev.map(i => i.id === updated.id ? updated : i));
+    const supabase = createClient();
+    const { error } = await supabase.from("inputs").update({
+      name: updated.name.trim(),
+      unit: updated.unit,
+      pkg_qty: updated.pkgQty,
+      pkg_cost: updated.pkgCost,
+      per_application: updated.perApplication,
+    }).eq("id", updated.id);
+    if (error) {
+      setOpError(error.message);
+      setInputs(prev => prev.map(i => i.id === updated.id ? { ...i } : i));
+    }
+  }, []);
+
+  const deleteInp = useCallback(async (id: string) => {
+    setInputs(prev => prev.filter(i => i.id !== id));
+    const supabase = createClient();
+    const { error } = await supabase.from("inputs").delete().eq("id", id);
+    if (error) {
+      setOpError(error.message);
+      const supabase2 = createClient();
+      const salon = await getOwnerSalon(supabase2);
+      if (salon) {
+        const { data } = await supabase2.from("inputs").select("*").eq("salon_id", salon.id as string).order("name");
+        setInputs((data ?? []).map(r => mapDbInput(r as Record<string, unknown>)));
+      }
+    }
+  }, []);
+
+  const addInp = async () => {
+    if (!newInp.name.trim() || !salonId) return;
+    const supabase = createClient();
+    const { data, error } = await supabase.from("inputs").insert({
+      salon_id: salonId,
+      name: newInp.name.trim(),
+      unit: newInp.unit,
+      pkg_qty: newInp.pkgQty,
+      pkg_cost: newInp.pkgCost,
+      per_application: newInp.perApplication,
+    }).select("*").single();
+    if (error) { setOpError(error.message); return; }
+    if (data) setInputs(prev => [...prev, mapDbInput(data as Record<string, unknown>)]);
     setNewInp({ name: "", unit: "ml", pkgQty: 0, pkgCost: 0, perApplication: 0 });
     setAdding(false);
   };
@@ -97,6 +156,13 @@ export default function InsumosPage() {
           <Plus size={14} color="white" /> Novo Insumo
         </button>
       </div>
+
+      {opError && (
+        <div style={{ marginBottom: 14, padding: "10px 14px", borderRadius: 10, background: "oklch(94% 0.04 15)", border: "1px solid oklch(88% 0.08 15)", fontSize: 12, color: "oklch(42% 0.12 15)", fontFamily: "var(--font-poppins)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{opError}</span>
+          <button onClick={() => setOpError(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "oklch(42% 0.12 15)", lineHeight: 1 }}>×</button>
+        </div>
+      )}
 
       {adding && (
         <div style={{ background: "oklch(98% 0.03 75)", borderRadius: 14, padding: "16px 18px", border: "1.5px solid var(--gold)", marginBottom: 16 }}>
@@ -145,12 +211,16 @@ export default function InsumosPage() {
             </tr>
           </thead>
           <tbody>
-            {inputs.map((inp, i) => (
-              <InsumoRow key={inp.name + i} inp={inp} onSave={saveEdit} onDelete={deleteInp} />
-            ))}
+            {loading ? (
+              <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 13 }}>Carregando…</td></tr>
+            ) : (
+              inputs.map(inp => (
+                <InsumoRow key={inp.id} inp={inp} onSave={saveEdit} onDelete={deleteInp} />
+              ))
+            )}
           </tbody>
         </table>
-        {inputs.length === 0 && (
+        {!loading && inputs.length === 0 && (
           <div style={{ textAlign: "center", padding: 40, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 13 }}>Nenhum insumo cadastrado.</div>
         )}
       </div>

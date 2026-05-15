@@ -81,14 +81,17 @@ export default function FinanceiroPage() {
   const saveCost = useCallback(async (updated: FixedCost) => {
     setCosts(prev => prev.map(c => c.id === updated.id ? updated : c));
     const supabase = createClient();
-    await supabase.from("fixed_costs").update({ name: updated.name, amount: updated.val }).eq("id", updated.id);
+    const { error } = await supabase.from("fixed_costs").update({ name: updated.name, amount: updated.val }).eq("id", updated.id);
+    if (error) setCosts(prev => prev.map(c => c.id === updated.id ? { ...c } : c));
   }, []);
 
   const deleteCost = useCallback(async (id: number | string) => {
-    setCosts(prev => prev.filter(c => c.id !== id));
+    const prev = costs;
+    setCosts(p => p.filter(c => c.id !== id));
     const supabase = createClient();
-    await supabase.from("fixed_costs").delete().eq("id", id);
-  }, []);
+    const { error } = await supabase.from("fixed_costs").delete().eq("id", id);
+    if (error) setCosts(prev);
+  }, [costs]);
 
   const addCost = async () => {
     if (!newName.trim() || !newVal || !salonId) return;

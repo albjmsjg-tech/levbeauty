@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { signUpOwner } from "./actions";
 
 export default function CadastroPage() {
   const router = useRouter();
@@ -18,18 +19,13 @@ export default function CadastroPage() {
     setLoading(true);
     setError("");
     try {
+      const result = await signUpOwner(email, password, name);
+      if ("error" in result) { setError(result.error); return; }
+
       const supabase = createClient();
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name, role: "owner" } },
-      });
-      if (error) { setError(error.message); return; }
-      if (!data.session) {
-        // Email confirmation required — tell user to check inbox
-        setError("Verifique seu e-mail para confirmar a conta antes de continuar.");
-        return;
-      }
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) { setError("Conta criada. Faça login para continuar."); return; }
+
       router.refresh();
       router.push("/onboarding");
     } catch {

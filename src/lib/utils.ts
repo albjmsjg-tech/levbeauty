@@ -1,4 +1,4 @@
-import type { Input, Service } from "@/types";
+import type { Input, PricingConfig, Service } from "@/types";
 
 export const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -9,21 +9,31 @@ export function computeUnitCost(inp: Input): number {
   return (inp.pkgCost / inp.pkgQty) * inp.perApplication;
 }
 
-export function calcPricing(svc: Service, allInputs: Input[]) {
-  const selectedInpCost = svc.inputs.reduce(
-    (acc, idx) => acc + (allInputs[idx] ? computeUnitCost(allInputs[idx]) : 0),
-    0
-  );
-  const deductions = svc.taxPct + svc.cardPct + svc.mktPct + svc.manicurePct;
+export function calcPricing(svc: Service, allInputs: Input[], config: PricingConfig) {
+  const selectedInpCost = svc.inputs.reduce((acc, id) => {
+    const inp = allInputs.find(i => i.id === id);
+    return acc + (inp ? computeUnitCost(inp) : 0);
+  }, 0);
+  const deductions = config.taxPct + config.cardPct + config.fixedCostPct + svc.manicurePct;
   const idealPrice =
-    selectedInpCost / (1 - svc.profitMargin / 100 - deductions / 100);
+    selectedInpCost / (1 - config.profitMargin / 100 - deductions / 100);
   const grossProfit = idealPrice - selectedInpCost;
   const manicureCost = (idealPrice * svc.manicurePct) / 100;
   const netProfit =
     grossProfit -
-    (idealPrice * (svc.taxPct + svc.cardPct + svc.mktPct)) / 100 -
+    (idealPrice * (config.taxPct + config.cardPct + config.fixedCostPct)) / 100 -
     manicureCost;
   return { selectedInpCost, idealPrice, grossProfit, netProfit, manicureCost };
+}
+
+export function calcRealProfit(
+  price: number,
+  inputCost: number,
+  config: PricingConfig,
+  manicurePct: number,
+): number {
+  const deductionsPct = config.taxPct + config.cardPct + config.fixedCostPct + manicurePct;
+  return price - inputCost - (price * deductionsPct) / 100;
 }
 
 export function formatCEP(v: string): string {

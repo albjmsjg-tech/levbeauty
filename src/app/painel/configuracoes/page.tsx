@@ -5,6 +5,9 @@ import { Clock, Copy, Check, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatCEP } from "@/lib/utils";
+import { getPricingConfig, savePricingConfig } from "./actions";
+import type { PricingConfig } from "@/types";
+import { DEFAULT_PRICING_CONFIG } from "@/types";
 
 function slugify(name: string): string {
   return name
@@ -45,6 +48,9 @@ export default function ConfiguracoesPage() {
   const [pricePerKm, setPricePerKm] = useState(2);
   const [minFee, setMinFee] = useState(20);
 
+  // Pricing config state
+  const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING_CONFIG);
+
   // UI state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,6 +83,9 @@ export default function ConfiguracoesPage() {
         setMaxRadius((salon.max_radius_km as number) ?? 10);
         setPricePerKm((salon.price_per_km as number) ?? 2);
         setMinFee((salon.min_travel_fee as number) ?? 20);
+
+        const pc = await getPricingConfig();
+        setPricing(pc);
       }
       setLoading(false);
     }
@@ -118,6 +127,13 @@ export default function ConfiguracoesPage() {
       } else {
         setSlugError("Erro ao salvar. Tente novamente.");
       }
+      setSaving(false);
+      return;
+    }
+
+    const { error: pcErr } = await savePricingConfig(salonId, pricing);
+    if (pcErr) {
+      setSlugError("Erro ao salvar parâmetros de precificação.");
       setSaving(false);
       return;
     }
@@ -388,6 +404,61 @@ export default function ConfiguracoesPage() {
             </p>
           </div>
         )}
+      </div>
+
+      {/* ── Parâmetros de Precificação ───────────────── */}
+      <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 20 }}>
+        <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 18, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>Parâmetros de Precificação</h3>
+        <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 18 }}>
+          Estes valores são usados para calcular o preço ideal de todos os serviços
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          {(
+            [
+              { key: "profitMargin", label: "Margem de lucro", min: 5, max: 80, step: 1, suffix: "%" },
+              { key: "taxPct", label: "Impostos (Simples / MEI)", min: 0, max: 20, step: 0.5, suffix: "%" },
+              { key: "cardPct", label: "Taxa do cartão", min: 0, max: 10, step: 0.1, suffix: "%" },
+              { key: "fixedCostPct", label: "Custos fixos rateados", min: 0, max: 30, step: 0.5, suffix: "%" },
+            ] as const
+          ).map(({ key, label, min, max, step, suffix }) => (
+            <div key={key}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <label style={{ ...lbl, marginBottom: 0 }}>{label}</label>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>
+                  {pricing[key].toFixed(1)}{suffix}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={pricing[key]}
+                onChange={e => setPricing(p => ({ ...p, [key]: Number(e.target.value) }))}
+                style={{ width: "100%" }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+                <span style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>{min}{suffix}</span>
+                <span style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>{max}{suffix}</span>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "10px 14px", border: "1px solid oklch(90% 0.04 75)" }}>
+            <p style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", margin: 0 }}>
+              Deduções totais:{" "}
+              <strong style={{ color: "var(--gold)" }}>
+                {(pricing.profitMargin + pricing.taxPct + pricing.cardPct + pricing.fixedCostPct).toFixed(1)}%
+              </strong>
+              {" "}— restam{" "}
+              <strong>
+                {(100 - pricing.profitMargin - pricing.taxPct - pricing.cardPct - pricing.fixedCostPct).toFixed(1)}%
+              </strong>
+              {" "}para cobrir o custo dos insumos.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Save */}

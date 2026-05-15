@@ -350,7 +350,7 @@ export default function AgendaPage() {
     setAppts(prev => prev.map(a => a.id === updated.id ? updated : a));
     setModalAppt(prev => prev?.id === updated.id ? updated : prev);
     const supabase = createClient();
-    await supabase
+    const { error: updateErr } = await supabase
       .from("appointments")
       .update({
         client_name: updated.name,
@@ -363,6 +363,7 @@ export default function AgendaPage() {
         location: updated.location === "home" ? "domicilio" : "salao",
       })
       .eq("id", updated.id);
+    if (updateErr) { loadAppts(); return; }
 
     if (updated.status === "concluído" && updated.phone && salonSlug) {
       const publicLink = `${window.location.origin}/s/${salonSlug}`;
@@ -379,7 +380,8 @@ export default function AgendaPage() {
     setAppts(prev => prev.filter(a => a.id !== id));
     setModalAppt(null);
     const supabase = createClient();
-    await supabase.from("appointments").delete().eq("id", id);
+    const { error } = await supabase.from("appointments").delete().eq("id", id);
+    if (error) loadAppts();
   };
 
   const addAppt = async (appt: Appointment) => {

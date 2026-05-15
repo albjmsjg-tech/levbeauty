@@ -11,6 +11,20 @@ export interface SalonConfig {
   minTravelFee: number;
 }
 
+export interface PricingConfig {
+  profitMargin: number;
+  taxPct: number;
+  cardPct: number;
+  fixedCostPct: number;
+}
+
+export const DEFAULT_PRICING_CONFIG: PricingConfig = {
+  profitMargin: 35,
+  taxPct: 7,
+  cardPct: 3.3,
+  fixedCostPct: 5,
+};
+
 export interface Service {
   id: number | string;
   name: string;
@@ -20,15 +34,12 @@ export interface Service {
   active: boolean;
   desc?: string;
   rating?: number;
-  inputs: number[];
-  profitMargin: number;
-  taxPct: number;
-  cardPct: number;
-  mktPct: number;
+  inputs: string[];
   manicurePct: number;
 }
 
 export interface Input {
+  id?: string;
   name: string;
   unit: string;
   pkgQty: number;
