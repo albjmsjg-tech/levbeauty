@@ -16,25 +16,21 @@ export const defaultServices: Service[] = [
     id: 1, name: "Alongamento em Gel", emoji: "", duration: "2h 30min", price: 180,
     active: true, desc: "Unhas longas e naturais com gel resistente.", rating: 4.9,
     inputs: ["local-0", "local-1", "local-2", "local-4", "local-5", "local-6", "local-7"],
-    manicurePct: 0,
   },
   {
     id: 2, name: "Banho de Gel", emoji: "", duration: "1h 30min", price: 120,
     active: true, desc: "Capa protetora de gel brilhante sobre as unhas naturais.", rating: 4.8,
     inputs: ["local-0", "local-2", "local-4", "local-5", "local-6", "local-7"],
-    manicurePct: 0,
   },
   {
     id: 3, name: "Esmaltação em Gel", emoji: "", duration: "1h", price: 90,
     active: true, desc: "Esmalte em gel de longa duração, até 3 semanas.", rating: 4.9,
     inputs: ["local-2", "local-4", "local-5", "local-6", "local-7"],
-    manicurePct: 0,
   },
   {
     id: 4, name: "Manutenção", emoji: "", duration: "1h 15min", price: 80,
     active: true, desc: "Manutenção do alongamento com preenchimento.", rating: 4.7,
     inputs: ["local-0", "local-2", "local-4"],
-    manicurePct: 0,
   },
 ];
 

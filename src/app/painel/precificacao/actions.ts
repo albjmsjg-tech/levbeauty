@@ -32,7 +32,6 @@ function mapDbService(row: Row): Service {
     price: Number(row.price),
     active: Boolean(row.active),
     inputs: inputIds,
-    manicurePct: Number(row.manicure_pct ?? 0),
   };
 }
 
@@ -49,7 +48,6 @@ function mapDbInput(row: Row): Input {
 
 function mapDbPricingConfig(row: Row): PricingConfig {
   return {
-    profitMargin: Number(row.profit_margin),
     taxPct: Number(row.tax_pct),
     cardPct: Number(row.card_pct),
     fixedCostPct: Number(row.fixed_cost_pct),
@@ -78,7 +76,7 @@ export async function getPrecificacaoData(): Promise<{
   ] = await Promise.all([
     supabase.from("services").select("*, service_inputs(input_id)").eq("salon_id", salonId).order("created_at"),
     supabase.from("inputs").select("*").eq("salon_id", salonId).order("name"),
-    supabase.from("pricing_config").select("profit_margin, tax_pct, card_pct, fixed_cost_pct").eq("salon_id", salonId).maybeSingle(),
+    supabase.from("pricing_config").select("tax_pct, card_pct, fixed_cost_pct").eq("salon_id", salonId).maybeSingle(),
   ]);
 
   if (svcErr) return { services: [], inputs: [], pricingConfig: DEFAULT_PRICING_CONFIG, salonId, error: svcErr.message };
@@ -105,7 +103,6 @@ export async function upsertService(
     duration_min: parseDuration(draft.duration),
     price: draft.price,
     active: draft.active,
-    manicure_pct: draft.manicurePct,
   };
 
   const isNew = typeof draft.id === "number";

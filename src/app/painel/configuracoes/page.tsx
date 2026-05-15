@@ -416,10 +416,9 @@ export default function ConfiguracoesPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {(
             [
-              { key: "profitMargin", label: "Margem de lucro", min: 5, max: 80, step: 1, suffix: "%" },
-              { key: "taxPct", label: "Impostos (Simples / MEI)", min: 0, max: 20, step: 0.5, suffix: "%" },
-              { key: "cardPct", label: "Taxa do cartão", min: 0, max: 10, step: 0.1, suffix: "%" },
-              { key: "fixedCostPct", label: "Custos fixos rateados", min: 0, max: 30, step: 0.5, suffix: "%" },
+              { key: "taxPct",        label: "Impostos (Simples / MEI)", min: 0, max: 20, step: 0.5,  suffix: "%" },
+              { key: "cardPct",       label: "Taxa do cartão",            min: 0, max: 10, step: 0.1,  suffix: "%" },
+              { key: "fixedCostPct",  label: "Custos fixos rateados",     min: 0, max: 30, step: 0.5,  suffix: "%" },
             ] as const
           ).map(({ key, label, min, max, step, suffix }) => (
             <div key={key}>
@@ -447,15 +446,11 @@ export default function ConfiguracoesPage() {
 
           <div style={{ background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "10px 14px", border: "1px solid oklch(90% 0.04 75)" }}>
             <p style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", margin: 0 }}>
-              Deduções totais:{" "}
+              Total deduzido do preço:{" "}
               <strong style={{ color: "var(--gold)" }}>
-                {(pricing.profitMargin + pricing.taxPct + pricing.cardPct + pricing.fixedCostPct).toFixed(1)}%
+                {(pricing.taxPct + pricing.cardPct + pricing.fixedCostPct).toFixed(1)}%
               </strong>
-              {" "}— restam{" "}
-              <strong>
-                {(100 - pricing.profitMargin - pricing.taxPct - pricing.cardPct - pricing.fixedCostPct).toFixed(1)}%
-              </strong>
-              {" "}para cobrir o custo dos insumos.
+              {" "}— o restante ({(100 - pricing.taxPct - pricing.cardPct - pricing.fixedCostPct).toFixed(1)}%) cobre insumos e é seu lucro.
             </p>
           </div>
         </div>

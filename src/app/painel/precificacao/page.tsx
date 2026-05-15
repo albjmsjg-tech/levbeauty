@@ -6,8 +6,9 @@ import Link from "next/link";
 import { ServiceModal } from "@/components/owner/ServiceModal";
 import type { Service, Input, PricingConfig } from "@/types";
 import { DEFAULT_PRICING_CONFIG } from "@/types";
-import { fmt, pct, calcPricing, calcRealProfit, computeUnitCost } from "@/lib/utils";
+import { fmt, pct, calcRealProfit, computeUnitCost } from "@/lib/utils";
 import { getPrecificacaoData, upsertService, removeService, updateServicePrice } from "./actions";
+
 
 export default function PrecificacaoPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -19,7 +20,11 @@ export default function PrecificacaoPage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [opError, setOpError] = useState<string | null>(null);
-  const [applyingPrice, setApplyingPrice] = useState(false);
+
+  // Card 1: editable price
+  const [priceInput, setPriceInput] = useState("");
+  const [savingPrice, setSavingPrice] = useState(false);
+  const [priceSaved, setPriceSaved] = useState(false);
 
   useEffect(() => {
     getPrecificacaoData().then(({ services, inputs, salonId, pricingConfig, error }) => {
@@ -35,15 +40,22 @@ export default function PrecificacaoPage() {
 
   const selected = services.find(s => s.id === selectedId) ?? services[0] ?? null;
 
+  // Sync price input when selected service changes
+  useEffect(() => {
+    if (selected) {
+      setPriceInput(selected.price.toFixed(2));
+      setPriceSaved(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
+
   const saveService = async (draft: Service) => {
     if (!salonId) return;
     setOpError(null);
     setModal(null);
-
     const isNew = typeof draft.id === "number";
     setServices(prev => isNew ? [...prev, draft] : prev.map(s => s.id === draft.id ? draft : s));
     if (isNew) setSelectedId(draft.id);
-
     const { id, error } = await upsertService(draft, salonId);
     if (error) {
       setOpError(error);
@@ -53,7 +65,6 @@ export default function PrecificacaoPage() {
       }
       return;
     }
-
     if (isNew) {
       setServices(prev => prev.map(s => s.id === draft.id ? { ...s, id } : s));
       setSelectedId(id);
@@ -69,18 +80,20 @@ export default function PrecificacaoPage() {
     if (error) setOpError(error);
   };
 
-  const handleApplyIdealPrice = async () => {
+  const handleSavePrice = async () => {
     if (!selected || typeof selected.id !== "string") return;
-    setApplyingPrice(true);
-    const { idealPrice } = calcPricing(selected, inputs, pricingConfig);
-    const rounded = Math.round(idealPrice * 100) / 100;
-    const { error } = await updateServicePrice(selected.id, rounded);
+    const price = parseFloat(priceInput.replace(",", "."));
+    if (isNaN(price) || price < 0) return;
+    setSavingPrice(true);
+    const { error } = await updateServicePrice(selected.id, price);
     if (error) {
       setOpError(error);
     } else {
-      setServices(prev => prev.map(s => s.id === selected.id ? { ...s, price: rounded } : s));
+      setServices(prev => prev.map(s => s.id === selected.id ? { ...s, price } : s));
+      setPriceSaved(true);
+      setTimeout(() => setPriceSaved(false), 2000);
     }
-    setApplyingPrice(false);
+    setSavingPrice(false);
   };
 
   if (loading) return (
@@ -96,13 +109,23 @@ export default function PrecificacaoPage() {
     </div>
   );
 
-  const calc = selected ? calcPricing(selected, inputs, pricingConfig) : null;
-  const { selectedInpCost = 0, idealPrice = 0, manicureCost = 0 } = calc ?? {};
-  const realProfit = selected ? calcRealProfit(selected.price, selectedInpCost, pricingConfig, selected.manicurePct) : 0;
-  const realMarginPct = selected && selected.price > 0 ? (realProfit / selected.price) * 100 : 0;
-  const priceDiff = selected ? idealPrice - selected.price : 0;
-  const priceIsLow = priceDiff > 0.5;
-  const priceIsHigh = priceDiff < -0.5;
+  // Compute breakdown for selected service
+  const inputCost = selected
+    ? selected.inputs.reduce((acc, id) => {
+        const inp = inputs.find(i => i.id === id);
+        return acc + (inp ? computeUnitCost(inp) : 0);
+      }, 0)
+    : 0;
+
+  const calc = selected
+    ? calcRealProfit({
+        price: selected.price,
+        inputCost,
+        taxPct: pricingConfig.taxPct,
+        cardPct: pricingConfig.cardPct,
+        fixedPct: pricingConfig.fixedCostPct,
+      })
+    : null;
 
   return (
     <div style={{ padding: "28px 32px", minHeight: "100%" }}>
@@ -118,10 +141,13 @@ export default function PrecificacaoPage() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
         <div>
-          <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--text)" }}>Módulo de Precificação</h1>
-          <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 3 }}>Calcule o preço ideal e compare com o valor atual cobrado</p>
+          <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--text)" }}>Precificação</h1>
+          <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 3 }}>
+            Entenda onde vai cada real do que você cobra
+          </p>
         </div>
-        <button onClick={() => setModal("new")}
+        <button
+          onClick={() => setModal("new")}
           style={{ padding: "10px 20px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)", flexShrink: 0 }}>
           <Plus size={15} color="white" /> Novo Serviço
         </button>
@@ -139,7 +165,7 @@ export default function PrecificacaoPage() {
         </div>
       ) : (
         <>
-          {/* Service pills + edit/delete */}
+          {/* Service pills */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 22 }}>
             {services.map(svc => {
               const sel = svc.id === selected?.id;
@@ -165,138 +191,72 @@ export default function PrecificacaoPage() {
             )}
           </div>
 
-          {selected && (
+          {selected && calc && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
-              {/* Card 1: Preço Ideal */}
-              <div style={{ background: "linear-gradient(145deg, oklch(36% 0.06 340), oklch(28% 0.05 320))", borderRadius: 16, padding: "22px 24px", color: "white", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: "oklch(72% 0.115 75 / 0.15)" }} />
-                <div style={{ position: "absolute", bottom: -30, left: -10, width: 120, height: 120, borderRadius: "50%", background: "oklch(88% 0.055 10 / 0.08)" }} />
-
-                <p style={{ fontSize: 10, color: "oklch(75% 0.04 340)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600, position: "relative" }}>PREÇO IDEAL CALCULADO</p>
-                <p style={{ fontFamily: "var(--font-playfair)", fontSize: 46, fontWeight: 600, color: "white", lineHeight: 1.1, margin: "6px 0 4px", position: "relative" }}>{fmt(idealPrice)}</p>
-                <p style={{ fontSize: 12, color: "oklch(75% 0.04 340)", fontFamily: "var(--font-poppins)", marginBottom: 16, position: "relative" }}>
-                  com {pct(pricingConfig.profitMargin)} de margem · {selected.inputs.length} insumos
-                </p>
-
-                {/* Composition */}
-                <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 7 }}>
-                  {[
-                    { label: "Custo dos insumos", val: selectedInpCost },
-                    { label: `Impostos (${pct(pricingConfig.taxPct)})`, val: idealPrice * pricingConfig.taxPct / 100 },
-                    { label: `Cartão (${pct(pricingConfig.cardPct)})`, val: idealPrice * pricingConfig.cardPct / 100 },
-                    { label: `Custos fixos (${pct(pricingConfig.fixedCostPct)})`, val: idealPrice * pricingConfig.fixedCostPct / 100 },
-                    ...(selected.manicurePct > 0 ? [{ label: `Manicure (${pct(selected.manicurePct)})`, val: manicureCost }] : []),
-                  ].map((row, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 11, color: "oklch(78% 0.03 340)", fontFamily: "var(--font-poppins)" }}>{row.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "oklch(90% 0.04 340)", fontFamily: "var(--font-poppins)" }}>{fmt(row.val)}</span>
-                    </div>
-                  ))}
-                  <div style={{ borderTop: "1px solid oklch(60% 0.04 340)", paddingTop: 7, display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12, color: "oklch(88% 0.06 145)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>Lucro líquido</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "oklch(88% 0.12 145)", fontFamily: "var(--font-poppins)" }}>
-                      {fmt(idealPrice - selectedInpCost - idealPrice * (pricingConfig.taxPct + pricingConfig.cardPct + pricingConfig.fixedCostPct) / 100 - manicureCost)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Apply button */}
-                {(priceIsLow || priceIsHigh) && (
-                  <button onClick={handleApplyIdealPrice} disabled={applyingPrice}
-                    style={{ position: "relative", marginTop: 16, width: "100%", padding: "10px", borderRadius: 10, border: "1px solid oklch(72% 0.115 75 / 0.6)", background: "oklch(72% 0.115 75 / 0.2)", color: "white", fontSize: 12, fontWeight: 600, fontFamily: "var(--font-poppins)", cursor: applyingPrice ? "not-allowed" : "pointer", transition: "background 0.2s" }}>
-                    {applyingPrice ? "Aplicando…" : `Aplicar ${fmt(idealPrice)} como preço atual`}
-                  </button>
-                )}
-              </div>
-
-              {/* Card 2: Lucro Real */}
+              {/* ── Card 1: Preço cobrado ── */}
               <div style={{ background: "white", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", display: "flex", flexDirection: "column" }}>
-                <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600 }}>PREÇO ATUAL COBRADO</p>
-                <p style={{ fontFamily: "var(--font-playfair)", fontSize: 46, fontWeight: 600, color: "var(--text)", lineHeight: 1.1, margin: "6px 0 4px" }}>{fmt(selected.price)}</p>
-
-                {/* Delta badge */}
-                {priceIsLow && (
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "oklch(96% 0.04 15)", border: "1px solid oklch(90% 0.08 15)", marginBottom: 14, alignSelf: "flex-start" }}>
-                    <span style={{ fontSize: 11, color: "oklch(48% 0.12 15)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>
-                      ↓ {fmt(Math.abs(priceDiff))} abaixo do ideal
-                    </span>
-                  </div>
-                )}
-                {priceIsHigh && (
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "oklch(94% 0.05 145)", border: "1px solid oklch(88% 0.08 145)", marginBottom: 14, alignSelf: "flex-start" }}>
-                    <span style={{ fontSize: 11, color: "oklch(38% 0.1 145)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>
-                      ↑ {fmt(Math.abs(priceDiff))} acima do ideal
-                    </span>
-                  </div>
-                )}
-                {!priceIsLow && !priceIsHigh && (
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: "oklch(94% 0.05 145)", border: "1px solid oklch(88% 0.08 145)", marginBottom: 14, alignSelf: "flex-start" }}>
-                    <span style={{ fontSize: 11, color: "oklch(38% 0.1 145)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>✓ Alinhado com o ideal</span>
-                  </div>
-                )}
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-                  {[
-                    { label: "Custo dos insumos", val: selectedInpCost, color: "oklch(55% 0.08 15)" },
-                    { label: "Deduções (imp + cartão + fixo)", val: selected.price * (pricingConfig.taxPct + pricingConfig.cardPct + pricingConfig.fixedCostPct) / 100, color: "oklch(55% 0.08 250)" },
-                    ...(selected.manicurePct > 0 ? [{ label: `Comissão manicure (${pct(selected.manicurePct)})`, val: selected.price * selected.manicurePct / 100, color: "oklch(55% 0.08 320)" }] : []),
-                  ].map((row, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid var(--border)" }}>
-                      <span style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>{row.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: row.color, fontFamily: "var(--font-poppins)" }}>−{fmt(row.val)}</span>
-                    </div>
-                  ))}
-                  <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>Lucro real</span>
-                    <div style={{ textAlign: "right" }}>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: realProfit >= 0 ? "oklch(45% 0.12 145)" : "oklch(50% 0.12 15)", fontFamily: "var(--font-playfair)", display: "block" }}>{fmt(realProfit)}</span>
-                      <span style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>{realMarginPct.toFixed(1)}% sobre o preço</span>
-                    </div>
-                  </div>
+                <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600, marginBottom: 14 }}>PREÇO COBRADO</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, flex: 1 }}>
+                  <span style={{ fontSize: 26, fontWeight: 700, color: "var(--text-light)", fontFamily: "var(--font-poppins)", lineHeight: 1 }}>R$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={priceInput}
+                    onChange={e => { setPriceInput(e.target.value); setPriceSaved(false); }}
+                    style={{ flex: 1, fontFamily: "var(--font-playfair)", fontSize: 48, fontWeight: 600, color: "var(--text)", border: "none", borderBottom: "2px solid var(--border)", outline: "none", background: "transparent", minWidth: 0 }}
+                  />
                 </div>
+                <button
+                  onClick={handleSavePrice}
+                  disabled={savingPrice}
+                  style={{ padding: "12px", borderRadius: 10, border: "none", background: priceSaved ? "oklch(55% 0.15 145)" : savingPrice ? "var(--border)" : "var(--gold)", color: "white", fontSize: 13, fontWeight: 600, fontFamily: "var(--font-poppins)", cursor: savingPrice ? "not-allowed" : "pointer", transition: "background 0.2s" }}>
+                  {priceSaved ? "✓ Salvo!" : savingPrice ? "Salvando…" : "Salvar Preço"}
+                </button>
               </div>
 
-              {/* Card 3: Parâmetros */}
-              <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>Parâmetros de Precificação</p>
-                  <Link href="/painel/configuracoes" style={{ fontSize: 11, color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, textDecoration: "none" }}>
-                    Alterar →
-                  </Link>
+              {/* ── Card 2: Onde vai cada real ── */}
+              <div style={{ background: "white", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)" }}>
+                <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600, marginBottom: 14 }}>ONDE VAI CADA REAL</p>
+
+                {/* Price row */}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
+                  <span style={{ fontSize: 13, color: "var(--text)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>Preço cobrado</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>{fmt(selected.price)}</span>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {[
-                    { label: "Margem de lucro", val: pricingConfig.profitMargin },
-                    { label: "Impostos", val: pricingConfig.taxPct },
-                    { label: "Taxa do cartão", val: pricingConfig.cardPct },
-                    { label: "Custos fixos", val: pricingConfig.fixedCostPct },
-                    ...(selected.manicurePct > 0 ? [{ label: "Comissão manicure (neste serviço)", val: selected.manicurePct }] : []),
-                  ].map((row, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>{row.label}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <div style={{ width: 60, height: 5, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
-                          <div style={{ width: `${Math.min(row.val, 50) * 2}%`, height: "100%", background: "var(--gold)", borderRadius: 3 }} />
-                        </div>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)", minWidth: 38, textAlign: "right" }}>{pct(row.val)}</span>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ marginTop: 4, padding: "8px 12px", borderRadius: 8, background: "oklch(97% 0.03 75)", border: "1px solid oklch(92% 0.04 75)" }}>
-                    <span style={{ fontSize: 11, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
-                      Total deduções: <strong style={{ color: "var(--gold)" }}>
-                        {pct(pricingConfig.profitMargin + pricingConfig.taxPct + pricingConfig.cardPct + pricingConfig.fixedCostPct + selected.manicurePct)}
-                      </strong>
+
+                {/* Deduction rows */}
+                {[
+                  { label: "Custo insumos",                              value: calc.inputCost },
+                  { label: `Impostos (${pct(pricingConfig.taxPct)})`,    value: calc.tax },
+                  { label: `Taxa cartão (${pct(pricingConfig.cardPct)})`, value: calc.card },
+                  { label: `Custo fixo (${pct(pricingConfig.fixedCostPct)})`, value: calc.fixed },
+                ].map((row, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderTop: "1px solid var(--border)" }}>
+                    <span style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>− {row.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "oklch(52% 0.08 15)", fontFamily: "var(--font-poppins)" }}>{fmt(row.value)}</span>
+                  </div>
+                ))}
+
+                {/* Net profit */}
+                <div style={{ borderTop: "2px solid var(--text)", paddingTop: 10, marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>LUCRO LÍQUIDO</span>
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: calc.netProfit >= 0 ? "oklch(43% 0.16 145)" : "oklch(48% 0.16 15)", fontFamily: "var(--font-playfair)", display: "block" }}>
+                      {fmt(calc.netProfit)}
+                    </span>
+                    <span style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>
+                      {calc.profitPct.toFixed(1)}% do preço
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Card 4: Insumos */}
-              <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)" }}>
+              {/* ── Card 3: Insumos ── */}
+              <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", gridColumn: "1 / -1" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>Insumos deste Serviço</p>
+                  <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600 }}>INSUMOS DESTE SERVIÇO</p>
                   <Link href="/painel/insumos" style={{ fontSize: 11, color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, textDecoration: "none" }}>
                     Gerenciar →
                   </Link>
@@ -326,7 +286,7 @@ export default function PrecificacaoPage() {
                     })}
                     <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10 }}>
                       <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "var(--font-poppins)", color: "var(--text)" }}>Total insumos</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "oklch(55% 0.08 10)", fontFamily: "var(--font-poppins)" }}>{fmt(selectedInpCost)}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "oklch(55% 0.08 10)", fontFamily: "var(--font-poppins)" }}>{fmt(inputCost)}</span>
                     </div>
                   </>
                 )}

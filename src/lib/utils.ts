@@ -1,4 +1,4 @@
-import type { Input, PricingConfig, Service } from "@/types";
+import type { Input } from "@/types";
 
 export const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -9,38 +9,59 @@ export function computeUnitCost(inp: Input): number {
   return (inp.pkgCost / inp.pkgQty) * inp.perApplication;
 }
 
-export function calcPricing(svc: Service, allInputs: Input[], config: PricingConfig) {
-  const selectedInpCost = svc.inputs.reduce((acc, id) => {
-    const inp = allInputs.find(i => i.id === id);
-    return acc + (inp ? computeUnitCost(inp) : 0);
-  }, 0);
-  const deductions = config.taxPct + config.cardPct + config.fixedCostPct + svc.manicurePct;
-  const idealPrice =
-    selectedInpCost / (1 - config.profitMargin / 100 - deductions / 100);
-  const grossProfit = idealPrice - selectedInpCost;
-  const manicureCost = (idealPrice * svc.manicurePct) / 100;
-  const netProfit =
-    grossProfit -
-    (idealPrice * (config.taxPct + config.cardPct + config.fixedCostPct)) / 100 -
-    manicureCost;
-  return { selectedInpCost, idealPrice, grossProfit, netProfit, manicureCost };
+export interface RealProfitResult {
+  tax: number;
+  card: number;
+  fixed: number;
+  inputCost: number;
+  totalDeductions: number;
+  netProfit: number;
+  profitPct: number;
+  distribution: {
+    profit: number;
+    input: number;
+    tax: number;
+    card: number;
+    fixed: number;
+  };
 }
 
-export function calcRealProfit(
-  price: number,
-  inputCost: number,
-  config: PricingConfig,
-  manicurePct: number,
-): number {
-  const deductionsPct = config.taxPct + config.cardPct + config.fixedCostPct + manicurePct;
-  return price - inputCost - (price * deductionsPct) / 100;
-}
+export function calcRealProfit({
+  price,
+  inputCost,
+  taxPct,
+  cardPct,
+  fixedPct,
+}: {
+  price: number;
+  inputCost: number;
+  taxPct: number;
+  cardPct: number;
+  fixedPct: number;
+}): RealProfitResult {
+  const tax = price * (taxPct / 100);
+  const card = price * (cardPct / 100);
+  const fixed = price * (fixedPct / 100);
+  const totalDeductions = inputCost + tax + card + fixed;
+  const netProfit = price - totalDeductions;
+  const profitPct = price > 0 ? (netProfit / price) * 100 : 0;
 
-export function formatCEP(v: string): string {
-  return v
-    .replace(/\D/g, "")
-    .slice(0, 8)
-    .replace(/^(\d{5})(\d)/, "$1-$2");
+  return {
+    tax,
+    card,
+    fixed,
+    inputCost,
+    totalDeductions,
+    netProfit,
+    profitPct,
+    distribution: {
+      profit: profitPct,
+      input: price > 0 ? (inputCost / price) * 100 : 0,
+      tax: taxPct,
+      card: cardPct,
+      fixed: fixedPct,
+    },
+  };
 }
 
 export function estimateDistance(cepClient: string, cepBase: string): number {
@@ -48,6 +69,13 @@ export function estimateDistance(cepClient: string, cepBase: string): number {
   const baseNum = parseInt(cepBase.replace(/\D/g, "").slice(-4)) || 0;
   const diff = Math.abs(clientNum - baseNum);
   return Math.min(25, Math.round(((diff % 200) / 8) * 10) / 10);
+}
+
+export function formatCEP(v: string): string {
+  return v
+    .replace(/\D/g, "")
+    .slice(0, 8)
+    .replace(/^(\d{5})(\d)/, "$1-$2");
 }
 
 export function cn(...classes: (string | undefined | null | false)[]): string {

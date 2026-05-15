@@ -53,7 +53,6 @@ export function mapDbService(row: DbRow): Service {
     active: Boolean(row.active),
     desc: (row.description as string) ?? undefined,
     inputs: Array.isArray(row.inputs) ? (row.inputs as string[]) : [],
-    manicurePct: Number(row.manicure_pct ?? 0),
   };
 }
 
