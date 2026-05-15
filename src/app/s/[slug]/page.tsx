@@ -91,33 +91,41 @@ function formatCEP(v: string): string {
 }
 
 async function geocodeCEP(cep: string): Promise<{ lat: number; lng: number } | null> {
+  const clean = cep.replace(/\D/g, "");
+
+  // 1. Nominatim via postalcode — rápido, funciona para muitos CEPs
   try {
-    const clean = cep.replace(/\D/g, "");
-
-    // BrasilAPI v2 retorna coordenadas direto para CEPs brasileiros
-    const brasilRes = await fetch(`https://brasilapi.com.br/api/cep/v2/${clean}`);
-    if (brasilRes.ok) {
-      const brasilData = await brasilRes.json() as {
-        location?: { coordinates?: { latitude?: string; longitude?: string } };
-      };
-      const lat = brasilData.location?.coordinates?.latitude;
-      const lng = brasilData.location?.coordinates?.longitude;
-      if (lat && lng) {
-        return { lat: parseFloat(lat), lng: parseFloat(lng) };
-      }
-    }
-
-    // Fallback: Nominatim com postalcode
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?postalcode=${clean}&country=BR&format=json&limit=1`,
       { headers: { "User-Agent": "LevBeauty/1.0" } }
     );
     const data = await res.json() as Array<{ lat: string; lon: string }>;
-    if (!data || data.length === 0) return null;
-    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-  } catch {
-    return null;
-  }
+    if (data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch { /* continua */ }
+
+  // 2. ViaCEP → logradouro + cidade → Nominatim (funciona quando postalcode falha)
+  try {
+    const viaRes = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+    if (viaRes.ok) {
+      const via = await viaRes.json() as {
+        erro?: boolean;
+        logradouro?: string;
+        localidade?: string;
+        uf?: string;
+      };
+      if (!via.erro && via.logradouro && via.localidade) {
+        const q = `${via.logradouro}, ${via.localidade}, ${via.uf}, Brasil`;
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=br`,
+          { headers: { "User-Agent": "LevBeauty/1.0" } }
+        );
+        const data = await res.json() as Array<{ lat: string; lon: string }>;
+        if (data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+    }
+  } catch { /* continua */ }
+
+  return null;
 }
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
