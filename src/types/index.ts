@@ -53,6 +53,7 @@ export interface Appointment {
   name: string;
   svc: string;
   time: string;
+  date?: string; // ISO "YYYY-MM-DD", present when fetching multi-day ranges
   status: AppointmentStatus;
   price: number;
   phone: string;

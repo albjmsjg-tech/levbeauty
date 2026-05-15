@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { ApptCard } from "@/components/owner/ApptCard";
 import { NewApptModal } from "@/components/owner/NewApptModal";
 import type { Appointment } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { mapDbAppt, apptToDbRow, getOwnerSalon, getWeekDates, weekDayLabel, toISODate } from "@/lib/supabase/queries";
 import { statusColors, statusList, allTimes, allServiceNames } from "@/lib/data";
 import { fmt } from "@/lib/utils";
+import { ViewToggle } from "@/components/agenda/ViewToggle";
+import { DayView } from "@/components/agenda/DayView";
+import { WeekView } from "@/components/agenda/WeekView";
+import { MonthView } from "@/components/agenda/MonthView";
 
 const MONTHS_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const MONTHS_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -16,29 +19,19 @@ const MONTHS_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out
 function weekRangeLabel(weekDates: Date[]): string {
   const first = weekDates[0];
   const last = weekDates[6];
-  // Same month: "4 – 10 de Maio 2026"
   if (first.getMonth() === last.getMonth()) {
     return `${first.getDate()} – ${last.getDate()} de ${MONTHS_FULL[first.getMonth()]} ${last.getFullYear()}`;
   }
-  // Crosses month boundary: "28 Abr – 4 Mai 2026"
-  const yearSuffix = last.getFullYear();
-  return `${first.getDate()} ${MONTHS_SHORT[first.getMonth()]} – ${last.getDate()} ${MONTHS_SHORT[last.getMonth()]} ${yearSuffix}`;
+  return `${first.getDate()} ${MONTHS_SHORT[first.getMonth()]} – ${last.getDate()} ${MONTHS_SHORT[last.getMonth()]} ${last.getFullYear()}`;
 }
 
-interface SalonSvc {
-  id: string;
-  name: string;
-  price: number;
-  emoji: string;
-}
+type AgendaView = "dia" | "semana" | "mes";
+
+interface SalonSvc { id: string; name: string; price: number; emoji: string; }
 
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 function ApptModal({
-  appt,
-  salonId,
-  onClose,
-  onUpdate,
-  onDelete,
+  appt, salonId, onClose, onUpdate, onDelete,
 }: {
   appt: Appointment;
   salonId: string | null;
@@ -48,28 +41,18 @@ function ApptModal({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Appointment>({ ...appt });
-
-  // Comanda state
   const [showComanda, setShowComanda] = useState(false);
   const [salonSvcs, setSalonSvcs] = useState<SalonSvc[]>([]);
   const [extras, setExtras] = useState<Record<string, number>>({});
   const [extraAmt, setExtraAmt] = useState(0);
 
   const fieldStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "8px 10px",
-    borderRadius: 8,
-    border: "1.5px solid var(--border)",
-    fontFamily: "var(--font-poppins)",
-    fontSize: 13,
-    color: "var(--text)",
-    background: "white",
-    outline: "none",
-    boxSizing: "border-box",
+    width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid var(--border)",
+    fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text)", background: "white",
+    outline: "none", boxSizing: "border-box",
   };
 
   const saveEdit = () => { onUpdate(draft); setEditing(false); };
-
   const handleDelete = () => { onDelete(appt.id); onClose(); };
 
   const openComanda = async () => {
@@ -77,11 +60,8 @@ function ApptModal({
     setShowComanda(true);
     if (salonSvcs.length === 0) {
       const supabase = createClient();
-      const { data } = await supabase
-        .from("services")
-        .select("id, name, price, emoji")
-        .eq("salon_id", salonId)
-        .eq("active", true);
+      const { data } = await supabase.from("services").select("id, name, price, emoji")
+        .eq("salon_id", salonId).eq("active", true);
       setSalonSvcs((data ?? []) as SalonSvc[]);
     }
   };
@@ -113,8 +93,6 @@ function ApptModal({
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "oklch(20% 0.03 340 / 0.5)", zIndex: 100, backdropFilter: "blur(2px)" }} />
       <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 101, width: "min(520px, calc(100vw - 48px))", maxHeight: "calc(100vh - 64px)", overflowY: "auto", background: "white", borderRadius: 20, boxShadow: "0 20px 60px oklch(20% 0.04 340 / 0.25)" }}>
-
-        {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             {showComanda ? (
@@ -140,7 +118,6 @@ function ApptModal({
         <div style={{ padding: "20px 24px" }}>
           {showComanda ? (
             <>
-              {/* Serviço original */}
               <div style={{ background: "oklch(97% 0.03 75)", borderRadius: 10, padding: "12px 16px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 20 }}>
                 <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 4 }}>SERVIÇO ORIGINAL</p>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -149,7 +126,6 @@ function ApptModal({
                 </div>
               </div>
 
-              {/* Adicionar serviços */}
               <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 10 }}>ADICIONAR SERVIÇOS</p>
               {salonSvcs.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 16 }}>Nenhum serviço cadastrado.</p>
@@ -175,36 +151,22 @@ function ApptModal({
                 </div>
               )}
 
-              {/* Valor adicional */}
               <div style={{ marginBottom: 20 }}>
                 <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>VALOR ADICIONAL (R$)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={extraAmt || ""}
-                  onChange={e => setExtraAmt(Number(e.target.value) || 0)}
-                  placeholder="0,00"
-                  style={{ ...fieldStyle }}
-                />
+                <input type="number" min={0} step={0.01} value={extraAmt || ""} onChange={e => setExtraAmt(Number(e.target.value) || 0)} placeholder="0,00" style={fieldStyle} />
               </div>
 
-              {/* Total */}
               <div style={{ background: "oklch(22% 0.04 340)", borderRadius: 10, padding: "14px 16px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontFamily: "var(--font-poppins)", fontSize: 14, fontWeight: 600, color: "white" }}>Total</span>
                 <span style={{ fontFamily: "var(--font-playfair)", fontSize: 22, fontWeight: 700, color: "var(--gold)" }}>{fmt(comandaTotal)}</span>
               </div>
 
-              {/* Fechar comanda */}
-              <button
-                onClick={handleFecharComanda}
-                style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.3)" }}>
+              <button onClick={handleFecharComanda} style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.3)" }}>
                 Fechar comanda · {fmt(comandaTotal)}
               </button>
             </>
           ) : !editing ? (
             <>
-              {/* Details grid */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
                 {[
                   { l: "Valor", v: fmt(appt.price) },
@@ -221,7 +183,6 @@ function ApptModal({
                 ))}
               </div>
 
-              {/* Status buttons */}
               <div style={{ marginBottom: 20 }}>
                 <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 10, fontWeight: 600, letterSpacing: "0.06em" }}>ALTERAR STATUS</p>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -238,7 +199,6 @@ function ApptModal({
                 </div>
               </div>
 
-              {/* Actions */}
               <div style={{ display: "flex", gap: 10, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
                 <button onClick={() => { setDraft({ ...appt }); setEditing(true); }}
                   style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1.5px solid var(--gold)", background: "oklch(98% 0.04 75)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>
@@ -260,10 +220,7 @@ function ApptModal({
             <div>
               <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 14, fontWeight: 600, letterSpacing: "0.06em" }}>EDITANDO AGENDAMENTO</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-                {[
-                  { l: "Nome", key: "name" },
-                  { l: "Telefone", key: "phone" },
-                ].map(f => (
+                {[{ l: "Nome", key: "name" }, { l: "Telefone", key: "phone" }].map(f => (
                   <div key={f.key}>
                     <label style={{ fontSize: 11, fontWeight: 500, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 5 }}>{f.l}</label>
                     <input value={String(draft[f.key as keyof Appointment])} onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))} style={fieldStyle} />
@@ -311,13 +268,38 @@ export default function AgendaPage() {
   const [salonSlug, setSalonSlug] = useState<string | null>(null);
   const [appts, setAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [view, setView] = useState<AgendaView>("semana");
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState(new Date().getDay());
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [selectedMonthDate, setSelectedMonthDate] = useState<string | null>(toISODate(new Date()));
+
   const [showNewModal, setShowNewModal] = useState(false);
   const [modalAppt, setModalAppt] = useState<Appointment | null>(null);
 
-  const weekDates = getWeekDates(weekOffset);
-  const selectedDate = toISODate(weekDates[selectedDay]);
+  const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+  const selectedDate = useMemo(() => toISODate(weekDates[selectedDay]), [weekDates, selectedDay]);
+  const targetMonth = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  }, [monthOffset]);
+  const mesYear = targetMonth.getFullYear();
+  const mesMonth = targetMonth.getMonth();
+
+  // Read view from URL param or localStorage on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlView = params.get("view") as AgendaView | null;
+    const stored = localStorage.getItem("agenda-view") as AgendaView | null;
+    const valid: AgendaView[] = ["dia", "semana", "mes"];
+    const initial = (urlView && valid.includes(urlView))
+      ? urlView
+      : (stored && valid.includes(stored))
+      ? stored
+      : "semana";
+    setView(initial);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -333,36 +315,56 @@ export default function AgendaPage() {
     if (!salonId) return;
     setLoading(true);
     const supabase = createClient();
-    const { data } = await supabase
-      .from("appointments")
-      .select("*")
-      .eq("salon_id", salonId)
-      .eq("appt_date", selectedDate)
-      .order("appt_time");
-    setAppts((data ?? []).map(r => mapDbAppt(r as Record<string, unknown>)));
+    let data: Record<string, unknown>[] | null = null;
+
+    if (view === "dia") {
+      const res = await supabase.from("appointments").select("*")
+        .eq("salon_id", salonId).eq("appt_date", selectedDate).order("appt_time");
+      data = res.data as Record<string, unknown>[] | null;
+    } else if (view === "semana") {
+      const wDates = getWeekDates(weekOffset);
+      const start = toISODate(wDates[0]);
+      const end = toISODate(wDates[6]);
+      const res = await supabase.from("appointments").select("*")
+        .eq("salon_id", salonId).gte("appt_date", start).lte("appt_date", end)
+        .order("appt_date").order("appt_time");
+      data = res.data as Record<string, unknown>[] | null;
+    } else {
+      const firstDay = `${mesYear}-${String(mesMonth + 1).padStart(2, "0")}-01`;
+      const lastDay = `${mesYear}-${String(mesMonth + 1).padStart(2, "0")}-${String(new Date(mesYear, mesMonth + 1, 0).getDate()).padStart(2, "0")}`;
+      const res = await supabase.from("appointments").select("*")
+        .eq("salon_id", salonId).gte("appt_date", firstDay).lte("appt_date", lastDay)
+        .order("appt_date").order("appt_time");
+      data = res.data as Record<string, unknown>[] | null;
+    }
+
+    setAppts((data ?? []).map(r => mapDbAppt(r)));
     setLoading(false);
-  }, [salonId, selectedDate]);
+  }, [salonId, view, selectedDate, weekOffset, mesYear, mesMonth]);
 
   useEffect(() => { loadAppts(); }, [loadAppts]);
 
+  const handleViewChange = (v: string) => {
+    const newView = v as AgendaView;
+    setView(newView);
+    localStorage.setItem("agenda-view", newView);
+  };
+
   const update = async (updated: Appointment) => {
     if (!salonId) return;
-    setAppts(prev => prev.map(a => a.id === updated.id ? updated : a));
-    setModalAppt(prev => prev?.id === updated.id ? updated : prev);
+    setAppts(prev => prev.map(a => a.id === updated.id ? { ...updated, date: a.date } : a));
+    setModalAppt(prev => prev?.id === updated.id ? { ...updated, date: prev.date } : prev);
     const supabase = createClient();
-    const { error: updateErr } = await supabase
-      .from("appointments")
-      .update({
-        client_name: updated.name,
-        client_phone: updated.phone || null,
-        service_name: updated.svc,
-        appt_time: updated.time,
-        price: updated.price,
-        status: updated.status === "concluído" ? "concluido" : updated.status,
-        payment_method: updated.payment === "credit" ? "credito" : updated.payment,
-        location: updated.location === "home" ? "domicilio" : "salao",
-      })
-      .eq("id", updated.id);
+    const { error: updateErr } = await supabase.from("appointments").update({
+      client_name: updated.name,
+      client_phone: updated.phone || null,
+      service_name: updated.svc,
+      appt_time: updated.time,
+      price: updated.price,
+      status: updated.status === "concluído" ? "concluido" : updated.status,
+      payment_method: updated.payment === "credit" ? "credito" : updated.payment,
+      location: updated.location === "home" ? "domicilio" : "salao",
+    }).eq("id", updated.id);
     if (updateErr) { loadAppts(); return; }
 
     if (updated.status === "concluído" && updated.phone && salonSlug) {
@@ -386,15 +388,16 @@ export default function AgendaPage() {
 
   const addAppt = async (appt: Appointment) => {
     if (!salonId) return;
+    const apptDate = view === "mes" ? (selectedMonthDate ?? toISODate(new Date())) : selectedDate;
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("appointments")
-      .insert(apptToDbRow(appt, salonId, selectedDate))
-      .select("*")
-      .single();
+    const { data, error } = await supabase.from("appointments")
+      .insert(apptToDbRow(appt, salonId, apptDate)).select("*").single();
     if (!error && data) {
       const mapped = mapDbAppt(data as Record<string, unknown>);
-      setAppts(prev => [...prev, mapped].sort((a, b) => a.time.localeCompare(b.time)));
+      setAppts(prev => [...prev, mapped].sort((a, b) => {
+        const dc = (a.date ?? "").localeCompare(b.date ?? "");
+        return dc !== 0 ? dc : a.time.localeCompare(b.time);
+      }));
     }
     setShowNewModal(false);
   };
@@ -407,7 +410,97 @@ export default function AgendaPage() {
     });
   };
 
-  const dayRevTotal = appts.filter(a => a.status !== "cancelado").reduce((s, a) => s + Number(a.price), 0);
+  const active = appts.filter(a => a.status !== "cancelado");
+  const summaryRev = active.reduce((s, a) => s + a.price, 0);
+  const summaryText = loading
+    ? "Carregando..."
+    : view === "dia"
+    ? `${appts.length} agend. · ${fmt(summaryRev)}`
+    : view === "semana"
+    ? `${active.length} agend. na semana · ${fmt(summaryRev)}`
+    : `${active.length} agend. no mês · ${fmt(summaryRev)}`;
+
+  // ── Navigation block per view ──
+  const navBlock = (() => {
+    const navBtn = (style?: React.CSSProperties): React.CSSProperties => ({
+      width: 32, height: 32, borderRadius: 8, border: "1.5px solid var(--border)",
+      background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+      ...style,
+    });
+    const todayBtn: React.CSSProperties = {
+      fontSize: 10, color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600,
+      background: "none", border: "none", cursor: "pointer", padding: "0 4px",
+    };
+
+    if (view === "dia") {
+      return (
+        <div style={{ background: "white", borderRadius: 16, padding: 16, border: "1px solid var(--border)", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <button onClick={() => navigateWeek(-1)} style={navBtn()}><ChevronLeft size={16} color="var(--text-mid)" /></button>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", margin: 0 }}>
+                {weekRangeLabel(weekDates)}
+              </p>
+              {weekOffset !== 0 && (
+                <button onClick={() => { setWeekOffset(0); setSelectedDay(new Date().getDay()); }} style={todayBtn}>
+                  Ir para hoje
+                </button>
+              )}
+            </div>
+            <button onClick={() => navigateWeek(1)} style={navBtn()}><ChevronRight size={16} color="var(--text-mid)" /></button>
+          </div>
+          <div style={{ display: "flex", gap: 4 }}>
+            {weekDates.map((d, i) => {
+              const isToday = toISODate(d) === toISODate(new Date());
+              return (
+                <button key={i} onClick={() => setSelectedDay(i)}
+                  style={{ flex: 1, padding: "10px 4px", borderRadius: 10, border: "none", background: i === selectedDay ? "var(--gold)" : "oklch(98% 0.01 75)", cursor: "pointer", textAlign: "center", transition: "all 0.15s", position: "relative" }}>
+                  <p style={{ fontSize: 10, color: i === selectedDay ? "oklch(94% 0.04 75)" : "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 500, marginBottom: 2 }}>
+                    {weekDayLabel(d).split(" ")[0]}
+                  </p>
+                  <p style={{ fontSize: 17, fontWeight: 700, color: i === selectedDay ? "white" : "var(--text)", fontFamily: "var(--font-poppins)" }}>
+                    {d.getDate()}
+                  </p>
+                  {isToday && <div style={{ width: 4, height: 4, borderRadius: "50%", background: i === selectedDay ? "white" : "var(--gold)", margin: "2px auto 0" }} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (view === "semana") {
+      return (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, background: "white", borderRadius: 14, padding: "12px 16px", border: "1px solid var(--border)" }}>
+          <button onClick={() => navigateWeek(-1)} style={navBtn()}><ChevronLeft size={16} color="var(--text-mid)" /></button>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", margin: 0 }}>{weekRangeLabel(weekDates)}</p>
+            {weekOffset !== 0 && (
+              <button onClick={() => setWeekOffset(0)} style={todayBtn}>Semana atual</button>
+            )}
+          </div>
+          <button onClick={() => navigateWeek(1)} style={navBtn()}><ChevronRight size={16} color="var(--text-mid)" /></button>
+        </div>
+      );
+    }
+
+    // mes
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, background: "white", borderRadius: 14, padding: "12px 16px", border: "1px solid var(--border)" }}>
+        <button onClick={() => setMonthOffset(p => p - 1)} style={navBtn()}><ChevronLeft size={16} color="var(--text-mid)" /></button>
+        <div style={{ flex: 1, textAlign: "center" }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", margin: 0 }}>
+            {MONTHS_FULL[mesMonth]} {mesYear}
+          </p>
+          {monthOffset !== 0 && (
+            <button onClick={() => setMonthOffset(0)} style={todayBtn}>Mês atual</button>
+          )}
+        </div>
+        <button onClick={() => setMonthOffset(p => p + 1)} style={navBtn()}><ChevronRight size={16} color="var(--text-mid)" /></button>
+      </div>
+    );
+  })();
 
   return (
     <div style={{ padding: "28px 32px" }}>
@@ -422,82 +515,51 @@ export default function AgendaPage() {
         />
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      {/* Page header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--text)" }}>Agenda</h1>
           <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 2 }}>
-            {loading ? "Carregando..." : `${appts.length} agendamento${appts.length !== 1 ? "s" : ""} · receita prevista `}
-            {!loading && <strong style={{ color: "var(--gold)" }}>{fmt(dayRevTotal)}</strong>}
+            {summaryText}
           </p>
         </div>
-        <button onClick={() => setShowNewModal(true)}
-          style={{ padding: "10px 20px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)" }}>
-          <Plus size={15} color="white" /> Novo Agendamento
-        </button>
-      </div>
-
-      {/* Week navigation + Day picker */}
-      <div style={{ background: "white", borderRadius: 16, padding: 16, border: "1px solid var(--border)", marginBottom: 20 }}>
-        {/* Week nav */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <button onClick={() => navigateWeek(-1)}
-            style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <ChevronLeft size={16} color="var(--text-mid)" />
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <ViewToggle
+            options={[
+              { key: "dia", label: "Dia" },
+              { key: "semana", label: "Semana" },
+              { key: "mes", label: "Mês" },
+            ]}
+            value={view}
+            onChange={handleViewChange}
+          />
+          <button
+            onClick={() => setShowNewModal(true)}
+            style={{ padding: "10px 18px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)" }}>
+            <Plus size={15} color="white" /> Novo
           </button>
-          <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", margin: 0 }}>
-              {weekRangeLabel(weekDates)}
-            </p>
-            {weekOffset !== 0 && (
-              <button onClick={() => { setWeekOffset(0); setSelectedDay(new Date().getDay()); }}
-                style={{ fontSize: 10, color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 2 }}>
-                Ir para hoje
-              </button>
-            )}
-          </div>
-          <button onClick={() => navigateWeek(1)}
-            style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <ChevronRight size={16} color="var(--text-mid)" />
-          </button>
-        </div>
-
-        {/* Day pills */}
-        <div style={{ display: "flex", gap: 4 }}>
-          {weekDates.map((d, i) => {
-            const isToday = toISODate(d) === toISODate(new Date());
-            return (
-              <button key={i} onClick={() => setSelectedDay(i)}
-                style={{ flex: 1, padding: "10px 4px", borderRadius: 10, border: "none", background: i === selectedDay ? "var(--gold)" : "oklch(98% 0.01 75)", cursor: "pointer", textAlign: "center", transition: "all 0.15s", position: "relative" }}>
-                <p style={{ fontSize: 10, color: i === selectedDay ? "oklch(94% 0.04 75)" : "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 500, marginBottom: 2 }}>
-                  {weekDayLabel(d).split(" ")[0]}
-                </p>
-                <p style={{ fontSize: 17, fontWeight: 700, color: i === selectedDay ? "white" : "var(--text)", fontFamily: "var(--font-poppins)" }}>
-                  {d.getDate()}
-                </p>
-                {isToday && (
-                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: i === selectedDay ? "white" : "var(--gold)", margin: "2px auto 0" }} />
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
 
-      {loading && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {[1, 2, 3].map(i => <div key={i} style={{ height: 72, borderRadius: 14, background: "var(--border)" }} />)}
-        </div>
-      )}
+      {navBlock}
 
-      {!loading && appts.length === 0 && (
-        <div style={{ textAlign: "center", padding: 40, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 13 }}>
-          Nenhum agendamento para este dia.
-        </div>
+      {view === "dia" && (
+        <DayView appts={appts} loading={loading} date={selectedDate} onOpen={setModalAppt} />
       )}
-
-      {!loading && appts.map(a => (
-        <ApptCard key={a.id} appt={a} onUpdate={update} onDelete={deleteAppt} onOpen={setModalAppt} />
-      ))}
+      {view === "semana" && (
+        <WeekView appts={appts} loading={loading} weekDates={weekDates} onOpen={setModalAppt} />
+      )}
+      {view === "mes" && (
+        <MonthView
+          appts={appts}
+          loading={loading}
+          year={mesYear}
+          month={mesMonth}
+          selectedDate={selectedMonthDate}
+          onSelectDate={setSelectedMonthDate}
+          onOpen={setModalAppt}
+        />
+      )}
     </div>
   );
 }

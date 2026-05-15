@@ -11,6 +11,7 @@ export function mapDbAppt(row: DbRow): Appointment {
     name: row.client_name as string,
     svc: row.service_name as string,
     time: row.appt_time as string,
+    date: (row.appt_date as string) ?? undefined,
     status: (row.status === "concluido" ? "concluído" : row.status) as Appointment["status"],
     price: Number(row.price),
     phone: (row.client_phone as string) ?? "",
