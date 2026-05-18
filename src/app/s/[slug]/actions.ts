@@ -92,7 +92,7 @@ export async function bookAppointment(params: BookParams): Promise<BookResult> {
     clientId = newClient.id as string;
   }
 
-  // Insert appointment using admin client (no public INSERT policy)
+  // Insert appointment — service columns moved to appointment_items after 011 refactor
   const { data: appt, error: apptErr } = await admin
     .from('appointments')
     .insert({
@@ -101,23 +101,38 @@ export async function bookAppointment(params: BookParams): Promise<BookResult> {
       profile_id: profileId,
       client_name: name,
       client_phone: phone || null,
-      service_id: serviceId,
-      service_name: serviceName,
       appt_date: apptDate,
       appt_time: apptTime,
-      duration_min: durationMin,
-      price,
       status: 'pendente',
       payment_method: paymentMethod,
       location,
       client_cep: clientCep || null,
       travel_fee: travelFee ?? 0,
+      total_price: 0,
     })
     .select('id')
     .single();
 
   if (apptErr || !appt) {
     console.error('[bookAppointment] appointment insert error:', apptErr);
+    return { ok: false, error: 'Horário indisponível' };
+  }
+
+  // Insert the single service item — trigger recalcs total_price automatically
+  const { error: itemErr } = await admin
+    .from('appointment_items')
+    .insert({
+      appointment_id: appt.id as string,
+      service_id: serviceId,
+      service_name: serviceName,
+      price,
+      duration_min: durationMin,
+      position: 1,
+    });
+
+  if (itemErr) {
+    console.error('[bookAppointment] appointment_items insert error:', itemErr);
+    void admin.from('appointments').delete().eq('id', appt.id);
     return { ok: false, error: 'Horário indisponível' };
   }
 
