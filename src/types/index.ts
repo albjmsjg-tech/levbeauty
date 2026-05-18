@@ -45,24 +45,51 @@ export interface Input {
 }
 
 export type AppointmentStatus = "pendente" | "confirmado" | "concluído" | "cancelado";
-export type PaymentMethod = "pix" | "credit" | "local";
+export type PaymentMethod = "pix" | "credit" | "local" | "dinheiro" | "outro";
 export type AppointmentLocation = "salon" | "home";
+
+export interface AppointmentItem {
+  id?: string;
+  serviceId: string;
+  serviceName: string;
+  price: number;
+  durationMin: number;
+  position: number;
+}
 
 export interface Appointment {
   id: number | string;
+  clientId?: string;
   name: string;
-  svc: string;
-  time: string;
-  date?: string; // ISO "YYYY-MM-DD", present when fetching multi-day ranges
-  status: AppointmentStatus;
-  price: number;
   phone: string;
+  date?: string;
+  time: string;
+  status: AppointmentStatus;
+  totalPrice: number;
+  travelFee: number;
+  clientCep?: string;
   location: AppointmentLocation;
   payment: PaymentMethod;
+  notes?: string;
+  items: AppointmentItem[];
 }
 
 export interface FixedCost {
   id: number | string;
   name: string;
   val: number;
+}
+
+export interface SalonHour {
+  id: string;
+  dayOfWeek: number;
+  isOpen: boolean;
+  opensAt: string | null;
+  closesAt: string | null;
+}
+
+export interface BlockedDate {
+  id: string;
+  date: string;
+  reason: string | null;
 }

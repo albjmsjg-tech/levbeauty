@@ -18,6 +18,7 @@ interface SalonData {
   max_radius_km: number;
   price_per_km: number;
   min_travel_fee: number;
+  slot_interval_min: number;
 }
 
 interface ServiceData {
@@ -54,31 +55,43 @@ function toMinutes(time: string): number {
   return h * 60 + m;
 }
 
-function generateAllSlots(): string[] {
+// Gera slots a cada 30 min entre opens_at e closes_at, apenas onde o serviço cabe
+function generateSlots(opensAt: string, closesAt: string, svcDuration: number): string[] {
+  const opens = toMinutes(opensAt);
+  const closes = toMinutes(closesAt);
   const slots: string[] = [];
-  for (let h = 8; h < 19; h++) {
-    for (const m of [0, 30]) {
-      if (h === 18 && m === 30) continue;
-      slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    }
+  for (let t = opens; t + svcDuration <= closes; t += 30) {
+    slots.push(`${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`);
   }
   return slots;
 }
 
+// intervalMin é o gap de preparação/deslocamento; estende o "fim efetivo" dos agendamentos existentes
 function isAvailable(
   slot: string,
   svcDuration: number,
+  intervalMin: number,
   booked: { appt_time: string; duration_min: number }[]
 ): boolean {
   const slotStart = toMinutes(slot);
   const slotEnd = slotStart + svcDuration;
   for (const b of booked) {
     const bStart = toMinutes(b.appt_time);
-    const bEnd = bStart + b.duration_min;
+    const bEnd = bStart + b.duration_min + intervalMin;
     if (slotStart < bEnd && slotEnd > bStart) return false;
   }
   return true;
 }
+
+const DAY_CLOSED_MSGS: Record<number, string> = {
+  0: "Não atendemos aos domingos",
+  1: "Não atendemos às segundas-feiras",
+  2: "Não atendemos às terças-feiras",
+  3: "Não atendemos às quartas-feiras",
+  4: "Não atendemos às quintas-feiras",
+  5: "Não atendemos às sextas-feiras",
+  6: "Não atendemos aos sábados",
+};
 
 function fmt(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -141,8 +154,6 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
   return R * c;
 }
 
-const ALL_SLOTS = generateAllSlots();
-
 export default function SalonPage({ params }: { params: { slug: string } }) {
   const [salon, setSalon] = useState<SalonData | null>(null);
   const [services, setServices] = useState<ServiceData[]>([]);
@@ -156,6 +167,11 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
   const [selectedTime, setSelectedTime] = useState("");
   const [bookedSlots, setBookedSlots] = useState<{ appt_time: string; duration_min: number }[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [salonHours, setSalonHours] = useState<Record<number, { isOpen: boolean; opensAt: string | null; closesAt: string | null }>>({});
+  const [blockedDatesSet, setBlockedDatesSet] = useState<Set<string>>(new Set());
+  const [slotIntervalMin, setSlotIntervalMin] = useState(15);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [dayClosedMsg, setDayClosedMsg] = useState<string | null>(null);
 
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -207,7 +223,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       const supabase = createClient();
       const { data: salonData, error: salonErr } = await supabase
         .from("salons")
-        .select("id, name, slug, phone, address, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee")
+        .select("id, name, slug, phone, address, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee, slot_interval_min")
         .eq("slug", params.slug)
         .single();
 
@@ -218,17 +234,45 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       }
 
       const sd = salonData as SalonData;
-      console.log("[LevBeauty] salon loaded:", { name: sd.name, home_enabled: sd.home_enabled, home_salon: sd.home_salon, cep_base: sd.cep_base });
       setSalon(sd);
+      setSlotIntervalMin(sd.slot_interval_min ?? 15);
 
-      const { data: svcData } = await supabase
-        .from("services")
-        .select("id, name, emoji, duration_min, price")
-        .eq("salon_id", salonData.id)
-        .eq("active", true)
-        .order("name");
+      const todayStr = toISODate(new Date());
+      const in14 = new Date();
+      in14.setDate(in14.getDate() + 14);
+      const in14Str = toISODate(in14);
 
-      setServices((svcData ?? []) as ServiceData[]);
+      const [svcResult, hoursResult, blockedResult] = await Promise.all([
+        supabase
+          .from("services")
+          .select("id, name, emoji, duration_min, price")
+          .eq("salon_id", sd.id)
+          .eq("active", true)
+          .order("name"),
+        supabase
+          .from("salon_hours")
+          .select("day_of_week, is_open, opens_at, closes_at")
+          .eq("salon_id", sd.id),
+        supabase
+          .from("salon_blocked_dates")
+          .select("date")
+          .eq("salon_id", sd.id)
+          .gte("date", todayStr)
+          .lte("date", in14Str),
+      ]);
+
+      setServices((svcResult.data ?? []) as ServiceData[]);
+
+      const hoursMap: Record<number, { isOpen: boolean; opensAt: string | null; closesAt: string | null }> = {};
+      (hoursResult.data ?? []).forEach(row => {
+        hoursMap[row.day_of_week as number] = {
+          isOpen: row.is_open as boolean,
+          opensAt: row.opens_at ? String(row.opens_at).slice(0, 5) : null,
+          closesAt: row.closes_at ? String(row.closes_at).slice(0, 5) : null,
+        };
+      });
+      setSalonHours(hoursMap);
+      setBlockedDatesSet(new Set((blockedResult.data ?? []).map(r => r.date as string)));
       setLoading(false);
     }
     load();
@@ -322,6 +366,8 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setCepError("");
     setTravelFee(0);
     setClientCep("");
+    setAvailableSlots([]);
+    setDayClosedMsg(null);
 
     if (salon) {
       const mode = getLocationMode(salon);
@@ -342,6 +388,55 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     if (!salon || !selectedSvc) return;
     setSelectedDate(dateStr);
     setSelectedTime("");
+    setDayClosedMsg(null);
+
+    const findNextOpen = (from: string): string | null => {
+      const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+      const DOWS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+      const allDates = getNext14Days();
+      const idx = allDates.findIndex(d => toISODate(d) === from);
+      for (let i = idx + 1; i < allDates.length; i++) {
+        const d = allDates[i];
+        const ds = toISODate(d);
+        const dow = d.getDay();
+        const h = salonHours[dow];
+        if ((h ? h.isOpen : true) && !blockedDatesSet.has(ds)) {
+          return `${DOWS[dow]}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+        }
+      }
+      return null;
+    };
+
+    // Folga específica
+    if (blockedDatesSet.has(dateStr)) {
+      const next = findNextOpen(dateStr);
+      setBookedSlots([]);
+      setAvailableSlots([]);
+      setDayClosedMsg(`Esta data não está disponível.${next ? ` Próximo dia disponível: ${next}.` : ""}`);
+      setStep("time");
+      return;
+    }
+
+    // Horário de funcionamento do dia
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const dayOfWeek = new Date(y, m - 1, d).getDay();
+    const hourConfig = salonHours[dayOfWeek];
+    const isOpen = hourConfig ? hourConfig.isOpen : true; // fallback: aberto (salão sem config ainda)
+    const opensAt = hourConfig?.opensAt ?? "08:00";
+    const closesAt = hourConfig?.closesAt ?? "19:00";
+
+    if (!isOpen) {
+      const next = findNextOpen(dateStr);
+      setBookedSlots([]);
+      setAvailableSlots([]);
+      setDayClosedMsg(`${DAY_CLOSED_MSGS[dayOfWeek] ?? "Não atendemos neste dia."}${next ? ` Próximo dia disponível: ${next}.` : ""}`);
+      setStep("time");
+      return;
+    }
+
+    // Slots gerados a partir dos horários do salão
+    setAvailableSlots(generateSlots(opensAt, closesAt, selectedSvc.duration_min));
+
     setLoadingSlots(true);
     const supabase = createClient();
     const { data } = await supabase.rpc("get_booked_slots", {
@@ -441,6 +536,8 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setPaymentDone(false);
     setBookingFailed(false);
     setBookedSlots([]);
+    setAvailableSlots([]);
+    setDayClosedMsg(null);
   };
 
   // ── styles ──────────────────────────────────────────
@@ -764,12 +861,24 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
 
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, color: "var(--text)", margin: "0 0 18px" }}>Escolha o horário</h2>
 
-            {loadingSlots ? (
+            {dayClosedMsg ? (
+              <div style={{ background: "oklch(96% 0.015 30)", borderRadius: 12, padding: "20px 18px", border: "1px solid oklch(88% 0.03 30)", textAlign: "center" }}>
+                <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text-mid)", margin: 0, lineHeight: 1.7 }}>
+                  📅 {dayClosedMsg}
+                </p>
+              </div>
+            ) : loadingSlots ? (
               <p style={{ fontFamily: "var(--font-poppins)", color: "var(--text-light)", fontSize: 14 }}>Verificando disponibilidade...</p>
+            ) : availableSlots.length === 0 ? (
+              <div style={{ background: "oklch(96% 0.015 30)", borderRadius: 12, padding: "20px 18px", border: "1px solid oklch(88% 0.03 30)", textAlign: "center" }}>
+                <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text-mid)", margin: 0 }}>
+                  Nenhum horário disponível para este serviço nesta data.
+                </p>
+              </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-                {ALL_SLOTS.map(slot => {
-                  const available = isAvailable(slot, selectedSvc.duration_min, bookedSlots);
+                {availableSlots.map(slot => {
+                  const available = isAvailable(slot, selectedSvc.duration_min, slotIntervalMin, bookedSlots);
                   const isSelected = selectedTime === slot;
                   return (
                     <button key={slot}

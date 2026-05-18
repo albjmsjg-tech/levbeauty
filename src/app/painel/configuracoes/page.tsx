@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatCEP } from "@/lib/utils";
 import { getPricingConfig, savePricingConfig } from "./actions";
+import { HorariosAtendimento } from "@/components/configuracoes/HorariosAtendimento";
 import type { PricingConfig } from "@/types";
 import { DEFAULT_PRICING_CONFIG } from "@/types";
 
@@ -47,6 +48,7 @@ export default function ConfiguracoesPage() {
   const [maxRadius, setMaxRadius] = useState(10);
   const [pricePerKm, setPricePerKm] = useState(2);
   const [minFee, setMinFee] = useState(20);
+  const [slotIntervalMin, setSlotIntervalMin] = useState(15);
 
   // Pricing config state
   const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING_CONFIG);
@@ -66,7 +68,7 @@ export default function ConfiguracoesPage() {
 
       const { data: salon } = await supabase
         .from("salons")
-        .select("id, name, phone, address, slug, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee")
+        .select("id, name, phone, address, slug, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee, slot_interval_min")
         .eq("owner_id", user.id)
         .single();
 
@@ -83,6 +85,7 @@ export default function ConfiguracoesPage() {
         setMaxRadius((salon.max_radius_km as number) ?? 10);
         setPricePerKm((salon.price_per_km as number) ?? 2);
         setMinFee((salon.min_travel_fee as number) ?? 20);
+        setSlotIntervalMin((salon.slot_interval_min as number) ?? 15);
 
         const pc = await getPricingConfig();
         setPricing(pc);
@@ -379,6 +382,11 @@ export default function ConfiguracoesPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Horários de atendimento ──────────────────── */}
+      {salonId && (
+        <HorariosAtendimento salonId={salonId} initialIntervalMin={slotIntervalMin} />
+      )}
 
       {/* ── Sinal de pagamento ───────────────────────── */}
       <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 20 }}>
