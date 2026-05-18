@@ -1,41 +1,52 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Bell, Clock, ChevronRight, Calendar, Star } from "lucide-react";
+import { Bell, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { defaultServices } from "@/lib/data";
 import { fmt } from "@/lib/utils";
 
-const DAYS_PT  = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DAYS_PT   = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 function formatApptDate(dateStr: string): string {
-  // Parse as local date to avoid UTC-offset shifting the day
   const [year, month, day] = dateStr.split("-").map(Number);
   const d = new Date(year, month - 1, day);
   return `${DAYS_PT[d.getDay()]}, ${day} ${MONTHS_PT[month - 1]}`;
 }
 
 interface NextAppt {
-  service_name: string;
-  appt_date: string;
-  appt_time: string;
+  serviceLabel: string;
+  apptDate: string;
+  apptTime: string;
+}
+
+interface HistoryItem {
+  id: string;
+  apptDate: string;
+  totalPrice: number;
+  serviceLabel: string;
+}
+
+type ItemRow = { service_name: string; position: number };
+
+function buildServiceLabel(items: ItemRow[]): string {
+  const sorted = [...items].sort((a, b) => a.position - b.position);
+  const first = sorted[0]?.service_name ?? "Serviço";
+  return sorted.length > 1 ? `${first} +${sorted.length - 1}` : first;
 }
 
 export default function ClientHomePage() {
-  const router = useRouter();
-  const [services] = useState(defaultServices);
   const [clientName, setClientName] = useState("");
-  const [nextAppt, setNextAppt] = useState<NextAppt | null>(null);
+  const [nextAppt, setNextAppt]     = useState<NextAppt | null>(null);
+  const [history, setHistory]       = useState<HistoryItem[]>([]);
+  const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
     async function load() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { setLoading(false); return; }
 
-      // Fetch name
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name")
@@ -43,32 +54,71 @@ export default function ClientHomePage() {
         .single();
       if (profile?.full_name) setClientName((profile.full_name as string).split(" ")[0]);
 
-      // Fetch next appointment — use local date string to avoid UTC timezone shift
-      const now = new Date();
+      const now   = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+      // Próximo agendamento — profile_id é o vínculo correto com auth.uid()
       const { data: appt } = await supabase
         .from("appointments")
-        .select("service_name, appt_date, appt_time")
-        .eq("client_id", user.id)
+        .select("id, appt_date, appt_time, appointment_items(service_name, position)")
+        .eq("profile_id", user.id)
         .gte("appt_date", today)
         .neq("status", "cancelado")
         .order("appt_date", { ascending: true })
-        .order("appt_time", { ascending: true })
+        .order("appt_time",  { ascending: true })
         .limit(1)
         .maybeSingle();
-      if (appt) setNextAppt(appt as NextAppt);
+
+      if (appt) {
+        setNextAppt({
+          serviceLabel: buildServiceLabel((appt.appointment_items as ItemRow[] | null) ?? []),
+          apptDate: appt.appt_date as string,
+          apptTime: appt.appt_time as string,
+        });
+      }
+
+      // Histórico — agendamentos concluídos, mais recentes primeiro
+      const { data: histData } = await supabase
+        .from("appointments")
+        .select("id, appt_date, total_price, appointment_items(service_name, position)")
+        .eq("profile_id", user.id)
+        .eq("status", "concluido")
+        .order("appt_date", { ascending: false })
+        .limit(20);
+
+      type HistRow = {
+        id: string;
+        appt_date: string;
+        total_price: number | string;
+        appointment_items: ItemRow[];
+      };
+      setHistory(
+        ((histData ?? []) as HistRow[]).map(row => ({
+          id: row.id,
+          apptDate: row.appt_date,
+          totalPrice: Number(row.total_price),
+          serviceLabel: buildServiceLabel(row.appointment_items ?? []),
+        }))
+      );
+      setLoading(false);
     }
     load();
   }, []);
 
-  const history = [
-    { s: "Esmaltação em Gel", d: "15 Abr", p: 90 },
-    { s: "Manutenção", d: "02 Abr", p: 80 },
-  ];
+  if (loading) {
+    return (
+      <div style={{ padding: "28px 20px" }}>
+        <div style={{ height: 130, borderRadius: 16, background: "var(--border)", marginBottom: 24 }} />
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ height: 52, borderRadius: 10, background: "var(--border)", marginBottom: 10 }} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div>
-      {/* Header gradient */}
+      {/* Header */}
       <div style={{ background: "linear-gradient(160deg, oklch(88% 0.055 10), oklch(82% 0.065 350))", padding: "28px 20px 32px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "oklch(95% 0.04 75 / 0.4)" }} />
         <div style={{ position: "absolute", bottom: -20, left: 10, width: 80, height: 80, borderRadius: "50%", background: "oklch(72% 0.115 75 / 0.2)" }} />
@@ -84,65 +134,45 @@ export default function ClientHomePage() {
           </button>
         </div>
 
-        {/* Next appointment */}
+        {/* Próximo agendamento */}
         <div style={{ marginTop: 16, background: "white", borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, boxShadow: "0 2px 12px oklch(40% 0.05 10 / 0.12)" }}>
           <Calendar size={16} color="var(--gold)" />
           <div>
             <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>Próximo agendamento</p>
             <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", marginTop: 1 }}>
               {nextAppt
-                ? `${nextAppt.service_name} · ${formatApptDate(nextAppt.appt_date)} · ${nextAppt.appt_time}`
+                ? `${nextAppt.serviceLabel} · ${formatApptDate(nextAppt.apptDate)} · ${nextAppt.apptTime}`
                 : "Nenhum agendamento próximo"}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Services */}
-      <div style={{ padding: "22px 20px 0" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 22, fontWeight: 600, color: "var(--text)" }}>Nossos Serviços</h3>
-          <span style={{ fontSize: 12, color: "var(--gold)", fontWeight: 500, fontFamily: "var(--font-poppins)", cursor: "pointer" }}>Ver todos</span>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {services.map(svc => (
-            <div key={svc.id} onClick={() => router.push(`/app/agendar?id=${svc.id}`)}
-              style={{ background: "white", borderRadius: 16, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14, boxShadow: "0 1px 8px oklch(40% 0.05 340 / 0.07)", cursor: "pointer", border: "1px solid var(--border)" }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, oklch(92% 0.045 10), oklch(88% 0.06 350))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 20 }}>💅</span>
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{svc.name}</p>
-                <div style={{ display: "flex", gap: 10, marginTop: 3, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", display: "flex", alignItems: "center", gap: 3 }}>
-                    <Clock size={11} color="var(--text-light)" /> {svc.duration}
-                  </span>
-                  <span style={{ fontSize: 12, color: "var(--gold)", fontWeight: 600, fontFamily: "var(--font-poppins)" }}>{fmt(svc.price)}</span>
-                </div>
-              </div>
-              <ChevronRight size={16} color="var(--text-light)" />
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Histórico */}
+      <div style={{ padding: "22px 20px 32px" }}>
+        <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 22, fontWeight: 600, color: "var(--text)", marginBottom: 14 }}>Histórico</h3>
 
-      {/* History */}
-      <div style={{ padding: "22px 20px 24px" }}>
-        <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 22, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>Histórico</h3>
-        {history.map((h, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 500, fontFamily: "var(--font-poppins)", color: "var(--text)" }}>{h.s}</p>
-              <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 2 }}>{h.d}</p>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <p style={{ fontSize: 13, fontWeight: 600, fontFamily: "var(--font-poppins)", color: "var(--mauve)" }}>{fmt(h.p)}</p>
-              <div style={{ display: "flex", gap: 2, marginTop: 3, justifyContent: "flex-end" }}>
-                {[1, 2, 3, 4, 5].map(s => <Star key={s} size={10} fill="var(--gold)" color="var(--gold)" />)}
-              </div>
-            </div>
+        {history.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "36px 20px", background: "white", borderRadius: 14, border: "1px solid var(--border)" }}>
+            <p style={{ fontSize: 32, marginBottom: 12 }}>✂️</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", marginBottom: 6 }}>
+              Nenhum histórico ainda
+            </p>
+            <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", lineHeight: 1.6 }}>
+              Seu primeiro atendimento aparecerá aqui após ser realizado.
+            </p>
           </div>
-        ))}
+        ) : (
+          history.map(h => (
+            <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 500, fontFamily: "var(--font-poppins)", color: "var(--text)" }}>{h.serviceLabel}</p>
+                <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 2 }}>{formatApptDate(h.apptDate)}</p>
+              </div>
+              <p style={{ fontSize: 13, fontWeight: 600, fontFamily: "var(--font-poppins)", color: "var(--mauve)" }}>{fmt(h.totalPrice)}</p>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
