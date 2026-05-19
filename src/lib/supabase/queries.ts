@@ -1,38 +1,37 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Appointment, FixedCost, Input, Service } from "@/types";
+import type { Appointment, AppointmentItem, FixedCost, Input, Service } from "@/types";
 
 type DbRow = Record<string, unknown>;
 
 // ── Type mappers (DB ↔ local) ─────────────────────────────────────────────────
 
 export function mapDbAppt(row: DbRow): Appointment {
+  const rawItems = Array.isArray(row.appointment_items) ? (row.appointment_items as DbRow[]) : [];
+  const items: AppointmentItem[] = rawItems
+    .sort((a, b) => Number(a.position) - Number(b.position))
+    .map(item => ({
+      id: item.id as string,
+      serviceId: item.service_id as string,
+      serviceName: item.service_name as string,
+      price: Number(item.price),
+      durationMin: Number(item.duration_min),
+      position: Number(item.position),
+    }));
   return {
     id: row.id as string,
+    clientId: (row.client_id as string) ?? undefined,
     name: row.client_name as string,
-    svc: row.service_name as string,
-    time: row.appt_time as string,
-    date: (row.appt_date as string) ?? undefined,
-    status: (row.status === "concluido" ? "concluído" : row.status) as Appointment["status"],
-    price: Number(row.price),
     phone: (row.client_phone as string) ?? "",
+    date: (row.appt_date as string) ?? undefined,
+    time: row.appt_time as string,
+    status: (row.status === "concluido" ? "concluído" : row.status) as Appointment["status"],
+    totalPrice: Number(row.total_price ?? 0),
+    travelFee: Number(row.travel_fee ?? 0),
+    clientCep: (row.client_cep as string) ?? undefined,
     location: (row.location === "domicilio" ? "home" : "salon") as Appointment["location"],
     payment: (row.payment_method === "credito" ? "credit" : (row.payment_method ?? "pix")) as Appointment["payment"],
-  };
-}
-
-export function apptToDbRow(a: Appointment, salonId: string, date: string) {
-  return {
-    salon_id: salonId,
-    client_name: a.name,
-    client_phone: a.phone || null,
-    service_name: a.svc,
-    appt_date: date,
-    appt_time: a.time,
-    duration_min: 60,
-    price: a.price,
-    status: a.status === "concluído" ? "concluido" : a.status,
-    payment_method: a.payment === "credit" ? "credito" : a.payment,
-    location: a.location === "home" ? "domicilio" : "salao",
+    notes: (row.notes as string) ?? undefined,
+    items,
   };
 }
 

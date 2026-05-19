@@ -65,13 +65,13 @@ export default function DashboardPage() {
       const lastDay = localISO(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
       const { data: mRows } = await supabase
-        .from("appointments").select("price, appt_date, status")
+        .from("appointments").select("total_price, appt_date, status")
         .eq("salon_id", salon.id)
         .gte("appt_date", firstDay).lte("appt_date", lastDay)
         .neq("status", "cancelado");
-      const rows = (mRows ?? []) as { price: number; appt_date: string; status: string }[];
-      setMonthData(rows);
-      setMonthRevenue(rows.filter(r => r.status === "concluido").reduce((s, r) => s + Number(r.price), 0));
+      const rows = (mRows ?? []) as { total_price: number; appt_date: string; status: string }[];
+      setMonthData(rows.map(r => ({ price: Number(r.total_price), appt_date: r.appt_date, status: r.status })));
+      setMonthRevenue(rows.filter(r => r.status === "concluido").reduce((s, r) => s + Number(r.total_price), 0));
       setMonthCount(rows.filter(r => r.status === "concluido").length);
 
       setLoading(false);
@@ -83,7 +83,8 @@ export default function DashboardPage() {
     if (!salonId) return;
     setLoadingAppts(true);
     const supabase = createClient();
-    const { data } = await supabase.from("appointments").select("*")
+    const { data } = await supabase.from("appointments")
+      .select("*, appointment_items(id, service_id, service_name, price, duration_min, position)")
       .eq("salon_id", salonId).eq("appt_date", today).order("appt_time");
     setTodayAppts((data ?? []).map(r => mapDbAppt(r as Record<string, unknown>)));
     setLoadingAppts(false);
@@ -96,7 +97,8 @@ export default function DashboardPage() {
     weekLoadedRef.current = true;
     setLoadingWeek(true);
     const supabase = createClient();
-    const { data } = await supabase.from("appointments").select("*")
+    const { data } = await supabase.from("appointments")
+      .select("*, appointment_items(id, service_id, service_name, price, duration_min, position)")
       .eq("salon_id", salonId).gte("appt_date", weekStart).lte("appt_date", weekEnd)
       .order("appt_date").order("appt_time");
     setWeekAppts((data ?? []).map(r => mapDbAppt(r as Record<string, unknown>)));
@@ -107,7 +109,7 @@ export default function DashboardPage() {
     if (dashTab === "semana") loadWeekAppts();
   }, [dashTab, loadWeekAppts]);
 
-  const dayRevenue = todayAppts.filter(a => a.status === "concluído").reduce((s, a) => s + a.price, 0);
+  const dayRevenue = todayAppts.filter(a => a.status === "concluído").reduce((s, a) => s + a.totalPrice, 0);
   const agendHoje = todayAppts.filter(a => a.status !== "cancelado").length;
   const totalFixed = costs.reduce((s, c) => s + c.val, 0);
   const ticketMedio = monthCount > 0 ? monthRevenue / monthCount : 0;
@@ -230,10 +232,12 @@ export default function DashboardPage() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>{a.name}</p>
-                        <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.svc}</p>
+                        <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {a.items.length > 0 ? a.items.map(i => i.serviceName).join(" + ") : "—"}
+                        </p>
                       </div>
                       <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{fmt(a.price)}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{fmt(a.totalPrice)}</p>
                         <span style={{ fontSize: 10, fontWeight: 600, fontFamily: "var(--font-poppins)", padding: "2px 8px", borderRadius: 10, background: sc.bg, color: sc.color }}>{a.status}</span>
                       </div>
                     </div>

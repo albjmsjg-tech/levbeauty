@@ -37,7 +37,7 @@ export function MonthView({ appts, loading, year, month, selectedDate, onSelectD
   while (cells.length % 7 !== 0) cells.push(null);
 
   const total = appts.filter(a => a.status !== "cancelado").length;
-  const revenue = appts.filter(a => a.status !== "cancelado").reduce((s, a) => s + a.price, 0);
+  const revenue = appts.filter(a => a.status !== "cancelado").reduce((s, a) => s + a.totalPrice, 0);
   const selectedAppts = selectedDate ? (byDate[selectedDate] ?? []) : [];
 
   if (loading) {

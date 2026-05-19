@@ -32,7 +32,7 @@ export function WeekView({ appts, loading, weekDates, onOpen }: WeekViewProps) {
   });
 
   const total = appts.filter(a => a.status !== "cancelado").length;
-  const revenue = appts.filter(a => a.status !== "cancelado").reduce((s, a) => s + a.price, 0);
+  const revenue = appts.filter(a => a.status !== "cancelado").reduce((s, a) => s + a.totalPrice, 0);
 
   return (
     <div>

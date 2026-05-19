@@ -46,10 +46,10 @@ export const defaultInputs: Input[] = [
 ];
 
 export const defaultAppointments: Appointment[] = [
-  { id: 1, name: "Ana Costa", svc: "Alongamento em Gel", time: "09:00", status: "concluído", price: 180, phone: "(11) 98888-0001", location: "salon", payment: "pix" },
-  { id: 2, name: "Mariana Lima", svc: "Banho de Gel", time: "11:00", status: "confirmado", price: 120, phone: "(11) 98888-0002", location: "salon", payment: "credit" },
-  { id: 3, name: "Julia Santos", svc: "Esmaltação em Gel", time: "14:00", status: "confirmado", price: 90, phone: "(11) 98888-0003", location: "home", payment: "pix" },
-  { id: 4, name: "Beatriz Rocha", svc: "Manutenção", time: "16:00", status: "pendente", price: 80, phone: "(11) 98888-0004", location: "salon", payment: "local" },
+  { id: 1, name: "Ana Costa", time: "09:00", status: "concluído", totalPrice: 180, travelFee: 0, phone: "(11) 98888-0001", location: "salon", payment: "pix", items: [{ serviceId: "1", serviceName: "Alongamento em Gel", price: 180, durationMin: 150, position: 1 }] },
+  { id: 2, name: "Mariana Lima", time: "11:00", status: "confirmado", totalPrice: 120, travelFee: 0, phone: "(11) 98888-0002", location: "salon", payment: "credit", items: [{ serviceId: "2", serviceName: "Banho de Gel", price: 120, durationMin: 90, position: 1 }] },
+  { id: 3, name: "Julia Santos", time: "14:00", status: "confirmado", totalPrice: 90, travelFee: 0, phone: "(11) 98888-0003", location: "home", payment: "pix", items: [{ serviceId: "3", serviceName: "Esmaltação em Gel", price: 90, durationMin: 60, position: 1 }] },
+  { id: 4, name: "Beatriz Rocha", time: "16:00", status: "pendente", totalPrice: 80, travelFee: 0, phone: "(11) 98888-0004", location: "salon", payment: "local", items: [{ serviceId: "4", serviceName: "Manutenção", price: 80, durationMin: 75, position: 1 }] },
 ];
 
 export const defaultFixedCosts: FixedCost[] = [

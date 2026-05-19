@@ -46,10 +46,12 @@ export function ApptCard({ appt, onUpdate, onDelete, onOpen }: Props) {
         <div style={{ flex: 1, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{appt.name}</p>
-            <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 2 }}>{appt.svc}</p>
+            <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 2 }}>
+              {appt.items.length > 0 ? appt.items.map(i => i.serviceName).join(" + ") : "—"}
+            </p>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{fmt(appt.price)}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{fmt(appt.totalPrice)}</span>
             <StatusBadge status={appt.status} />
             {!onOpen && (
               <div style={{ transition: "transform 0.2s", transform: expanded ? "rotate(90deg)" : "none" }}>
@@ -70,8 +72,8 @@ export function ApptCard({ appt, onUpdate, onDelete, onOpen }: Props) {
                 {[
                   { l: "Telefone", v: appt.phone },
                   { l: "Local", v: appt.location === "home" ? "Em Casa" : "No Salão" },
-                  { l: "Pagamento", v: { pix: "Pix", credit: "Cartão", local: "Presencial" }[appt.payment] || appt.payment },
-                  { l: "Valor", v: fmt(appt.price) },
+                  { l: "Pagamento", v: ({ pix: "Pix", credit: "Cartão", local: "Presencial", dinheiro: "Dinheiro", outro: "Outro" } as Record<string, string>)[appt.payment] || appt.payment },
+                  { l: "Valor", v: fmt(appt.totalPrice) },
                 ].map((r, i) => (
                   <div key={i} style={{ background: "oklch(98% 0.01 75)", borderRadius: 8, padding: "8px 12px" }}>
                     <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 2 }}>{r.l}</p>
@@ -120,8 +122,8 @@ export function ApptCard({ appt, onUpdate, onDelete, onOpen }: Props) {
                   </div>
                 ))}
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 500, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 4 }}>Valor (R$)</label>
-                  <input type="number" value={draft.price} onChange={e => setDraft(d => ({ ...d, price: Number(e.target.value) }))} style={fieldStyle} />
+                  <label style={{ fontSize: 11, fontWeight: 500, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 4 }}>Total (R$)</label>
+                  <input type="number" value={draft.totalPrice} onChange={e => setDraft(d => ({ ...d, totalPrice: Number(e.target.value) }))} style={fieldStyle} />
                 </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 500, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 4 }}>Local</label>
