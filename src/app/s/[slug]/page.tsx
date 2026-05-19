@@ -18,7 +18,8 @@ interface SalonData {
   max_radius_km: number;
   price_per_km: number;
   min_travel_fee: number;
-  slot_interval_min: number;
+  salon_slot_interval_min: number;
+  home_visit_interval_min: number;
 }
 
 interface ServiceData {
@@ -66,12 +67,12 @@ function generateSlots(opensAt: string, closesAt: string, svcDuration: number): 
   return slots;
 }
 
-// intervalMin é o gap de preparação/deslocamento; estende o "fim efetivo" dos agendamentos existentes
 function isAvailable(
   slot: string,
   svcDuration: number,
   intervalMin: number,
-  booked: { appt_time: string; duration_min: number }[]
+  booked: { appt_time: string; duration_min: number }[],
+  partialBlocks: { startTime: string; endTime: string }[],
 ): boolean {
   const slotStart = toMinutes(slot);
   const slotEnd = slotStart + svcDuration;
@@ -79,6 +80,11 @@ function isAvailable(
     const bStart = toMinutes(b.appt_time);
     const bEnd = bStart + b.duration_min + intervalMin;
     if (slotStart < bEnd && slotEnd > bStart) return false;
+  }
+  for (const p of partialBlocks) {
+    const pStart = toMinutes(p.startTime);
+    const pEnd = toMinutes(p.endTime);
+    if (slotStart < pEnd && slotEnd > pStart) return false;
   }
   return true;
 }
@@ -168,8 +174,11 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
   const [bookedSlots, setBookedSlots] = useState<{ appt_time: string; duration_min: number }[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [salonHours, setSalonHours] = useState<Record<number, { isOpen: boolean; opensAt: string | null; closesAt: string | null }>>({});
-  const [blockedDatesSet, setBlockedDatesSet] = useState<Set<string>>(new Set());
-  const [slotIntervalMin, setSlotIntervalMin] = useState(15);
+  type BlockEntry = { startTime: string | null; endTime: string | null; reason: string | null };
+  const [blocksMap, setBlocksMap] = useState<Record<string, BlockEntry[]>>({});
+  const [salonIntervalMin, setSalonIntervalMin] = useState(30);
+  const [homeIntervalMin, setHomeIntervalMin] = useState(120);
+  const [partialBlocks, setPartialBlocks] = useState<{ startTime: string; endTime: string }[]>([]);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [dayClosedMsg, setDayClosedMsg] = useState<string | null>(null);
 
@@ -223,7 +232,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       const supabase = createClient();
       const { data: salonData, error: salonErr } = await supabase
         .from("salons")
-        .select("id, name, slug, phone, address, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee, slot_interval_min")
+        .select("id, name, slug, phone, address, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee, salon_slot_interval_min, home_visit_interval_min")
         .eq("slug", params.slug)
         .single();
 
@@ -235,7 +244,8 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
 
       const sd = salonData as SalonData;
       setSalon(sd);
-      setSlotIntervalMin(sd.slot_interval_min ?? 15);
+      setSalonIntervalMin(sd.salon_slot_interval_min ?? 30);
+      setHomeIntervalMin(sd.home_visit_interval_min ?? 120);
 
       const todayStr = toISODate(new Date());
       const in14 = new Date();
@@ -254,11 +264,11 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
           .select("day_of_week, is_open, opens_at, closes_at")
           .eq("salon_id", sd.id),
         supabase
-          .from("salon_blocked_dates")
-          .select("date")
+          .from("salon_blocks")
+          .select("block_date, start_time, end_time, reason")
           .eq("salon_id", sd.id)
-          .gte("date", todayStr)
-          .lte("date", in14Str),
+          .gte("block_date", todayStr)
+          .lte("block_date", in14Str),
       ]);
 
       setServices((svcResult.data ?? []) as ServiceData[]);
@@ -272,7 +282,18 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
         };
       });
       setSalonHours(hoursMap);
-      setBlockedDatesSet(new Set((blockedResult.data ?? []).map(r => r.date as string)));
+
+      const bMap: Record<string, { startTime: string | null; endTime: string | null; reason: string | null }[]> = {};
+      for (const row of (blockedResult.data ?? [])) {
+        const ds = row.block_date as string;
+        if (!bMap[ds]) bMap[ds] = [];
+        bMap[ds].push({
+          startTime: row.start_time ? String(row.start_time).slice(0, 5) : null,
+          endTime: row.end_time ? String(row.end_time).slice(0, 5) : null,
+          reason: (row.reason as string | null) ?? null,
+        });
+      }
+      setBlocksMap(bMap);
       setLoading(false);
     }
     load();
@@ -400,19 +421,25 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
         const ds = toISODate(d);
         const dow = d.getDay();
         const h = salonHours[dow];
-        if ((h ? h.isOpen : true) && !blockedDatesSet.has(ds)) {
+        const hasFullDayBlock = (blocksMap[ds] ?? []).some(b => b.startTime === null);
+        if ((h ? h.isOpen : true) && !hasFullDayBlock) {
           return `${DOWS[dow]}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
         }
       }
       return null;
     };
 
-    // Folga específica
-    if (blockedDatesSet.has(dateStr)) {
+    // Bloqueio de dia inteiro
+    const dateBlocks = blocksMap[dateStr] ?? [];
+    const fullDayBlock = dateBlocks.find(b => b.startTime === null);
+    if (fullDayBlock) {
       const next = findNextOpen(dateStr);
       setBookedSlots([]);
       setAvailableSlots([]);
-      setDayClosedMsg(`Esta data não está disponível.${next ? ` Próximo dia disponível: ${next}.` : ""}`);
+      setPartialBlocks([]);
+      setDayClosedMsg(
+        `Esta data não está disponível.${fullDayBlock.reason ? ` Motivo: ${fullDayBlock.reason}.` : ""}${next ? ` Próximo dia disponível: ${next}.` : ""}`
+      );
       setStep("time");
       return;
     }
@@ -429,10 +456,18 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       const next = findNextOpen(dateStr);
       setBookedSlots([]);
       setAvailableSlots([]);
+      setPartialBlocks([]);
       setDayClosedMsg(`${DAY_CLOSED_MSGS[dayOfWeek] ?? "Não atendemos neste dia."}${next ? ` Próximo dia disponível: ${next}.` : ""}`);
       setStep("time");
       return;
     }
+
+    // Bloqueios parciais para o dia selecionado
+    const partial = dateBlocks.filter(
+      (b): b is { startTime: string; endTime: string; reason: string | null } =>
+        b.startTime !== null && b.endTime !== null,
+    );
+    setPartialBlocks(partial.map(b => ({ startTime: b.startTime, endTime: b.endTime })));
 
     // Slots gerados a partir dos horários do salão
     setAvailableSlots(generateSlots(opensAt, closesAt, selectedSvc.duration_min));
@@ -537,6 +572,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setBookingFailed(false);
     setBookedSlots([]);
     setAvailableSlots([]);
+    setPartialBlocks([]);
     setDayClosedMsg(null);
   };
 
@@ -878,7 +914,8 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
                 {availableSlots.map(slot => {
-                  const available = isAvailable(slot, selectedSvc.duration_min, slotIntervalMin, bookedSlots);
+                  const activeIntervalMin = location === "home" ? homeIntervalMin : salonIntervalMin;
+                  const available = isAvailable(slot, selectedSvc.duration_min, activeIntervalMin, bookedSlots, partialBlocks);
                   const isSelected = selectedTime === slot;
                   return (
                     <button key={slot}

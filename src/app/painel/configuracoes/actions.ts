@@ -2,7 +2,7 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { PricingConfig, SalonHour, BlockedDate } from "@/types";
+import type { PricingConfig, SalonHour, SalonBlock } from "@/types";
 import { DEFAULT_PRICING_CONFIG } from "@/types";
 
 function createClient() {
@@ -82,57 +82,66 @@ export async function saveSalonHours(
   return {};
 }
 
-export async function saveSalonInterval(
+export async function saveSlotIntervals(
   salonId: string,
-  intervalMin: number,
+  salonMin: number,
+  homeVisitMin: number,
 ): Promise<{ error?: string }> {
   const supabase = createClient();
   const { error } = await supabase
     .from("salons")
-    .update({ slot_interval_min: intervalMin })
+    .update({ salon_slot_interval_min: salonMin, home_visit_interval_min: homeVisitMin })
     .eq("id", salonId);
   if (error) return { error: error.message };
   return {};
 }
 
-export async function getBlockedDates(salonId: string): Promise<BlockedDate[]> {
+export async function getBlocks(salonId: string): Promise<SalonBlock[]> {
   const supabase = createClient();
   const today = new Date().toISOString().split("T")[0];
   const { data } = await supabase
-    .from("salon_blocked_dates")
-    .select("id, date, reason")
+    .from("salon_blocks")
+    .select("id, block_date, start_time, end_time, reason")
     .eq("salon_id", salonId)
-    .gte("date", today)
-    .order("date");
+    .gte("block_date", today)
+    .order("block_date")
+    .order("start_time", { ascending: true, nullsFirst: true });
   return (data ?? []).map(row => ({
     id: row.id as string,
-    date: row.date as string,
+    blockDate: row.block_date as string,
+    startTime: row.start_time ? String(row.start_time).slice(0, 5) : null,
+    endTime: row.end_time ? String(row.end_time).slice(0, 5) : null,
     reason: (row.reason as string | null) ?? null,
   }));
 }
 
-export async function addBlockedDate(
+export async function addBlock(
   salonId: string,
-  date: string,
+  blockDate: string,
+  startTime: string | null,
+  endTime: string | null,
   reason: string | null,
 ): Promise<{ error?: string }> {
   const supabase = createClient();
   const { error } = await supabase
-    .from("salon_blocked_dates")
-    .insert({ salon_id: salonId, date, reason: reason || null });
-  if (error) {
-    if (error.code === "23505") return { error: "Esta data já está bloqueada." };
-    return { error: error.message };
-  }
+    .from("salon_blocks")
+    .insert({
+      salon_id: salonId,
+      block_date: blockDate,
+      start_time: startTime || null,
+      end_time: endTime || null,
+      reason: reason || null,
+    });
+  if (error) return { error: error.message };
   return {};
 }
 
-export async function removeBlockedDate(blockedDateId: string): Promise<{ error?: string }> {
+export async function removeBlock(blockId: string): Promise<{ error?: string }> {
   const supabase = createClient();
   const { error } = await supabase
-    .from("salon_blocked_dates")
+    .from("salon_blocks")
     .delete()
-    .eq("id", blockedDateId);
+    .eq("id", blockId);
   if (error) return { error: error.message };
   return {};
 }

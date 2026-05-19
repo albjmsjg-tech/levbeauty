@@ -48,7 +48,8 @@ export default function ConfiguracoesPage() {
   const [maxRadius, setMaxRadius] = useState(10);
   const [pricePerKm, setPricePerKm] = useState(2);
   const [minFee, setMinFee] = useState(20);
-  const [slotIntervalMin, setSlotIntervalMin] = useState(15);
+  const [slotIntervalMin, setSlotIntervalMin] = useState(30);
+  const [homeVisitIntervalMin, setHomeVisitIntervalMin] = useState(120);
 
   // Pricing config state
   const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING_CONFIG);
@@ -68,7 +69,7 @@ export default function ConfiguracoesPage() {
 
       const { data: salon } = await supabase
         .from("salons")
-        .select("id, name, phone, address, slug, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee, slot_interval_min")
+        .select("id, name, phone, address, slug, home_enabled, home_salon, requires_deposit, cep_base, max_radius_km, price_per_km, min_travel_fee, salon_slot_interval_min, home_visit_interval_min")
         .eq("owner_id", user.id)
         .single();
 
@@ -85,7 +86,8 @@ export default function ConfiguracoesPage() {
         setMaxRadius((salon.max_radius_km as number) ?? 10);
         setPricePerKm((salon.price_per_km as number) ?? 2);
         setMinFee((salon.min_travel_fee as number) ?? 20);
-        setSlotIntervalMin((salon.slot_interval_min as number) ?? 15);
+        setSlotIntervalMin((salon.salon_slot_interval_min as number) ?? 30);
+        setHomeVisitIntervalMin((salon.home_visit_interval_min as number) ?? 120);
 
         const pc = await getPricingConfig();
         setPricing(pc);
@@ -385,7 +387,7 @@ export default function ConfiguracoesPage() {
 
       {/* ── Horários de atendimento ──────────────────── */}
       {salonId && (
-        <HorariosAtendimento salonId={salonId} initialIntervalMin={slotIntervalMin} />
+        <HorariosAtendimento salonId={salonId} initialSalonIntervalMin={slotIntervalMin} initialHomeIntervalMin={homeVisitIntervalMin} />
       )}
 
       {/* ── Sinal de pagamento ───────────────────────── */}

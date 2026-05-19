@@ -88,8 +88,10 @@ export interface SalonHour {
   closesAt: string | null;
 }
 
-export interface BlockedDate {
+export interface SalonBlock {
   id: string;
-  date: string;
+  blockDate: string;
+  startTime: string | null;
+  endTime: string | null;
   reason: string | null;
 }
