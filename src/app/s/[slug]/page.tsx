@@ -89,15 +89,6 @@ function isAvailable(
   return true;
 }
 
-const DAY_CLOSED_MSGS: Record<number, string> = {
-  0: "Não atendemos aos domingos",
-  1: "Não atendemos às segundas-feiras",
-  2: "Não atendemos às terças-feiras",
-  3: "Não atendemos às quartas-feiras",
-  4: "Não atendemos às quintas-feiras",
-  5: "Não atendemos às sextas-feiras",
-  6: "Não atendemos aos sábados",
-};
 
 function fmt(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -180,7 +171,6 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
   const [homeIntervalMin, setHomeIntervalMin] = useState(120);
   const [partialBlocks, setPartialBlocks] = useState<{ startTime: string; endTime: string }[]>([]);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [dayClosedMsg, setDayClosedMsg] = useState<string | null>(null);
 
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -248,9 +238,9 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       setHomeIntervalMin(sd.home_visit_interval_min ?? 120);
 
       const todayStr = toISODate(new Date());
-      const in14 = new Date();
-      in14.setDate(in14.getDate() + 14);
-      const in14Str = toISODate(in14);
+      const in90 = new Date();
+      in90.setDate(in90.getDate() + 90);
+      const in90Str = toISODate(in90);
 
       const [svcResult, hoursResult, blockedResult] = await Promise.all([
         supabase
@@ -268,7 +258,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
           .select("block_date, start_time, end_time, reason")
           .eq("salon_id", sd.id)
           .gte("block_date", todayStr)
-          .lte("block_date", in14Str),
+          .lte("block_date", in90Str),
       ]);
 
       setServices((svcResult.data ?? []) as ServiceData[]);
@@ -388,7 +378,6 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setTravelFee(0);
     setClientCep("");
     setAvailableSlots([]);
-    setDayClosedMsg(null);
 
     if (salon) {
       const mode = getLocationMode(salon);
@@ -409,67 +398,20 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     if (!salon || !selectedSvc) return;
     setSelectedDate(dateStr);
     setSelectedTime("");
-    setDayClosedMsg(null);
 
-    const findNextOpen = (from: string): string | null => {
-      const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-      const DOWS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-      const allDates = getNext14Days();
-      const idx = allDates.findIndex(d => toISODate(d) === from);
-      for (let i = idx + 1; i < allDates.length; i++) {
-        const d = allDates[i];
-        const ds = toISODate(d);
-        const dow = d.getDay();
-        const h = salonHours[dow];
-        const hasFullDayBlock = (blocksMap[ds] ?? []).some(b => b.startTime === null);
-        if ((h ? h.isOpen : true) && !hasFullDayBlock) {
-          return `${DOWS[dow]}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
-        }
-      }
-      return null;
-    };
-
-    // Bloqueio de dia inteiro
-    const dateBlocks = blocksMap[dateStr] ?? [];
-    const fullDayBlock = dateBlocks.find(b => b.startTime === null);
-    if (fullDayBlock) {
-      const next = findNextOpen(dateStr);
-      setBookedSlots([]);
-      setAvailableSlots([]);
-      setPartialBlocks([]);
-      setDayClosedMsg(
-        `Esta data não está disponível.${fullDayBlock.reason ? ` Motivo: ${fullDayBlock.reason}.` : ""}${next ? ` Próximo dia disponível: ${next}.` : ""}`
-      );
-      setStep("time");
-      return;
-    }
-
-    // Horário de funcionamento do dia
     const [y, m, d] = dateStr.split("-").map(Number);
     const dayOfWeek = new Date(y, m - 1, d).getDay();
     const hourConfig = salonHours[dayOfWeek];
-    const isOpen = hourConfig ? hourConfig.isOpen : true; // fallback: aberto (salão sem config ainda)
     const opensAt = hourConfig?.opensAt ?? "08:00";
     const closesAt = hourConfig?.closesAt ?? "19:00";
 
-    if (!isOpen) {
-      const next = findNextOpen(dateStr);
-      setBookedSlots([]);
-      setAvailableSlots([]);
-      setPartialBlocks([]);
-      setDayClosedMsg(`${DAY_CLOSED_MSGS[dayOfWeek] ?? "Não atendemos neste dia."}${next ? ` Próximo dia disponível: ${next}.` : ""}`);
-      setStep("time");
-      return;
-    }
-
-    // Bloqueios parciais para o dia selecionado
+    const dateBlocks = blocksMap[dateStr] ?? [];
     const partial = dateBlocks.filter(
       (b): b is { startTime: string; endTime: string; reason: string | null } =>
         b.startTime !== null && b.endTime !== null,
     );
     setPartialBlocks(partial.map(b => ({ startTime: b.startTime, endTime: b.endTime })));
 
-    // Slots gerados a partir dos horários do salão
     setAvailableSlots(generateSlots(opensAt, closesAt, selectedSvc.duration_min));
 
     setLoadingSlots(true);
@@ -573,8 +515,32 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setBookedSlots([]);
     setAvailableSlots([]);
     setPartialBlocks([]);
-    setDayClosedMsg(null);
   };
+
+  // ── availability ────────────────────────────────────
+  const unavailableDates = new Set(
+    dates
+      .filter(d => {
+        const ds = toISODate(d);
+        const h = salonHours[d.getDay()];
+        const hasFullDayBlock = (blocksMap[ds] ?? []).some(b => b.startTime === null);
+        return !(h ? h.isOpen : true) || hasFullDayBlock;
+      })
+      .map(d => toISODate(d))
+  );
+
+  const allNext90Unavailable = (() => {
+    for (let i = 0; i < 90; i++) {
+      const check = new Date();
+      check.setDate(check.getDate() + i);
+      const ds = toISODate(check);
+      const h = salonHours[check.getDay()];
+      const isOpen = h ? h.isOpen : true;
+      const hasFullDayBlock = (blocksMap[ds] ?? []).some(b => b.startTime === null);
+      if (isOpen && !hasFullDayBlock) return false;
+    }
+    return true;
+  })();
 
   // ── styles ──────────────────────────────────────────
   const fieldStyle: React.CSSProperties = {
@@ -861,22 +827,43 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             </div>
 
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, color: "var(--text)", margin: "0 0 18px" }}>Escolha a data</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-              {dates.map(d => {
-                const dateStr = toISODate(d);
-                const isToday = toISODate(new Date()) === dateStr;
-                const isSelected = selectedDate === dateStr;
-                return (
-                  <button key={dateStr} onClick={() => handlePickDate(dateStr)}
-                    style={{ padding: "12px 6px", borderRadius: 10, border: `1.5px solid ${isSelected ? "var(--gold)" : "var(--border)"}`, background: isSelected ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, transition: "all 0.15s" }}>
-                    <span style={{ fontFamily: "var(--font-poppins)", fontSize: 10, color: isSelected ? "var(--gold)" : "var(--text-light)", fontWeight: 500 }}>{DAYS_PT[d.getDay()]}</span>
-                    <span style={{ fontFamily: "var(--font-poppins)", fontSize: 20, fontWeight: 700, color: isSelected ? "var(--gold)" : "var(--text)", lineHeight: 1.2 }}>{d.getDate()}</span>
-                    <span style={{ fontFamily: "var(--font-poppins)", fontSize: 10, color: isSelected ? "var(--gold)" : "var(--text-light)" }}>{MONTHS_PT[d.getMonth()]}</span>
-                    {isToday && <span style={{ fontFamily: "var(--font-poppins)", fontSize: 9, color: "var(--gold)", fontWeight: 700, letterSpacing: "0.03em" }}>HOJE</span>}
-                  </button>
-                );
-              })}
-            </div>
+            {allNext90Unavailable ? (
+              <div style={{ textAlign: "center", padding: "40px 24px", color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 14, lineHeight: 1.6 }}>
+                Sem horários disponíveis no momento. Volte em breve!
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                {dates.map(d => {
+                  const dateStr = toISODate(d);
+                  const isToday = toISODate(new Date()) === dateStr;
+                  const isSelected = selectedDate === dateStr;
+                  const isUnavailable = unavailableDates.has(dateStr);
+                  return (
+                    <button key={dateStr}
+                      onClick={() => !isUnavailable && handlePickDate(dateStr)}
+                      disabled={isUnavailable}
+                      style={{
+                        padding: "12px 6px",
+                        borderRadius: 10,
+                        border: `1.5px solid ${isSelected ? "var(--gold)" : isUnavailable ? "oklch(93% 0.003 0)" : "var(--border)"}`,
+                        background: isSelected ? "oklch(97% 0.04 75)" : "white",
+                        cursor: isUnavailable ? "not-allowed" : "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                        transition: "all 0.15s",
+                        opacity: isUnavailable ? 0.4 : 1,
+                      }}>
+                      <span style={{ fontFamily: "var(--font-poppins)", fontSize: 10, color: isSelected ? "var(--gold)" : "var(--text-light)", fontWeight: 500 }}>{DAYS_PT[d.getDay()]}</span>
+                      <span style={{ fontFamily: "var(--font-poppins)", fontSize: 20, fontWeight: 700, color: isSelected ? "var(--gold)" : "var(--text)", lineHeight: 1.2 }}>{d.getDate()}</span>
+                      <span style={{ fontFamily: "var(--font-poppins)", fontSize: 10, color: isSelected ? "var(--gold)" : "var(--text-light)" }}>{MONTHS_PT[d.getMonth()]}</span>
+                      {isToday && !isUnavailable && <span style={{ fontFamily: "var(--font-poppins)", fontSize: 9, color: "var(--gold)", fontWeight: 700, letterSpacing: "0.03em" }}>HOJE</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
 
@@ -897,13 +884,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
 
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, color: "var(--text)", margin: "0 0 18px" }}>Escolha o horário</h2>
 
-            {dayClosedMsg ? (
-              <div style={{ background: "oklch(96% 0.015 30)", borderRadius: 12, padding: "20px 18px", border: "1px solid oklch(88% 0.03 30)", textAlign: "center" }}>
-                <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text-mid)", margin: 0, lineHeight: 1.7 }}>
-                  📅 {dayClosedMsg}
-                </p>
-              </div>
-            ) : loadingSlots ? (
+            {loadingSlots ? (
               <p style={{ fontFamily: "var(--font-poppins)", color: "var(--text-light)", fontSize: 14 }}>Verificando disponibilidade...</p>
             ) : availableSlots.length === 0 ? (
               <div style={{ background: "oklch(96% 0.015 30)", borderRadius: 12, padding: "20px 18px", border: "1px solid oklch(88% 0.03 30)", textAlign: "center" }}>
