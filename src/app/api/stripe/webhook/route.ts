@@ -30,63 +30,120 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const m = session.metadata ?? {};
+  if (event.type !== "checkout.session.completed") {
+    return NextResponse.json({ received: true });
+  }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const session = event.data.object as Stripe.Checkout.Session;
+  const m = session.metadata ?? {};
 
-    if (!supabaseUrl || !serviceRoleKey) {
-      console.error("Supabase env vars missing");
-      return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
-    }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("Supabase env vars missing");
+    return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
+  }
 
-    const { error } = await supabase.from("appointments").insert({
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  // ── Idempotency: skip if session already processed ──────────────────────
+  const { data: existing } = await supabase
+    .from("appointments")
+    .select("id")
+    .eq("stripe_session_id", session.id)
+    .maybeSingle();
+
+  if (existing) {
+    return NextResponse.json({ received: true });
+  }
+
+  // ── Insert appointment ───────────────────────────────────────────────────
+  const travelFee = parseFloat(m.travel_fee || "0") || 0;
+
+  const { data: appt, error: apptError } = await supabase
+    .from("appointments")
+    .insert({
       salon_id: m.salon_id,
       client_id: null,
       client_name: m.client_name,
       client_phone: m.client_phone || null,
-      service_name: m.service_name,
       appt_date: m.appt_date,
       appt_time: m.appt_time,
-      duration_min: parseInt(m.duration_min, 10),
-      price: parseFloat(m.price),
+      total_price: travelFee, // trigger recalculates after items insert
       status: "confirmado",
       payment_method: "credito",
       location: m.location === "home" ? "domicilio" : "salao",
-      deposit_paid: true,
-      deposit_amount: parseFloat(m.deposit_amount),
       stripe_session_id: session.id,
       client_cep: m.client_cep || null,
-      travel_fee: parseFloat(m.travel_fee) || 0,
-    });
+      travel_fee: travelFee,
+    })
+    .select("id")
+    .single();
 
-    if (error) {
-      console.error("Supabase insert error:", error);
-    } else {
-      // WhatsApp notifications via centralized LevBeauty account
-      const zapiId = process.env.ZAPI_INSTANCE_ID;
-      const zapiToken = process.env.ZAPI_TOKEN;
-      if (zapiId && zapiToken) {
-        const { data: salon } = await supabase
-          .from("salons")
-          .select("name, phone, address")
-          .eq("id", m.salon_id)
-          .single();
+  if (apptError || !appt) {
+    console.error("Appointment insert error:", apptError);
+    return NextResponse.json({ error: "DB error" }, { status: 500 });
+  }
 
-        const salonName = (salon?.name as string | null) ?? "";
-        const salonPhone = (salon?.phone as string | null) ?? "";
-        const loc = (salon?.address as string | null) || salonName;
-        const clientMsg = `Olá ${m.client_name}! 🎉 Seu agendamento foi confirmado pelo LevBeauty!\n💅 ${m.service_name} com ${salonName}\n📅 ${m.appt_date} às ${m.appt_time}\n📍 ${loc}\nQualquer dúvida entre em contato: ${salonPhone || "—"}`;
-        const proMsg = `🔔 Novo agendamento via LevBeauty!\nCliente: ${m.client_name} — ${m.client_phone || "—"}\nServiço: ${m.service_name}\n📅 ${m.appt_date} às ${m.appt_time}`;
+  // ── Insert appointment_item ──────────────────────────────────────────────
+  if (m.service_id) {
+    const { error: itemError } = await supabase
+      .from("appointment_items")
+      .insert({
+        appointment_id: appt.id,
+        service_id: m.service_id,
+        service_name: m.service_name,
+        price: parseFloat(m.price),
+        duration_min: parseInt(m.duration_min, 10) || 60,
+        position: 1,
+      });
 
-        if (m.client_phone) await sendWhatsApp(m.client_phone, clientMsg, zapiId, zapiToken);
-        if (salonPhone) await sendWhatsApp(salonPhone, proMsg, zapiId, zapiToken);
-      }
+    if (itemError) {
+      console.error("Appointment item insert error:", itemError);
+      await supabase.from("appointments").delete().eq("id", appt.id);
+      return NextResponse.json({ error: "DB error" }, { status: 500 });
     }
+  } else {
+    // Fallback for legacy sessions without service_id: set total_price directly
+    await supabase
+      .from("appointments")
+      .update({ total_price: parseFloat(m.price) + travelFee })
+      .eq("id", appt.id);
+  }
+
+  // ── Insert transaction (sinal recebido) ──────────────────────────────────
+  const sinalAmount = parseFloat(m.deposit_amount || String(parseFloat(m.price || "0") * 0.2));
+  const paymentIntentId =
+    typeof session.payment_intent === "string" ? session.payment_intent : null;
+
+  await supabase.from("transactions").insert({
+    salon_id: m.salon_id,
+    appointment_id: appt.id,
+    type: "sinal_received",
+    amount: sinalAmount,
+    stripe_payment_intent_id: paymentIntentId,
+    status: "pago",
+  });
+
+  // ── WhatsApp notifications ───────────────────────────────────────────────
+  const zapiId = process.env.ZAPI_INSTANCE_ID;
+  const zapiToken = process.env.ZAPI_TOKEN;
+  if (zapiId && zapiToken) {
+    const { data: salon } = await supabase
+      .from("salons")
+      .select("name, phone, address")
+      .eq("id", m.salon_id)
+      .single();
+
+    const salonName = (salon?.name as string | null) ?? "";
+    const salonPhone = (salon?.phone as string | null) ?? "";
+    const loc = (salon?.address as string | null) || salonName;
+    const clientMsg = `Olá ${m.client_name}! 🎉 Seu agendamento foi confirmado pelo LevBeauty!\n💅 ${m.service_name} com ${salonName}\n📅 ${m.appt_date} às ${m.appt_time}\n📍 ${loc}\nQualquer dúvida entre em contato: ${salonPhone || "—"}`;
+    const proMsg = `🔔 Novo agendamento via LevBeauty!\nCliente: ${m.client_name} — ${m.client_phone || "—"}\nServiço: ${m.service_name}\n📅 ${m.appt_date} às ${m.appt_time}`;
+
+    if (m.client_phone) await sendWhatsApp(m.client_phone, clientMsg, zapiId, zapiToken);
+    if (salonPhone) await sendWhatsApp(salonPhone, proMsg, zapiId, zapiToken);
   }
 
   return NextResponse.json({ received: true });

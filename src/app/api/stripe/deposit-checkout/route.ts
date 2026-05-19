@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
 
   let body: {
     salon_id: string;
+    service_id: string;
     service_name: string;
     duration_min: number;
     price: number;
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { salon_id, service_name, duration_min, price, client_name, client_phone, appt_date, appt_time, location, slug, client_cep, travel_fee } = body;
+  const { salon_id, service_id, service_name, duration_min, price, client_name, client_phone, appt_date, appt_time, location, slug, client_cep, travel_fee } = body;
 
   const origin = req.headers.get("origin") ?? new URL(req.url).origin;
   const depositAmount = Math.round(price * 0.2 * 100); // cents
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      payment_method_types: ["card", "pix"],
       line_items: [
         {
           price_data: {
@@ -54,6 +56,7 @@ export async function POST(req: NextRequest) {
       cancel_url: `${origin}/s/${slug}`,
       metadata: {
         salon_id,
+        service_id,
         service_name,
         duration_min: String(duration_min),
         price: String(price),

@@ -445,6 +445,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             salon_id: salon.id,
+            service_id: selectedSvc.id,
             service_name: selectedSvc.name,
             duration_min: selectedSvc.duration_min,
             price: selectedSvc.price,

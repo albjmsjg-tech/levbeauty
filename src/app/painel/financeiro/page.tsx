@@ -66,11 +66,11 @@ export default function FinanceiroPage() {
 
       const [{ data: costRows }, { data: apptRows }] = await Promise.all([
         supabase.from("fixed_costs").select("*").eq("salon_id", id).order("created_at"),
-        supabase.from("appointments").select("price").eq("salon_id", id).gte("appt_date", firstDay).lte("appt_date", lastDay).neq("status", "cancelado"),
+        supabase.from("appointments").select("total_price").eq("salon_id", id).gte("appt_date", firstDay).lte("appt_date", lastDay).neq("status", "cancelado"),
       ]);
 
       setCosts((costRows ?? []).map(r => mapDbCost(r as Record<string, unknown>)));
-      setMonthRevenue((apptRows ?? []).reduce((s, r) => s + Number(r.price), 0));
+      setMonthRevenue((apptRows ?? []).reduce((s, r) => s + Number(r.total_price), 0));
       setLoading(false);
     });
   }, []);
@@ -130,7 +130,7 @@ export default function FinanceiroPage() {
 
     const { data: appts } = await supabase
       .from("appointments")
-      .select("appt_date, client_name, service_name, payment_method, price")
+      .select("appt_date, client_name, payment_method, total_price")
       .eq("salon_id", salonId)
       .gte("appt_date", firstDay)
       .lte("appt_date", lastDay)
@@ -138,16 +138,16 @@ export default function FinanceiroPage() {
       .order("appt_date");
 
     const rows = appts ?? [];
-    const totalRec = rows.reduce((s, r) => s + Number(r.price), 0);
+    const totalRec = rows.reduce((s, r) => s + Number(r.total_price), 0);
 
     const lines = [
       `LEVBEAUTY — RELATORIO ${label.toUpperCase()}`,
       `Periodo: ${dateLabel}`,
       "",
-      "Data,Cliente,Servico,Pagamento,Valor (R$)",
-      ...rows.map(r => `${r.appt_date},${r.client_name},${r.service_name},${r.payment_method ?? ""},${Number(r.price).toFixed(2)}`),
+      "Data,Cliente,Pagamento,Valor (R$)",
+      ...rows.map(r => `${r.appt_date},${r.client_name},${r.payment_method ?? ""},${Number(r.total_price).toFixed(2)}`),
       "",
-      `Total Atendimentos,${rows.length}`,
+      `Total Agendamentos,${rows.length}`,
       `Receita Total,${totalRec.toFixed(2)}`,
       "",
       "CUSTOS FIXOS DO MES",
