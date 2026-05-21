@@ -430,49 +430,8 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     setSubmitting(true);
     setSubmitError("");
 
-    // Feature 4: Stripe deposit
-    if (salon.requires_deposit) {
-      sessionStorage.setItem("lbpb", JSON.stringify({
-        svc: selectedSvc,
-        date: selectedDate,
-        time: selectedTime,
-        clientName,
-        clientPhone,
-      }));
-      try {
-        const res = await fetch("/api/stripe/deposit-checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            salon_id: salon.id,
-            service_id: selectedSvc.id,
-            service_name: selectedSvc.name,
-            duration_min: selectedSvc.duration_min,
-            price: selectedSvc.price,
-            client_name: clientName.trim(),
-            client_phone: clientPhone.trim(),
-            appt_date: selectedDate,
-            appt_time: selectedTime,
-            location,
-            slug: salon.slug,
-            client_cep: clientCep || undefined,
-            travel_fee: travelFee || undefined,
-          }),
-        });
-        const data = await res.json() as { url?: string; error?: string };
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        }
-        setSubmitError(data.error ?? "Erro ao iniciar pagamento.");
-      } catch {
-        setSubmitError("Erro ao conectar com servidor de pagamento.");
-      }
-      setSubmitting(false);
-      return;
-    }
-
-    // Normal booking (no deposit) — handled server-side via bookAppointment()
+    // FUTURE: reativar Stripe Checkout para plano Elite
+    // Sinal cobrado manualmente via Pix/WhatsApp — bookAppointment sempre usado
     const result = await bookAppointment({
       salonId: salon.id,
       serviceId: selectedSvc.id,
@@ -1029,9 +988,13 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg, oklch(88% 0.055 10), var(--gold))", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 18px oklch(72% 0.115 75 / 0.35)" }}>
               <span style={{ color: "white", fontSize: 32 }}>✓</span>
             </div>
-            <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 26, color: "var(--text)", margin: "0 0 8px" }}>Agendado!</h2>
+            <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 26, color: "var(--text)", margin: "0 0 8px" }}>
+              {salon?.requires_deposit ? "Reserva recebida!" : "Agendado!"}
+            </h2>
             <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text-light)", margin: "0 0 24px" }}>
-              Seu agendamento foi confirmado.
+              {salon?.requires_deposit
+                ? "A profissional vai te enviar o link de pagamento ou chave Pix em breve pelo WhatsApp."
+                : "Agendamento confirmado! Te esperamos."}
             </p>
 
             {/* Sinal recebido badge */}

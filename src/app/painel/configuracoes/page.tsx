@@ -410,7 +410,7 @@ export default function ConfiguracoesPage() {
           <div style={{ marginTop: 14, background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "12px 14px", border: "1px solid oklch(90% 0.04 75)", display: "flex", gap: 10, alignItems: "flex-start" }}>
             <span style={{ fontSize: 16, flexShrink: 0 }}>💳</span>
             <p style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", lineHeight: 1.6, margin: 0 }}>
-              O pagamento do sinal é processado via <strong>Stripe</strong>. Certifique-se de que a variável <code style={{ background: "oklch(93% 0.02 75)", padding: "1px 5px", borderRadius: 4, fontFamily: "monospace" }}>STRIPE_SECRET_KEY</code> está configurada no seu projeto Vercel.
+              O sinal é cobrado pela profissional via <strong>Pix</strong> ou link de pagamento. O sistema avisa a cliente que vai receber a cobrança em breve.
             </p>
           </div>
         )}
