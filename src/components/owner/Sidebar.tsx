@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, Calendar, DollarSign, Package, BarChart3, Settings, LogOut } from "lucide-react";
+import { Home, Calendar, DollarSign, Package, BarChart3, Settings, LogOut, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   { href: "/painel/dashboard", icon: Home, label: "Dashboard" },
   { href: "/painel/agenda", icon: Calendar, label: "Agenda" },
+  { href: "/painel/clientes", icon: Users, label: "Clientes" },
   { href: "/painel/precificacao", icon: DollarSign, label: "Precificação" },
   { href: "/painel/insumos", icon: Package, label: "Insumos" },
   { href: "/painel/financeiro", icon: BarChart3, label: "Financeiro" },
@@ -58,7 +59,7 @@ export function Sidebar() {
       {/* Nav */}
       <nav style={{ flex: 1, padding: "8px 12px", overflowY: "auto" }}>
         {navItems.map(n => {
-          const active = pathname === n.href;
+          const active = pathname === n.href || pathname.startsWith(n.href + "/");
           const Icon = n.icon;
           return (
             <Link key={n.href} href={n.href}

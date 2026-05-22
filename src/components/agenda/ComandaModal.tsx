@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, ClipboardList } from "lucide-react";
+import { FichaAnamnese } from "@/components/clientes/FichaAnamnese";
 import type { Appointment } from "@/types";
 import {
   createComanda,
@@ -81,6 +82,12 @@ export function ComandaModal({ salonId, salonSlug, defaultDate, services, editAp
   const [status, setStatus] = useState<string>(editAppt?.status ?? "pendente");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [showAnamnese, setShowAnamnese] = useState(false);
+  const [anamneseData, setAnamneseData] = useState<{
+    id: string; allergies: string | null; has_diabetes: boolean; is_pregnant: boolean;
+    uses_continuous_medication: boolean; other_conditions: string | null; preferences: string | null;
+    technical_history: string | null; general_notes: string | null; lgpd_consent_at: string | null;
+  } | null>(null);
 
   const field: React.CSSProperties = {
     width: "100%", padding: "8px 10px", borderRadius: 8,
@@ -105,13 +112,27 @@ export function ComandaModal({ salonId, salonSlug, defaultDate, services, editAp
     setLookingUp(true);
     const supabase = createClient();
     const { data } = await supabase
-      .from("clients").select("id, name, is_vip, is_blocked")
+      .from("clients").select("id, name, is_vip, is_blocked, allergies, has_diabetes, is_pregnant, uses_continuous_medication, other_conditions, preferences, technical_history, general_notes, lgpd_consent_at")
       .eq("salon_id", salonId).eq("phone", digits).maybeSingle();
     if (data) {
-      setClient({ id: data.id as string, name: data.name as string, isVip: data.is_vip as boolean, isBlocked: data.is_blocked as boolean });
-      if (!name) setName(data.name as string);
+      const cd = data as Record<string, unknown>;
+      setClient({ id: cd.id as string, name: cd.name as string, isVip: cd.is_vip as boolean, isBlocked: cd.is_blocked as boolean });
+      if (!name) setName(cd.name as string);
+      setAnamneseData({
+        id: cd.id as string,
+        allergies: (cd.allergies as string | null) ?? null,
+        has_diabetes: (cd.has_diabetes as boolean) ?? false,
+        is_pregnant: (cd.is_pregnant as boolean) ?? false,
+        uses_continuous_medication: (cd.uses_continuous_medication as boolean) ?? false,
+        other_conditions: (cd.other_conditions as string | null) ?? null,
+        preferences: (cd.preferences as string | null) ?? null,
+        technical_history: (cd.technical_history as string | null) ?? null,
+        general_notes: (cd.general_notes as string | null) ?? null,
+        lgpd_consent_at: (cd.lgpd_consent_at as string | null) ?? null,
+      });
     } else {
       setClient(null);
+      setAnamneseData(null);
     }
     setLookingUp(false);
   };
@@ -267,18 +288,29 @@ export function ComandaModal({ salonId, salonSlug, defaultDate, services, editAp
               <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontStyle: "italic" }}>Buscando cliente...</p>
             )}
             {client && (
-              <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 12px", borderRadius: 8, background: client.isBlocked ? "oklch(97% 0.03 15)" : "oklch(97% 0.03 75)", border: `1px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "oklch(90% 0.04 75)"}` }}>
-                <span style={{ fontSize: 12, color: client.isBlocked ? "oklch(48% 0.14 15)" : "oklch(38% 0.1 145)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>
-                  {client.isBlocked ? "⛔ Cliente bloqueada" : "✓ Cliente cadastrada"}
-                </span>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                  <button onClick={handleVip} style={{ padding: "4px 10px", borderRadius: 8, border: `1.5px solid ${client.isVip ? "var(--gold)" : "var(--border)"}`, background: client.isVip ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", fontSize: 11, fontWeight: 600, color: client.isVip ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
-                    ⭐ VIP
-                  </button>
-                  <button onClick={handleBlock} style={{ padding: "4px 10px", borderRadius: 8, border: `1.5px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "var(--border)"}`, background: client.isBlocked ? "oklch(97% 0.03 15)" : "white", cursor: "pointer", fontSize: 11, fontWeight: 600, color: client.isBlocked ? "oklch(48% 0.14 15)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
-                    🚫 Bloquear
-                  </button>
+              <div style={{ borderRadius: 8, background: client.isBlocked ? "oklch(97% 0.03 15)" : "oklch(97% 0.03 75)", border: `1px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "oklch(90% 0.04 75)"}` }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 12px" }}>
+                  <span style={{ fontSize: 12, color: client.isBlocked ? "oklch(48% 0.14 15)" : "oklch(38% 0.1 145)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>
+                    {client.isBlocked ? "⛔ Cliente bloqueada" : "✓ Cliente cadastrada"}
+                  </span>
+                  <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                    <button onClick={handleVip} style={{ padding: "4px 10px", borderRadius: 8, border: `1.5px solid ${client.isVip ? "var(--gold)" : "var(--border)"}`, background: client.isVip ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", fontSize: 11, fontWeight: 600, color: client.isVip ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
+                      ⭐ VIP
+                    </button>
+                    <button onClick={handleBlock} style={{ padding: "4px 10px", borderRadius: 8, border: `1.5px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "var(--border)"}`, background: client.isBlocked ? "oklch(97% 0.03 15)" : "white", cursor: "pointer", fontSize: 11, fontWeight: 600, color: client.isBlocked ? "oklch(48% 0.14 15)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
+                      🚫 Bloquear
+                    </button>
+                  </div>
                 </div>
+                {anamneseData && (
+                  <div style={{ borderTop: `1px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "oklch(90% 0.04 75)"}`, padding: "6px 12px" }}>
+                    <button
+                      onClick={() => setShowAnamnese(true)}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 0", border: "none", background: "transparent", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>
+                      <ClipboardList size={13} /> Ver / editar anamnese
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -394,6 +426,24 @@ export function ComandaModal({ salonId, salonSlug, defaultDate, services, editAp
           </div>
         </div>
       </div>
+      {/* Modal anamnese inline */}
+      {showAnamnese && anamneseData && (
+        <>
+          <div onClick={() => setShowAnamnese(false)} style={{ position: "fixed", inset: 0, background: "oklch(20% 0.03 340 / 0.6)", zIndex: 200, backdropFilter: "blur(2px)" }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 201, width: "min(520px, calc(100vw - 48px))", maxHeight: "calc(100vh - 64px)", overflowY: "auto", background: "white", borderRadius: 20, boxShadow: "0 20px 60px oklch(20% 0.04 340 / 0.3)", padding: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 20 }}>📋</span>
+                <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>Anamnese</h2>
+              </div>
+              <button onClick={() => setShowAnamnese(false)} style={{ width: 32, height: 32, borderRadius: "50%", border: "1.5px solid var(--border)", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <X size={14} color="var(--text-mid)" />
+              </button>
+            </div>
+            <FichaAnamnese client={anamneseData} onClose={() => setShowAnamnese(false)} />
+          </div>
+        </>
+      )}
     </>
   );
 }

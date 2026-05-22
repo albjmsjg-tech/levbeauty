@@ -58,8 +58,10 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div style={{ marginTop: 16, textAlign: "center" }}>
+      <div style={{ marginTop: 16, textAlign: "center", display: "flex", gap: 16, justifyContent: "center", alignItems: "center" }}>
         <Link href="/" style={{ fontSize: 13, color: "var(--text-light)", textDecoration: "none", fontFamily: "var(--font-poppins)" }}>← Voltar ao início</Link>
+        <span style={{ fontSize: 13, color: "var(--border)", fontFamily: "var(--font-poppins)" }}>·</span>
+        <Link href="/privacidade" style={{ fontSize: 13, color: "var(--text-light)", textDecoration: "none", fontFamily: "var(--font-poppins)" }}>Privacidade</Link>
       </div>
     </div>
   );

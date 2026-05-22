@@ -48,11 +48,13 @@ export default function LandingPage() {
         </div>
       </main>
 
-      <div style={{ padding: "20px 40px", borderTop: "1px solid var(--border)", background: "white", display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+      <div style={{ padding: "20px 40px", borderTop: "1px solid var(--border)", background: "white", display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
         <span style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>Acesso rápido:</span>
         <Link href="/app" style={{ fontSize: 12, color: "var(--gold)", fontFamily: "var(--font-poppins)", textDecoration: "none", fontWeight: 600 }}>App da Cliente →</Link>
         <Link href="/painel/dashboard" style={{ fontSize: 12, color: "var(--mauve)", fontFamily: "var(--font-poppins)", textDecoration: "none", fontWeight: 600 }}>Painel da Gestora →</Link>
         <Link href="/onboarding" style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", textDecoration: "none" }}>Onboarding →</Link>
+        <span style={{ fontSize: 12, color: "var(--border)", fontFamily: "var(--font-poppins)" }}>·</span>
+        <Link href="/privacidade" style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", textDecoration: "none" }}>Política de Privacidade</Link>
       </div>
     </div>
   );
