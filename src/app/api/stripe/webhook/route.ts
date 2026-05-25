@@ -30,13 +30,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type !== "checkout.session.completed") {
-    return NextResponse.json({ received: true });
-  }
-
-  const session = event.data.object as Stripe.Checkout.Session;
-  const m = session.metadata ?? {};
-
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -47,7 +40,79 @@ export async function POST(req: NextRequest) {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  // ── Idempotency: skip if session already processed ──────────────────────
+  // ── Subscription lifecycle events ────────────────────────────────────────
+  if (
+    event.type === "customer.subscription.updated" ||
+    event.type === "customer.subscription.deleted"
+  ) {
+    const sub = event.data.object as Stripe.Subscription;
+    const stripeCustomerId = typeof sub.customer === "string" ? sub.customer : null;
+
+    if (stripeCustomerId) {
+      const validStatuses = ["active", "canceled", "past_due", "trialing"];
+      const newStatus = validStatuses.includes(sub.status) ? sub.status : "canceled";
+      const rawTs = (sub as unknown as Record<string, unknown>)["current_period_end"];
+      const periodEnd = typeof rawTs === "number"
+        ? new Date(rawTs * 1000).toISOString()
+        : null;
+
+      await supabase
+        .from("subscriptions")
+        .update({
+          status: newStatus,
+          stripe_sub_id: sub.id,
+          ...(periodEnd ? { current_period_end: periodEnd } : {}),
+        })
+        .eq("stripe_customer_id", stripeCustomerId);
+    }
+
+    return NextResponse.json({ received: true });
+  }
+
+  // ── Only process checkout.session.completed from here on ─────────────────
+  if (event.type !== "checkout.session.completed") {
+    return NextResponse.json({ received: true });
+  }
+
+  const session = event.data.object as Stripe.Checkout.Session;
+
+  // ── Subscription checkout ─────────────────────────────────────────────────
+  if (session.mode === "subscription") {
+    const ownerId = session.metadata?.owner_id;
+    const stripeSubId = typeof session.subscription === "string" ? session.subscription : null;
+    const stripeCustomerId = typeof session.customer === "string" ? session.customer : null;
+
+    if (ownerId && stripeSubId && stripeCustomerId) {
+      let periodEnd: string | null = null;
+      try {
+        const stripeSub = await stripe.subscriptions.retrieve(stripeSubId);
+        const rawTs = (stripeSub as unknown as Record<string, unknown>)["current_period_end"];
+        if (typeof rawTs === "number") {
+          periodEnd = new Date(rawTs * 1000).toISOString();
+        }
+      } catch (err) {
+        console.error("Failed to retrieve subscription:", err);
+      }
+
+      await supabase.from("subscriptions").upsert(
+        {
+          owner_id: ownerId,
+          status: "active",
+          stripe_customer_id: stripeCustomerId,
+          stripe_sub_id: stripeSubId,
+          ...(periodEnd ? { current_period_end: periodEnd } : {}),
+        },
+        { onConflict: "owner_id" }
+      );
+    }
+
+    return NextResponse.json({ received: true });
+  }
+
+  // ── Appointment deposit checkout ──────────────────────────────────────────
+  const m = session.metadata ?? {};
+
+  // ── Idempotency: skip if session already processed ────────────────────────
   const { data: existing } = await supabase
     .from("appointments")
     .select("id")
@@ -58,7 +123,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  // ── Insert appointment ───────────────────────────────────────────────────
+  // ── Insert appointment ────────────────────────────────────────────────────
   const travelFee = parseFloat(m.travel_fee || "0") || 0;
 
   const { data: appt, error: apptError } = await supabase
@@ -70,7 +135,7 @@ export async function POST(req: NextRequest) {
       client_phone: m.client_phone || null,
       appt_date: m.appt_date,
       appt_time: m.appt_time,
-      total_price: travelFee, // trigger recalculates after items insert
+      total_price: travelFee,
       status: "confirmado",
       payment_method: "credito",
       location: m.location === "home" ? "domicilio" : "salao",
@@ -86,7 +151,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "DB error" }, { status: 500 });
   }
 
-  // ── Insert appointment_item ──────────────────────────────────────────────
+  // ── Insert appointment_item ───────────────────────────────────────────────
   if (m.service_id) {
     const { error: itemError } = await supabase
       .from("appointment_items")
@@ -105,14 +170,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "DB error" }, { status: 500 });
     }
   } else {
-    // Fallback for legacy sessions without service_id: set total_price directly
     await supabase
       .from("appointments")
       .update({ total_price: parseFloat(m.price) + travelFee })
       .eq("id", appt.id);
   }
 
-  // ── Insert transaction (sinal recebido) ──────────────────────────────────
+  // ── Insert transaction (sinal recebido) ───────────────────────────────────
   const sinalAmount = parseFloat(m.deposit_amount || String(parseFloat(m.price || "0") * 0.2));
   const paymentIntentId =
     typeof session.payment_intent === "string" ? session.payment_intent : null;
@@ -126,7 +190,7 @@ export async function POST(req: NextRequest) {
     status: "pago",
   });
 
-  // ── WhatsApp notifications ───────────────────────────────────────────────
+  // ── WhatsApp notifications ────────────────────────────────────────────────
   const zapiId = process.env.ZAPI_INSTANCE_ID;
   const zapiToken = process.env.ZAPI_TOKEN;
   if (zapiId && zapiToken) {
