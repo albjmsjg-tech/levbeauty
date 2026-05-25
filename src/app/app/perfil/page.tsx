@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Calendar, Bell, Settings, LogOut, ChevronRight } from "lucide-react";
@@ -40,7 +40,7 @@ export default function ClientPerfilPage() {
 
   return (
     <div>
-      <div style={{ background: "linear-gradient(160deg, oklch(88% 0.055 10), oklch(82% 0.065 350))", padding: "28px 20px 36px", textAlign: "center" }}>
+      <div style={{ background: "#B89A8F", padding: "28px 20px 36px", textAlign: "center" }}>
         <div style={{ width: 70, height: 70, borderRadius: "50%", background: "linear-gradient(135deg, var(--gold), oklch(65% 0.1 10))", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", fontSize: 28 }}>👩</div>
         <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, fontWeight: 600, color: "var(--mauve-dark)" }}>
           {name || "..."}

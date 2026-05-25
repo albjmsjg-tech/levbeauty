@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { Appointment } from "@/types";
 import { statusColors } from "@/lib/data";
@@ -25,7 +25,7 @@ export function ApptRow({ a, onOpen }: { a: Appointment; onOpen?: (a: Appointmen
     >
       <div style={{
         width: 40, height: 40, borderRadius: 10,
-        background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(84% 0.065 350))",
+        background: "#B89A8F",
         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
       }}>
         <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "var(--font-poppins)", color: "var(--mauve)" }}>{a.time}</span>
@@ -89,7 +89,7 @@ export function DayView({ appts, loading, date, onOpen, onBlockTime }: DayViewPr
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
             {appts.map(a => <ApptRow key={String(a.id)} a={a} onOpen={onOpen} />)}
           </div>
-          <div style={{ padding: "10px 14px", borderRadius: 10, background: "oklch(97% 0.03 75)", border: "1px solid oklch(90% 0.04 75)", fontSize: 12, fontFamily: "var(--font-poppins)", color: "var(--text-mid)", display: "flex", justifyContent: "space-between" }}>
+          <div style={{ padding: "10px 14px", borderRadius: 10, background: "#F6F2EC", border: "1px solid #C9C4BC", fontSize: 12, fontFamily: "var(--font-poppins)", color: "var(--text-mid)", display: "flex", justifyContent: "space-between" }}>
             <span>{appts.length} agendamento{appts.length !== 1 ? "s" : ""}</span>
             <strong style={{ color: "var(--gold)" }}>{fmt(revenue)}</strong>
           </div>

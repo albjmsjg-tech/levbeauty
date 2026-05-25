@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2, ClipboardList } from "lucide-react";
@@ -288,13 +288,13 @@ export function ComandaModal({ salonId, salonSlug, defaultDate, services, editAp
               <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontStyle: "italic" }}>Buscando cliente...</p>
             )}
             {client && (
-              <div style={{ borderRadius: 8, background: client.isBlocked ? "oklch(97% 0.03 15)" : "oklch(97% 0.03 75)", border: `1px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "oklch(90% 0.04 75)"}` }}>
+              <div style={{ borderRadius: 8, background: client.isBlocked ? "oklch(97% 0.03 15)" : "#F6F2EC", border: `1px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "#C9C4BC"}` }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 12px" }}>
                   <span style={{ fontSize: 12, color: client.isBlocked ? "oklch(48% 0.14 15)" : "oklch(38% 0.1 145)", fontFamily: "var(--font-poppins)", fontWeight: 600 }}>
                     {client.isBlocked ? "⛔ Cliente bloqueada" : "✓ Cliente cadastrada"}
                   </span>
                   <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                    <button onClick={handleVip} style={{ padding: "4px 10px", borderRadius: 8, border: `1.5px solid ${client.isVip ? "var(--gold)" : "var(--border)"}`, background: client.isVip ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", fontSize: 11, fontWeight: 600, color: client.isVip ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
+                    <button onClick={handleVip} style={{ padding: "4px 10px", borderRadius: 8, border: `1.5px solid ${client.isVip ? "var(--gold)" : "var(--border)"}`, background: client.isVip ? "#F6F2EC" : "white", cursor: "pointer", fontSize: 11, fontWeight: 600, color: client.isVip ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
                       ⭐ VIP
                     </button>
                     <button onClick={handleBlock} style={{ padding: "4px 10px", borderRadius: 8, border: `1.5px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "var(--border)"}`, background: client.isBlocked ? "oklch(97% 0.03 15)" : "white", cursor: "pointer", fontSize: 11, fontWeight: 600, color: client.isBlocked ? "oklch(48% 0.14 15)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
@@ -303,7 +303,7 @@ export function ComandaModal({ salonId, salonSlug, defaultDate, services, editAp
                   </div>
                 </div>
                 {anamneseData && (
-                  <div style={{ borderTop: `1px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "oklch(90% 0.04 75)"}`, padding: "6px 12px" }}>
+                  <div style={{ borderTop: `1px solid ${client.isBlocked ? "oklch(88% 0.05 15)" : "#C9C4BC"}`, padding: "6px 12px" }}>
                     <button
                       onClick={() => setShowAnamnese(true)}
                       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 0", border: "none", background: "transparent", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>
@@ -347,7 +347,7 @@ export function ComandaModal({ salonId, salonSlug, defaultDate, services, editAp
             {sectionLabel("LOCAL")}
             <div style={{ display: "flex", gap: 8, marginBottom: location === "domicilio" ? 10 : 0 }}>
               {(["salao", "domicilio"] as const).map(loc => (
-                <button key={loc} onClick={() => setLocation(loc)} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", fontSize: 12, fontWeight: 600, color: location === loc ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
+                <button key={loc} onClick={() => setLocation(loc)} style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "#F6F2EC" : "white", cursor: "pointer", fontSize: 12, fontWeight: 600, color: location === loc ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
                   {loc === "salao" ? "🏠 No salão" : "🚗 A domicílio"}
                 </button>
               ))}
@@ -371,7 +371,7 @@ export function ComandaModal({ salonId, salonSlug, defaultDate, services, editAp
             {sectionLabel("PAGAMENTO")}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {PAYMENT_OPTIONS.map(opt => (
-                <button key={opt.value} onClick={() => setPayment(opt.value as Appointment["payment"])} style={{ padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${payment === opt.value ? "var(--gold)" : "var(--border)"}`, background: payment === opt.value ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", fontSize: 12, fontWeight: payment === opt.value ? 700 : 500, color: payment === opt.value ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
+                <button key={opt.value} onClick={() => setPayment(opt.value as Appointment["payment"])} style={{ padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${payment === opt.value ? "var(--gold)" : "var(--border)"}`, background: payment === opt.value ? "#F6F2EC" : "white", cursor: "pointer", fontSize: 12, fontWeight: payment === opt.value ? 700 : 500, color: payment === opt.value ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
                   {opt.label}
                 </button>
               ))}
@@ -420,7 +420,7 @@ export function ComandaModal({ salonId, salonSlug, defaultDate, services, editAp
             <button
               onClick={handleSave}
               disabled={saving || (client?.isBlocked ?? false)}
-              style={{ flex: 2, padding: 10, borderRadius: 10, border: "none", background: client?.isBlocked ? "var(--border)" : "var(--gold)", cursor: client?.isBlocked ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-poppins)", boxShadow: client?.isBlocked ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.3)" }}>
+              style={{ flex: 2, padding: 10, borderRadius: 10, border: "none", background: client?.isBlocked ? "var(--border)" : "var(--gold)", cursor: client?.isBlocked ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-poppins)", boxShadow: client?.isBlocked ? "none" : "0 4px 14px rgba(184,154,143,0.2)" }}>
               {saving ? "Salvando..." : `Salvar Comanda · ${fmt(grandTotal)}`}
             </button>
           </div>

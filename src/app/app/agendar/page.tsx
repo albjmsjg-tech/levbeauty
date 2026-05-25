@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -51,7 +51,7 @@ function AgendarContent() {
   if (booked) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "90vh", padding: "40px 28px", textAlign: "center" }}>
-        <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, oklch(88% 0.055 10), var(--gold))", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20, boxShadow: "0 6px 24px oklch(72% 0.115 75 / 0.3)" }}>
+        <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#B89A8F", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20, boxShadow: "0 6px 24px rgba(184,154,143,0.2)" }}>
           <Check size={36} color="white" />
         </div>
         <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>Agendado!</h2>
@@ -80,7 +80,7 @@ function AgendarContent() {
   return (
     <div>
       {/* Header */}
-      <div style={{ background: "linear-gradient(160deg, oklch(88% 0.055 10), oklch(82% 0.065 350))", padding: "20px 20px 28px" }}>
+      <div style={{ background: "#B89A8F", padding: "20px 20px 28px" }}>
         <button onClick={() => router.back()} style={{ background: "none", border: "none", display: "flex", alignItems: "center", gap: 6, marginBottom: 16, cursor: "pointer" }}>
           <ChevronLeft size={18} color="var(--mauve)" />
           <span style={{ fontSize: 13, color: "var(--mauve)", fontFamily: "var(--font-poppins)" }}>Voltar</span>
@@ -189,7 +189,7 @@ function AgendarContent() {
                 { v: "local" as const, label: "Presencial", sub: "No dia do atendimento", icon: <DollarSign size={18} color={payment === "local" ? "var(--gold)" : "var(--text-light)"} /> },
               ].map(opt => (
                 <button key={opt.v} onClick={() => setPayment(opt.v)}
-                  style={{ padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${payment === opt.v ? "var(--gold)" : "var(--border)"}`, background: payment === opt.v ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+                  style={{ padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${payment === opt.v ? "var(--gold)" : "var(--border)"}`, background: payment === opt.v ? "#F6F2EC" : "white", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
                   {opt.icon}
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>{opt.label}</p>
@@ -201,7 +201,7 @@ function AgendarContent() {
             </div>
 
             {/* Summary */}
-            <div style={{ marginTop: 16, background: "oklch(97% 0.015 75)", borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border)" }}>
+            <div style={{ marginTop: 16, background: "#F6F2EC", borderRadius: 14, padding: "14px 16px", border: "1px solid var(--border)" }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", marginBottom: 10 }}>Resumo</p>
               {[
                 { label: service.name, val: fmt(service.price) },
@@ -220,7 +220,7 @@ function AgendarContent() {
             </div>
 
             <button onClick={() => setBooked(true)}
-              style={{ width: "100%", marginTop: 16, padding: 16, borderRadius: 14, background: "linear-gradient(135deg, var(--gold), oklch(65% 0.13 65))", border: "none", cursor: "pointer", fontFamily: "var(--font-poppins)", fontSize: 15, fontWeight: 600, color: "white", boxShadow: "0 4px 18px oklch(72% 0.115 75 / 0.4)" }}>
+              style={{ width: "100%", marginTop: 16, padding: 16, borderRadius: 14, background: "#B89A8F", border: "none", cursor: "pointer", fontFamily: "var(--font-poppins)", fontSize: 15, fontWeight: 600, color: "white", boxShadow: "0 4px 18px rgba(184,154,143,0.3)" }}>
               Confirmar Agendamento
             </button>
           </div>

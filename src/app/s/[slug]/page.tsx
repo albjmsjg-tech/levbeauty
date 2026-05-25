@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -563,7 +563,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
 
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, oklch(28% 0.055 340), oklch(20% 0.04 340))", padding: "36px 24px 32px", textAlign: "center" }}>
-        <div style={{ width: 60, height: 60, borderRadius: 18, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 16px", boxShadow: "0 4px 20px oklch(72% 0.115 75 / 0.4)" }}>💅</div>
+        <div style={{ width: 60, height: 60, borderRadius: 18, background: "#B89A8F", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 16px", boxShadow: "0 4px 20px rgba(184,154,143,0.3)" }}>💅</div>
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 28, fontWeight: 600, color: "white", margin: "0 0 6px" }}>{salon.name}</h1>
         {salon.address && (
           <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "oklch(80% 0.02 340)", margin: 0 }}>📍 {salon.address}</p>
@@ -589,7 +589,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {services.map(svc => (
                   <div key={svc.id} style={{ background: "white", borderRadius: 14, padding: "16px 18px", boxShadow: "0 2px 12px oklch(40% 0.04 340 / 0.06)", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 14 }}>
-                    <div style={{ width: 48, height: 48, background: "oklch(97% 0.03 75)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
+                    <div style={{ width: 48, height: 48, background: "#F6F2EC", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
                       {svc.emoji}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -600,7 +600,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                       <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 700, fontSize: 16, color: "var(--gold)", margin: "0 0 8px" }}>{fmt(svc.price)}</p>
                       <button
                         onClick={() => handleSelectService(svc)}
-                        style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "var(--gold)", color: "white", fontFamily: "var(--font-poppins)", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px oklch(72% 0.115 75 / 0.3)" }}>
+                        style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "var(--gold)", color: "white", fontFamily: "var(--font-poppins)", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(184,154,143,0.2)" }}>
                         Agendar
                       </button>
                     </div>
@@ -638,7 +638,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
               {(["salon", "home"] as const).map(loc => (
                 <button key={loc}
                   onClick={() => setLocation(loc)}
-                  style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 14, border: `2px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+                  style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 14, border: `2px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "#F6F2EC" : "white", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
                   <span style={{ fontSize: 32 }}>{loc === "salon" ? "🏪" : "🏠"}</span>
                   <div>
                     <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 700, fontSize: 15, color: location === loc ? "var(--gold)" : "var(--text)", margin: "0 0 2px" }}>
@@ -658,7 +658,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                 if (location === "home") setStep("cep");
                 else setStep("date");
               }}
-              style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: "pointer" }}>
+              style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px rgba(184,154,143,0.25)", cursor: "pointer" }}>
               Próximo →
             </button>
           </>
@@ -675,7 +675,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                 <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{selectedSvc.name}</p>
                 <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: "2px 0 0" }}>{selectedSvc.duration_min} min · {fmt(selectedSvc.price)}</p>
               </div>
-              <span style={{ fontSize: 12, background: "oklch(97% 0.04 75)", border: "1px solid oklch(90% 0.04 75)", color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, padding: "4px 10px", borderRadius: 8 }}>🏠 Em Casa</span>
+              <span style={{ fontSize: 12, background: "#F6F2EC", border: "1px solid #C9C4BC", color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, padding: "4px 10px", borderRadius: 8 }}>🏠 Em Casa</span>
             </div>
 
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 22, color: "var(--text)", margin: "0 0 6px" }}>Qual o seu CEP?</h2>
@@ -761,7 +761,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             {cepValid === true && (
               <button
                 onClick={() => setStep("date")}
-                style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: "pointer" }}>
+                style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px rgba(184,154,143,0.25)", cursor: "pointer" }}>
                 Escolher data →
               </button>
             )}
@@ -806,7 +806,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                         padding: "12px 6px",
                         borderRadius: 10,
                         border: `1.5px solid ${isSelected ? "var(--gold)" : isUnavailable ? "oklch(93% 0.003 0)" : "var(--border)"}`,
-                        background: isSelected ? "oklch(97% 0.04 75)" : "white",
+                        background: isSelected ? "#F6F2EC" : "white",
                         cursor: isUnavailable ? "not-allowed" : "pointer",
                         display: "flex",
                         flexDirection: "column",
@@ -866,7 +866,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                         padding: "10px 4px",
                         borderRadius: 8,
                         border: `1.5px solid ${isSelected ? "var(--gold)" : available ? "var(--border)" : "oklch(92% 0.005 0)"}`,
-                        background: isSelected ? "oklch(97% 0.04 75)" : available ? "white" : "oklch(96% 0.003 0)",
+                        background: isSelected ? "#F6F2EC" : available ? "white" : "oklch(96% 0.003 0)",
                         color: isSelected ? "var(--gold)" : available ? "var(--text)" : "oklch(78% 0.005 0)",
                         fontFamily: "var(--font-poppins)",
                         fontSize: 13,
@@ -884,7 +884,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
 
             {selectedTime && (
               <button onClick={() => setStep("info")}
-                style={{ marginTop: 24, width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: "pointer" }}>
+                style={{ marginTop: 24, width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px rgba(184,154,143,0.25)", cursor: "pointer" }}>
                 Continuar →
               </button>
             )}
@@ -900,7 +900,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text-light)", margin: "0 0 22px" }}>Para confirmar seu agendamento</p>
 
             {/* Booking summary */}
-            <div style={{ background: "oklch(97% 0.03 75)", borderRadius: 12, padding: "14px 16px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 24 }}>
+            <div style={{ background: "#F6F2EC", borderRadius: 12, padding: "14px 16px", border: "1px solid #C9C4BC", marginBottom: 24 }}>
               <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text-mid)", margin: 0, lineHeight: 1.7 }}>
                 <strong style={{ color: "var(--text)" }}>{selectedSvc.emoji} {selectedSvc.name}</strong><br />
                 {formatDateDisplay(dates.find(d => toISODate(d) === selectedDate)!)} às {selectedTime}<br />
@@ -911,7 +911,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
 
             {/* Deposit notice */}
             {salon.requires_deposit && (
-              <div style={{ background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "12px 16px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{ background: "#F6F2EC", borderRadius: 10, padding: "12px 16px", border: "1px solid #C9C4BC", marginBottom: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <span style={{ fontSize: 18, flexShrink: 0 }}>💳</span>
                 <div>
                   <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 13, color: "var(--text)", margin: "0 0 2px" }}>Sinal de 20% necessário</p>
@@ -952,7 +952,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                 fontSize: 15,
                 fontWeight: 600,
                 fontFamily: "var(--font-poppins)",
-                boxShadow: submitting || !clientName.trim() || !clientPhone.trim() ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)",
+                boxShadow: submitting || !clientName.trim() || !clientPhone.trim() ? "none" : "0 4px 14px rgba(184,154,143,0.25)",
                 cursor: submitting || !clientName.trim() || !clientPhone.trim() ? "not-allowed" : "pointer",
               }}>
               {submitting
@@ -976,7 +976,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             </p>
             <button
               onClick={resetBooking}
-              style={{ padding: "14px 32px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontFamily: "var(--font-poppins)", fontSize: 15, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)" }}>
+              style={{ padding: "14px 32px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontFamily: "var(--font-poppins)", fontSize: 15, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 14px rgba(184,154,143,0.25)" }}>
               Escolher outro horário
             </button>
           </div>
@@ -985,7 +985,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
         {/* ── STEP: done — sucesso ──────────────────── */}
         {step === "done" && !bookingFailed && (
           <div style={{ textAlign: "center", paddingTop: 16 }}>
-            <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg, oklch(88% 0.055 10), var(--gold))", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 18px oklch(72% 0.115 75 / 0.35)" }}>
+            <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#B89A8F", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 4px 18px rgba(184,154,143,0.25)" }}>
               <span style={{ color: "white", fontSize: 32 }}>✓</span>
             </div>
             <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 26, color: "var(--text)", margin: "0 0 8px" }}>
@@ -1022,14 +1022,14 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             )}
 
             {/* CTA: criar conta */}
-            <div style={{ background: "oklch(97% 0.03 75)", borderRadius: 14, padding: "20px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 24 }}>
+            <div style={{ background: "#F6F2EC", borderRadius: 14, padding: "20px", border: "1px solid #C9C4BC", marginBottom: 24 }}>
               <p style={{ fontFamily: "var(--font-playfair)", fontSize: 17, color: "var(--text)", margin: "0 0 6px" }}>Quer ver seu histórico?</p>
               <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text-light)", margin: "0 0 16px", lineHeight: 1.5 }}>
                 Crie uma conta grátis e acompanhe todos os seus agendamentos.
               </p>
               <Link
                 href="/cadastro-cliente"
-                style={{ display: "block", padding: "12px", borderRadius: 10, background: "var(--gold)", color: "white", fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, textDecoration: "none", textAlign: "center", boxShadow: "0 2px 10px oklch(72% 0.115 75 / 0.3)" }}>
+                style={{ display: "block", padding: "12px", borderRadius: 10, background: "var(--gold)", color: "white", fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, textDecoration: "none", textAlign: "center", boxShadow: "0 2px 10px rgba(184,154,143,0.2)" }}>
                 Criar conta grátis
               </Link>
             </div>

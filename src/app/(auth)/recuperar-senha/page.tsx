@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -139,7 +139,7 @@ function RecuperarSenhaInner() {
             <p style={{ fontSize: 13, color: "oklch(48% 0.12 15)", fontFamily: "var(--font-poppins)", margin: 0 }}>{resetError}</p>
           </div>
         )}
-        <button type="submit" disabled={resetLoading} style={{ padding: "14px", borderRadius: 12, border: "none", background: resetLoading ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: resetLoading ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", transition: "all 0.2s", cursor: resetLoading ? "not-allowed" : "pointer" }}>
+        <button type="submit" disabled={resetLoading} style={{ padding: "14px", borderRadius: 12, border: "none", background: resetLoading ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: resetLoading ? "none" : "0 4px 14px rgba(184,154,143,0.25)", transition: "all 0.2s", cursor: resetLoading ? "not-allowed" : "pointer" }}>
           {resetLoading ? "Salvando..." : "Salvar nova senha"}
         </button>
       </form>
@@ -166,7 +166,7 @@ function RecuperarSenhaInner() {
           <p style={{ fontSize: 13, color: "oklch(48% 0.12 15)", fontFamily: "var(--font-poppins)", margin: 0 }}>{reqError}</p>
         </div>
       )}
-      <button type="submit" disabled={reqLoading} style={{ padding: "14px", borderRadius: 12, border: "none", background: reqLoading ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: reqLoading ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", transition: "all 0.2s", cursor: reqLoading ? "not-allowed" : "pointer" }}>
+      <button type="submit" disabled={reqLoading} style={{ padding: "14px", borderRadius: 12, border: "none", background: reqLoading ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: reqLoading ? "none" : "0 4px 14px rgba(184,154,143,0.25)", transition: "all 0.2s", cursor: reqLoading ? "not-allowed" : "pointer" }}>
         {reqLoading ? "Enviando..." : "Enviar link de recuperação"}
       </button>
     </form>
@@ -177,7 +177,7 @@ export default function RecuperarSenhaPage() {
   return (
     <div style={{ width: "100%", maxWidth: 400 }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 14px" }}>🔑</div>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: "#B89A8F", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 14px" }}>🔑</div>
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--mauve-dark)" }}>Recuperar senha</h1>
         <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 6 }}>Enviaremos um link para redefinir sua senha</p>
       </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -64,7 +64,7 @@ export default function NovaSenhaPage() {
   return (
     <div style={{ width: "100%", maxWidth: 400 }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 14px" }}>🔒</div>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: "#B89A8F", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 14px" }}>🔒</div>
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--mauve-dark)" }}>Nova senha</h1>
         <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 6 }}>Digite e confirme sua nova senha</p>
       </div>
@@ -119,7 +119,7 @@ export default function NovaSenhaPage() {
                 fontSize: 15,
                 fontWeight: 600,
                 fontFamily: "var(--font-poppins)",
-                boxShadow: loading ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)",
+                boxShadow: loading ? "none" : "0 4px 14px rgba(184,154,143,0.25)",
                 transition: "all 0.2s",
                 cursor: loading ? "not-allowed" : "pointer",
               }}>

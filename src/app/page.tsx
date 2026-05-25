@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 export default function LandingPage() {
@@ -8,12 +9,11 @@ export default function LandingPage() {
       {/* Nav */}
       <nav style={{ padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>💅</div>
-          <span style={{ fontFamily: "var(--font-playfair)", fontSize: 24, fontWeight: 600, color: "var(--mauve-dark)" }}>LevBeauty</span>
+          <Image src="/logo.png" width={120} height={40} alt="LevBeauty" />
         </div>
         <div style={{ display: "flex", gap: 12 }}>
           <Link href="/login" style={{ padding: "9px 22px", borderRadius: 10, border: "1.5px solid var(--border)", background: "white", textDecoration: "none", fontSize: 14, fontWeight: 500, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>Entrar</Link>
-          <Link href="/cadastro" style={{ padding: "9px 22px", borderRadius: 10, border: "none", background: "var(--gold)", textDecoration: "none", fontSize: 14, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)" }}>Começar grátis</Link>
+          <Link href="/cadastro" style={{ padding: "9px 22px", borderRadius: 10, border: "none", background: "var(--gold)", textDecoration: "none", fontSize: 14, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px rgba(184,154,143,0.25)" }}>Começar grátis</Link>
         </div>
       </nav>
 
@@ -21,7 +21,7 @@ export default function LandingPage() {
       <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 40px", textAlign: "center" }}>
         <div style={{ maxWidth: 680 }}>
           <div style={{ display: "inline-block", padding: "6px 16px", borderRadius: 20, background: "oklch(95% 0.04 75)", border: "1px solid oklch(88% 0.06 75)", marginBottom: 24 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)", letterSpacing: "0.05em" }}>✨ SaaS para salões de beleza no Brasil</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)", letterSpacing: "0.05em" }}>O único App para atendimento a domicilio</span>
           </div>
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 56, fontWeight: 700, color: "var(--mauve-dark)", lineHeight: 1.1, marginBottom: 20 }}>
             Gerencie seu salão com
@@ -31,7 +31,7 @@ export default function LandingPage() {
             Agendamento online, precificação inteligente, gestão de insumos e financeiro completo — tudo em um só lugar.
           </p>
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/cadastro" style={{ padding: "16px 32px", borderRadius: 14, background: "linear-gradient(135deg, var(--gold), oklch(65% 0.13 65))", textDecoration: "none", fontSize: 16, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 6px 24px oklch(72% 0.115 75 / 0.4)" }}>
+            <Link href="/cadastro" style={{ padding: "16px 32px", borderRadius: 14, background: "#B89A8F", textDecoration: "none", fontSize: 16, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 6px 24px rgba(184,154,143,0.3)" }}>
               Criar conta grátis →
             </Link>
             <Link href="/assinatura" style={{ padding: "16px 32px", borderRadius: 14, border: "1.5px solid var(--border)", background: "white", textDecoration: "none", fontSize: 16, fontWeight: 500, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>

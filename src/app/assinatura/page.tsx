@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -48,8 +49,7 @@ export default function AssinaturaPage() {
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 52 }}>
           <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", marginBottom: 28 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>💅</div>
-            <span style={{ fontFamily: "var(--font-playfair)", fontSize: 22, fontWeight: 600, color: "var(--mauve-dark)" }}>LevBeauty</span>
+            <Image src="/logo.png" width={120} height={40} alt="LevBeauty" />
           </Link>
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 42, fontWeight: 700, color: "var(--mauve-dark)", margin: "0 0 14px" }}>Planos e Preços</h1>
           <p style={{ fontSize: 16, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", margin: 0 }}>
@@ -67,7 +67,7 @@ export default function AssinaturaPage() {
               border: `2px solid ${plan.recommended ? "var(--gold)" : "var(--border)"}`,
               position: "relative",
               boxShadow: plan.recommended
-                ? "0 8px 40px oklch(72% 0.115 75 / 0.18)"
+                ? "0 8px 40px rgba(184,154,143,0.12)"
                 : "0 2px 12px oklch(40% 0.04 340 / 0.06)",
             }}>
               {plan.recommended && (
@@ -132,7 +132,7 @@ export default function AssinaturaPage() {
                   fontSize: 15,
                   fontWeight: 600,
                   fontFamily: "var(--font-poppins)",
-                  boxShadow: plan.recommended ? "0 4px 16px oklch(72% 0.115 75 / 0.35)" : "none",
+                  boxShadow: plan.recommended ? "0 4px 16px rgba(184,154,143,0.25)" : "none",
                   cursor: "pointer",
                   transition: "all 0.2s",
                 }}>

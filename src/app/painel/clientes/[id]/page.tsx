@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -212,7 +212,7 @@ export default function ClienteDetailPage() {
             <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>
               {client.name}
             </h1>
-            {client.is_vip && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", background: "oklch(97% 0.04 75)", padding: "2px 10px", borderRadius: 10, border: "1px solid oklch(90% 0.05 75)" }}>VIP</span>}
+            {client.is_vip && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", background: "#F6F2EC", padding: "2px 10px", borderRadius: 10, border: "1px solid oklch(90% 0.05 75)" }}>VIP</span>}
             {client.is_blocked && <span style={{ fontSize: 11, fontWeight: 700, color: "oklch(48% 0.14 15)", background: "oklch(97% 0.03 15)", padding: "2px 10px", borderRadius: 10, border: "1px solid oklch(88% 0.05 15)" }}>Bloqueada</span>}
           </div>
           <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text-light)", margin: 0 }}>
@@ -268,7 +268,7 @@ export default function ClienteDetailPage() {
           <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
             <button
               onClick={() => setIsVip(v => !v)}
-              style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1.5px solid ${isVip ? "var(--gold)" : "var(--border)"}`, background: isVip ? "oklch(97% 0.04 75)" : "white", cursor: "pointer", fontSize: 13, fontWeight: 600, color: isVip ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
+              style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1.5px solid ${isVip ? "var(--gold)" : "var(--border)"}`, background: isVip ? "#F6F2EC" : "white", cursor: "pointer", fontSize: 13, fontWeight: 600, color: isVip ? "var(--gold)" : "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>
               <Star size={13} style={{ marginRight: 6, display: "inline" }} />{isVip ? "VIP ativo" : "Marcar como VIP"}
             </button>
             <button
@@ -287,7 +287,7 @@ export default function ClienteDetailPage() {
           <button
             onClick={handleSaveDados}
             disabled={savingDados}
-            style={{ width: "100%", padding: "11px", borderRadius: 10, border: "none", background: "var(--gold)", cursor: savingDados ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.3)" }}>
+            style={{ width: "100%", padding: "11px", borderRadius: 10, border: "none", background: "var(--gold)", cursor: savingDados ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px rgba(184,154,143,0.2)" }}>
             {savingDados ? "Salvando..." : "Salvar dados"}
           </button>
         </div>
@@ -373,7 +373,7 @@ export default function ClienteDetailPage() {
           <button
             onClick={handleSaveNotes}
             disabled={savingNotes}
-            style={{ width: "100%", padding: "11px", borderRadius: 10, border: "none", background: "var(--gold)", cursor: savingNotes ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.3)" }}>
+            style={{ width: "100%", padding: "11px", borderRadius: 10, border: "none", background: "var(--gold)", cursor: savingNotes ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px rgba(184,154,143,0.2)" }}>
             {savingNotes ? "Salvando..." : "Salvar notas"}
           </button>
         </div>

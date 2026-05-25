@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -186,7 +186,7 @@ export default function ClientesPage() {
         </div>
         <button
           onClick={() => setShowNew(true)}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.3)" }}>
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px rgba(184,154,143,0.2)" }}>
           <Plus size={15} /> Nova Cliente
         </button>
       </div>
@@ -211,7 +211,7 @@ export default function ClientesPage() {
             onClick={() => setFilter(f.key)}
             style={{
               padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${filter === f.key ? "var(--gold)" : "var(--border)"}`,
-              background: filter === f.key ? "oklch(97% 0.04 75)" : "white",
+              background: filter === f.key ? "#F6F2EC" : "white",
               cursor: "pointer", fontSize: 12, fontWeight: filter === f.key ? 600 : 400,
               color: filter === f.key ? "var(--gold)" : "var(--text-mid)",
               fontFamily: "var(--font-poppins)",
@@ -274,7 +274,7 @@ export default function ClientesPage() {
                     {c.name}
                   </span>
                   {c.is_vip && !c.is_blocked && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)", background: "oklch(97% 0.04 75)", padding: "2px 8px", borderRadius: 10, border: "1px solid oklch(90% 0.05 75)" }}>VIP</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)", background: "#F6F2EC", padding: "2px 8px", borderRadius: 10, border: "1px solid oklch(90% 0.05 75)" }}>VIP</span>
                   )}
                 </div>
                 <span style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)" }}>

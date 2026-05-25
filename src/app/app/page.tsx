@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Bell, Calendar } from "lucide-react";
@@ -119,9 +119,9 @@ export default function ClientHomePage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ background: "linear-gradient(160deg, oklch(88% 0.055 10), oklch(82% 0.065 350))", padding: "28px 20px 32px", position: "relative", overflow: "hidden" }}>
+      <div style={{ background: "#B89A8F", padding: "28px 20px 32px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "oklch(95% 0.04 75 / 0.4)" }} />
-        <div style={{ position: "absolute", bottom: -20, left: 10, width: 80, height: 80, borderRadius: "50%", background: "oklch(72% 0.115 75 / 0.2)" }} />
+        <div style={{ position: "absolute", bottom: -20, left: 10, width: 80, height: 80, borderRadius: "50%", background: "rgba(184,154,143,0.15)" }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
           <div>
             <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "oklch(40% 0.05 340)", letterSpacing: "0.05em" }}>

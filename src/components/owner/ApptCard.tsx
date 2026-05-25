@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
@@ -39,7 +39,7 @@ export function ApptCard({ appt, onUpdate, onDelete, onOpen }: Props) {
   return (
     <div style={{ marginBottom: 10 }}>
       <div onClick={handleCardClick}
-        style={{ display: "flex", gap: 14, alignItems: "stretch", cursor: "pointer", background: "white", borderRadius: 14, border: `1.5px solid ${expanded ? "var(--gold)" : "var(--border)"}`, overflow: "hidden", boxShadow: expanded ? "0 4px 18px oklch(72% 0.115 75 / 0.12)" : "0 1px 4px oklch(40% 0.04 340 / 0.05)", transition: "all 0.2s" }}>
+        style={{ display: "flex", gap: 14, alignItems: "stretch", cursor: "pointer", background: "white", borderRadius: 14, border: `1.5px solid ${expanded ? "var(--gold)" : "var(--border)"}`, overflow: "hidden", boxShadow: expanded ? "0 4px 18px rgba(184,154,143,0.08)" : "0 1px 4px oklch(40% 0.04 340 / 0.05)", transition: "all 0.2s" }}>
         <div style={{ width: 64, background: expanded ? "var(--gold)" : "oklch(98% 0.015 75)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "14px 0", flexShrink: 0, transition: "background 0.2s" }}>
           <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-poppins)", color: expanded ? "white" : "var(--text)", lineHeight: 1 }}>{appt.time}</span>
         </div>

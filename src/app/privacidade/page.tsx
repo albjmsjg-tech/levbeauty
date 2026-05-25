@@ -1,3 +1,4 @@
+﻿import Image from "next/image";
 import Link from "next/link";
 
 export const metadata = { title: "Política de Privacidade — LevBeauty" };
@@ -26,8 +27,7 @@ export default function PrivacidadePage() {
       {/* Nav */}
       <nav style={{ padding: "16px 40px", background: "white", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>💅</div>
-          <span style={{ fontFamily: "var(--font-playfair)", fontSize: 20, fontWeight: 600, color: "var(--mauve-dark)" }}>LevBeauty</span>
+          <Image src="/logo.png" width={120} height={40} alt="LevBeauty" />
         </Link>
         <Link href="/" style={{ fontSize: 13, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", textDecoration: "none" }}>← Voltar ao início</Link>
       </nav>
@@ -108,7 +108,7 @@ export default function PrivacidadePage() {
         {p("Esta política pode ser atualizada periodicamente. Em caso de alterações materiais, notificaremos os usuários por e-mail ou via aviso no painel. A versão vigente é sempre a exibida nesta página.")}
         {p("Versão vigente: 1.0 — Maio/2026.")}
 
-        <div style={{ marginTop: 48, padding: "20px 24px", background: "oklch(97% 0.025 75)", borderRadius: 12, border: "1px solid oklch(90% 0.04 75)" }}>
+        <div style={{ marginTop: 48, padding: "20px 24px", background: "#F6F2EC", borderRadius: 12, border: "1px solid #C9C4BC" }}>
           <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text-mid)", margin: 0 }}>
             Dúvidas? Entre em contato: <strong>[contato@levbeauty.com.br]</strong>
           </p>

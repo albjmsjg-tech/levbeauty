@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { signUpClient } from "./actions";
 
@@ -22,7 +23,7 @@ export default function CadastroClientePage() {
   return (
     <div style={{ width: "100%", maxWidth: 440 }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 14px" }}>💅</div>
+        <Image src="/logo.png" width={120} height={40} alt="LevBeauty" style={{ margin: "0 auto 14px", display: "block" }} />
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--mauve-dark)" }}>Criar sua conta</h1>
         <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 6 }}>Veja seu histórico de agendamentos</p>
       </div>
@@ -42,7 +43,7 @@ export default function CadastroClientePage() {
             <input type="password" name="password" placeholder="Mínimo 6 caracteres" minLength={6} required style={field} />
           </div>
 
-          <button type="submit" disabled={pending} style={{ padding: "14px", borderRadius: 12, border: "none", background: pending ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: pending ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: pending ? "not-allowed" : "pointer" }}>
+          <button type="submit" disabled={pending} style={{ padding: "14px", borderRadius: 12, border: "none", background: pending ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: pending ? "none" : "0 4px 14px rgba(184,154,143,0.25)", cursor: pending ? "not-allowed" : "pointer" }}>
             {pending ? "Criando conta..." : "Criar conta grátis"}
           </button>
           {error && <p className="text-red-500 text-sm mt-2 text-center">{error}</p>}

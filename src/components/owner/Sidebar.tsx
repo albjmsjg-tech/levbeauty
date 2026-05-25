@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -51,15 +52,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="px-5 pt-6 pb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blush/20 flex items-center justify-center flex-shrink-0">
-            <span className="font-display text-sm font-semibold text-blush">L</span>
-          </div>
-          <div>
-            <p className="font-display text-lg font-semibold text-cream leading-none">LevBeauty</p>
-            <p className="font-sans text-[10px] text-cream/40 tracking-widest font-medium">GESTÃO</p>
-          </div>
-        </div>
+        <Image src="/logo.png" width={120} height={40} alt="LevBeauty" />
       </div>
 
       {/* Nav */}

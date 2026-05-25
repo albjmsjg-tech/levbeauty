@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -166,7 +166,7 @@ export function FichaAnamnese({ client, onClose }: Props) {
       {/* LGPD */}
       {isFirstConsent && (
         <div style={{ borderTop: "1px solid var(--border)", paddingTop: 20, marginBottom: 20 }}>
-          <div style={{ background: "oklch(97% 0.025 75)", borderRadius: 10, padding: "14px 16px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 14 }}>
+          <div style={{ background: "#F6F2EC", borderRadius: 10, padding: "14px 16px", border: "1px solid #C9C4BC", marginBottom: 14 }}>
             <p style={{ fontSize: 11, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)", marginBottom: 8, letterSpacing: "0.05em" }}>
               ⚖️ LGPD — Consentimento necessário
             </p>
@@ -217,7 +217,7 @@ export function FichaAnamnese({ client, onClose }: Props) {
             cursor: (isFirstConsent && !lgpdChecked) ? "not-allowed" : "pointer",
             fontSize: 13, fontWeight: 700, color: "white",
             fontFamily: "var(--font-poppins)",
-            boxShadow: (isFirstConsent && !lgpdChecked) ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.3)",
+            boxShadow: (isFirstConsent && !lgpdChecked) ? "none" : "0 4px 14px rgba(184,154,143,0.2)",
           }}>
           {saving ? "Salvando..." : saved ? "✓ Salvo!" : "Salvar anamnese"}
         </button>

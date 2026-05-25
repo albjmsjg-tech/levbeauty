@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
@@ -370,7 +370,7 @@ export default function AgendaPage() {
           />
           <button
             onClick={openNew}
-            style={{ padding: "10px 18px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)" }}>
+            style={{ padding: "10px 18px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px rgba(184,154,143,0.25)" }}>
             <Plus size={15} color="white" /> Novo
           </button>
         </div>

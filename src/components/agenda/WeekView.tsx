@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { Appointment } from "@/types";
 import { toISODate } from "@/lib/supabase/queries";
@@ -70,7 +70,7 @@ export function WeekView({ appts, loading, weekDates, onOpen }: WeekViewProps) {
         })}
       </div>
 
-      <div style={{ marginTop: 20, padding: "10px 14px", borderRadius: 10, background: "oklch(97% 0.03 75)", border: "1px solid oklch(90% 0.04 75)", fontSize: 12, fontFamily: "var(--font-poppins)", color: "var(--text-mid)", display: "flex", justifyContent: "space-between" }}>
+      <div style={{ marginTop: 20, padding: "10px 14px", borderRadius: 10, background: "#F6F2EC", border: "1px solid #C9C4BC", fontSize: 12, fontFamily: "var(--font-poppins)", color: "var(--text-mid)", display: "flex", justifyContent: "space-between" }}>
         <span>{total} agendamento{total !== 1 ? "s" : ""} na semana</span>
         <strong style={{ color: "var(--gold)" }}>{fmt(revenue)}</strong>
       </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Clock, Copy, Check, ExternalLink } from "lucide-react";
@@ -250,7 +250,7 @@ export default function ConfiguracoesPage() {
 
           {/* URL preview */}
           {slug && (
-            <div style={{ marginTop: 10, background: "oklch(97% 0.03 75)", borderRadius: 10, padding: "10px 14px", border: "1px solid oklch(90% 0.04 75)", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ marginTop: 10, background: "#F6F2EC", borderRadius: 10, padding: "10px 14px", border: "1px solid #C9C4BC", display: "flex", alignItems: "center", gap: 10 }}>
               <code style={{ flex: 1, fontSize: 12, color: "var(--gold)", fontFamily: "monospace", wordBreak: "break-all" }}>
                 {publicUrl}
               </code>
@@ -338,7 +338,7 @@ export default function ConfiguracoesPage() {
             </div>
 
             {/* Preview */}
-            <div style={{ background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "12px 16px", border: "1px solid oklch(88% 0.06 75)" }}>
+            <div style={{ background: "#F6F2EC", borderRadius: 10, padding: "12px 16px", border: "1px solid oklch(88% 0.06 75)" }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", marginBottom: 6 }}>Exemplo de cálculo:</p>
               {[5, 10, 15].map(km => {
                 const fee = Math.max(minFee, km * 2 * pricePerKm);
@@ -407,7 +407,7 @@ export default function ConfiguracoesPage() {
         </div>
 
         {requiresDeposit && (
-          <div style={{ marginTop: 14, background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "12px 14px", border: "1px solid oklch(90% 0.04 75)", display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <div style={{ marginTop: 14, background: "#F6F2EC", borderRadius: 10, padding: "12px 14px", border: "1px solid #C9C4BC", display: "flex", gap: 10, alignItems: "flex-start" }}>
             <span style={{ fontSize: 16, flexShrink: 0 }}>💳</span>
             <p style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", lineHeight: 1.6, margin: 0 }}>
               O sinal é cobrado pela profissional via <strong>Pix</strong> ou link de pagamento. O sistema avisa a cliente que vai receber a cobrança em breve.
@@ -454,7 +454,7 @@ export default function ConfiguracoesPage() {
             </div>
           ))}
 
-          <div style={{ background: "oklch(97% 0.04 75)", borderRadius: 10, padding: "10px 14px", border: "1px solid oklch(90% 0.04 75)" }}>
+          <div style={{ background: "#F6F2EC", borderRadius: 10, padding: "10px 14px", border: "1px solid #C9C4BC" }}>
             <p style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", margin: 0 }}>
               Total deduzido do preço:{" "}
               <strong style={{ color: "var(--gold)" }}>
@@ -482,7 +482,7 @@ export default function ConfiguracoesPage() {
           fontWeight: 600,
           color: "white",
           transition: "background 0.3s",
-          boxShadow: saved || saving || !name.trim() ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.3)",
+          boxShadow: saved || saving || !name.trim() ? "none" : "0 4px 14px rgba(184,154,143,0.2)",
         }}>
         {saved ? "✓ Configurações salvas!" : saving ? "Salvando..." : "Salvar Configurações"}
       </button>

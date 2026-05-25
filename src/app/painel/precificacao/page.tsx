@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
@@ -148,7 +148,7 @@ export default function PrecificacaoPage() {
         </div>
         <button
           onClick={() => setModal("new")}
-          style={{ padding: "10px 20px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)", flexShrink: 0 }}>
+          style={{ padding: "10px 20px", borderRadius: 12, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px rgba(184,154,143,0.25)", flexShrink: 0 }}>
           <Plus size={15} color="white" /> Novo Serviço
         </button>
       </div>
@@ -171,7 +171,7 @@ export default function PrecificacaoPage() {
               const sel = svc.id === selected?.id;
               return (
                 <button key={String(svc.id)} onClick={() => setSelectedId(svc.id)}
-                  style={{ padding: "8px 16px", borderRadius: 20, border: `1.5px solid ${sel ? "var(--gold)" : "var(--border)"}`, background: sel ? "var(--gold)" : "white", color: sel ? "white" : "var(--text)", cursor: "pointer", fontSize: 13, fontWeight: sel ? 600 : 400, fontFamily: "var(--font-poppins)", display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s", boxShadow: sel ? "0 3px 10px oklch(72% 0.115 75 / 0.3)" : "none" }}>
+                  style={{ padding: "8px 16px", borderRadius: 20, border: `1.5px solid ${sel ? "var(--gold)" : "var(--border)"}`, background: sel ? "var(--gold)" : "white", color: sel ? "white" : "var(--text)", cursor: "pointer", fontSize: 13, fontWeight: sel ? 600 : 400, fontFamily: "var(--font-poppins)", display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s", boxShadow: sel ? "0 3px 10px rgba(184,154,143,0.2)" : "none" }}>
                   <span style={{ fontSize: 15 }}>{svc.emoji || "💅"}</span>
                   {svc.name}
                 </button>

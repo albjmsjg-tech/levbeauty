@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { login } from "./actions";
 
@@ -22,7 +23,7 @@ export default function LoginPage() {
   return (
     <div style={{ width: "100%", maxWidth: 400 }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 14px" }}>💅</div>
+        <Image src="/logo.png" width={96} height={96} alt="LevBeauty" style={{ margin: "0 auto 14px", display: "block" }} />
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 32, fontWeight: 600, color: "var(--mauve-dark)" }}>Bem-vinda de volta</h1>
         <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 6 }}>Entre na sua conta LevBeauty</p>
       </div>
@@ -44,7 +45,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <button type="submit" disabled={pending} style={{ padding: "14px", borderRadius: 12, border: "none", background: pending ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: pending ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", transition: "all 0.2s", cursor: pending ? "not-allowed" : "pointer" }}>
+          <button type="submit" disabled={pending} style={{ padding: "14px", borderRadius: 12, border: "none", background: pending ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: pending ? "none" : "0 4px 14px rgba(184,154,143,0.25)", transition: "all 0.2s", cursor: pending ? "not-allowed" : "pointer" }}>
             {pending ? "Entrando..." : "Entrar"}
           </button>
           {error && <p className="text-red-500 text-sm mt-2 text-center">{error}</p>}

@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveSalon, saveServices } from "./actions";
@@ -103,7 +104,7 @@ export default function OnboardingPage() {
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, oklch(97% 0.012 75), oklch(93% 0.03 10))", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 520 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(72% 0.115 75))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 14px" }}>💅</div>
+          <Image src="/logo.png" width={120} height={40} alt="LevBeauty" style={{ margin: "0 auto 14px", display: "block" }} />
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--mauve-dark)" }}>Configurar seu salão</h1>
           <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 6 }}>Apenas 3 passos para começar</p>
         </div>
@@ -146,7 +147,7 @@ export default function OnboardingPage() {
                 {svcOptions.map(s => {
                   const sel = services.includes(s);
                   return (
-                    <button key={s} onClick={() => toggle(s)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${sel ? "var(--gold)" : "var(--border)"}`, background: sel ? "oklch(97% 0.04 75)" : "white", textAlign: "left", transition: "all 0.15s", cursor: "pointer" }}>
+                    <button key={s} onClick={() => toggle(s)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${sel ? "var(--gold)" : "var(--border)"}`, background: sel ? "#F6F2EC" : "white", textAlign: "left", transition: "all 0.15s", cursor: "pointer" }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${sel ? "var(--gold)" : "var(--border)"}`, background: sel ? "var(--gold)" : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {sel && <span style={{ color: "white", fontSize: 11, fontWeight: 700 }}>✓</span>}
                       </div>
@@ -168,7 +169,7 @@ export default function OnboardingPage() {
 
               {saved ? (
                 <div>
-                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg, oklch(88% 0.055 10), var(--gold))", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 4px 18px oklch(72% 0.115 75 / 0.3)" }}>
+                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#B89A8F", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 4px 18px rgba(184,154,143,0.2)" }}>
                     <span style={{ color: "white", fontSize: 28 }}>✓</span>
                   </div>
                   <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, color: "var(--text)", marginBottom: 8 }}>Salão criado!</h3>
@@ -177,7 +178,7 @@ export default function OnboardingPage() {
                   </p>
 
                   {/* Public link */}
-                  <div style={{ background: "oklch(97% 0.03 75)", borderRadius: 12, padding: "14px 16px", border: "1px solid oklch(90% 0.04 75)", marginBottom: 24, textAlign: "left" }}>
+                  <div style={{ background: "#F6F2EC", borderRadius: 12, padding: "14px 16px", border: "1px solid #C9C4BC", marginBottom: 24, textAlign: "left" }}>
                     <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", marginBottom: 8, letterSpacing: "0.04em", margin: "0 0 8px" }}>SEU LINK PÚBLICO</p>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <code style={{ flex: 1, fontSize: 12, color: "var(--gold)", background: "white", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", fontFamily: "monospace", wordBreak: "break-all", lineHeight: 1.4 }}>
@@ -192,7 +193,7 @@ export default function OnboardingPage() {
                     </p>
                   </div>
 
-                  <button onClick={() => router.push("/painel/dashboard")} style={{ padding: "14px 32px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: "pointer" }}>
+                  <button onClick={() => router.push("/painel/dashboard")} style={{ padding: "14px 32px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: "0 4px 14px rgba(184,154,143,0.25)", cursor: "pointer" }}>
                     Ir para o painel →
                   </button>
                 </div>
@@ -206,7 +207,7 @@ export default function OnboardingPage() {
                   <button
                     onClick={handleFinish}
                     disabled={saving}
-                    style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: saving ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: saving ? "none" : "0 4px 14px oklch(72% 0.115 75 / 0.35)", cursor: saving ? "not-allowed" : "pointer" }}>
+                    style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: saving ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: saving ? "none" : "0 4px 14px rgba(184,154,143,0.25)", cursor: saving ? "not-allowed" : "pointer" }}>
                     {saving ? "Criando salão..." : "Iniciar período gratuito →"}
                   </button>
                 </>
