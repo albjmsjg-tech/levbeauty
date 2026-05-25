@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  /* ── Legacy (mantido pra compatibilidade com telas existentes) ── */
   --cream: oklch(97% 0.012 75);
   --blush: oklch(88% 0.055 10);
   --blush-mid: oklch(82% 0.075 12);
@@ -16,6 +17,18 @@
   --text-light: oklch(72% 0.025 340);
   --white: oklch(99% 0.005 75);
   --border: oklch(90% 0.02 75);
+
+  /* ── Brand tokens (Fase 1) ────────────────────────────────────── */
+  --onyx:    #0A0A0A;
+  --sand:    #ECE6DC;
+  --silver:  #C9C4BC;
+  --blush-brand: #B89A8F;
+
+  /* Semantic aliases */
+  --background: #F6F2EC;
+  --foreground:  #0A0A0A;
+  --surface:     #ECE6DC;
+  --accent:      #B89A8F;
 }
 
 *, *::before, *::after {
@@ -24,10 +37,34 @@
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html, body {
   background: var(--cream);
   color: var(--text);
   font-family: var(--font-poppins), system-ui, sans-serif;
+}
+
+/* Brand body override — componentes /ui/ herdam Inter */
+.brand-root {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+h1, h2, h3 { font-family: var(--font-display), var(--font-playfair), Georgia, serif; }
+
+.italic-accent {
+  font-family: var(--font-italic), Georgia, serif;
+  font-style: italic;
+}
+
+/* Seleção de texto */
+::selection {
+  background: #B89A8F;
+  color: #F6F2EC;
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -39,3 +76,20 @@ input[type="range"] { accent-color: var(--gold); cursor: pointer; }
 input:focus, select:focus, textarea:focus { outline: none; }
 
 button { cursor: pointer; }
+
+/* ── Animações base para componentes /ui/ ─────────────────────── */
+@keyframes lb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes lb-slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lb-spin {
+  to { transform: rotate(360deg); }
+}
+
+.lb-animate-fade-in  { animation: lb-fade-in  0.18s ease-out both; }
+.lb-animate-slide-up { animation: lb-slide-up 0.22s ease-out both; }
+.lb-animate-spin     { animation: lb-spin     0.8s  linear infinite; }
