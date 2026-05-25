@@ -201,7 +201,8 @@ export default function InsumosPage() {
         </div>
       )}
 
-      <div style={{ background: "white", borderRadius: 16, border: "1px solid var(--border)", overflow: "hidden" }}>
+      <div style={{ background: "white", borderRadius: 16, border: "1px solid var(--border)", overflow: "clip" }}>
+        <div className="overflow-x-auto">
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-poppins)" }}>
           <thead>
             <tr style={{ background: "oklch(98% 0.015 75)", borderBottom: "1px solid var(--border)" }}>
@@ -220,6 +221,7 @@ export default function InsumosPage() {
             )}
           </tbody>
         </table>
+        </div>
         {!loading && inputs.length === 0 && (
           <div style={{ textAlign: "center", padding: 40, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 13 }}>Nenhum insumo cadastrado.</div>
         )}

@@ -177,7 +177,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── KPI Cards ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {kpis.map((k, i) => {
           const Icon = k.icon;
           return (
@@ -200,7 +200,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Bottom grid ───────────────────────────────────────────── */}
-      <div className="grid gap-5" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
 
         {/* Agenda */}
         <Card className="!bg-white">

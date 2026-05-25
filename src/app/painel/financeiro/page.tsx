@@ -222,7 +222,7 @@ export default function FinanceiroPage() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         {[
           { l: "Receita Bruta", v: loading ? "..." : fmt(monthRevenue), sub: monthLabel, color: "oklch(38% 0.1 145)" },
           { l: "Custos Fixos",  v: loading ? "..." : fmt(totalFixed),   sub: "Despesas mensais", color: "oklch(50% 0.1 20)" },
