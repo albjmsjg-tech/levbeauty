@@ -6,16 +6,23 @@ import { Bell, Plus, DollarSign, Calendar, BarChart3, TrendingUp } from "lucide-
 import { createClient } from "@/lib/supabase/client";
 import { mapDbAppt, mapDbCost, greeting, getWeekDates, toISODate } from "@/lib/supabase/queries";
 import type { Appointment, FixedCost } from "@/types";
-import { statusColors } from "@/lib/data";
 import { fmt } from "@/lib/utils";
 import { ViewToggle } from "@/components/agenda/ViewToggle";
 import { WeekView } from "@/components/agenda/WeekView";
+import { Button, Card, Badge } from "@/components/ui";
 
 function localISO(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 type DashTab = "hoje" | "semana" | "mes";
+
+const STATUS_VARIANT: Record<string, "success" | "warning" | "neutral" | "info"> = {
+  "concluído":  "success",
+  "pendente":   "warning",
+  "cancelado":  "neutral",
+  "confirmado": "info",
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -109,10 +116,10 @@ export default function DashboardPage() {
     if (dashTab === "semana") loadWeekAppts();
   }, [dashTab, loadWeekAppts]);
 
-  const dayRevenue = todayAppts.filter(a => a.status === "concluído").reduce((s, a) => s + a.totalPrice, 0);
-  const agendHoje = todayAppts.filter(a => a.status !== "cancelado").length;
-  const totalFixed = costs.reduce((s, c) => s + c.val, 0);
-  const ticketMedio = monthCount > 0 ? monthRevenue / monthCount : 0;
+  const dayRevenue   = todayAppts.filter(a => a.status === "concluído").reduce((s, a) => s + a.totalPrice, 0);
+  const agendHoje    = todayAppts.filter(a => a.status !== "cancelado").length;
+  const totalFixed   = costs.reduce((s, c) => s + c.val, 0);
+  const ticketMedio  = monthCount > 0 ? monthRevenue / monthCount : 0;
 
   const topDays = useMemo(() => Object.entries(
     monthData.reduce((acc, r) => {
@@ -122,21 +129,24 @@ export default function DashboardPage() {
   ).sort(([, a], [, b]) => b - a).slice(0, 3), [monthData]);
 
   const kpis = [
-    { label: "Receita Hoje",   val: fmt(dayRevenue),   sub: `${todayAppts.filter(a => a.status === "concluído").length} concluídos`, icon: DollarSign, color: "oklch(72% 0.115 75)",  bg: "oklch(97% 0.045 75)"  },
-    { label: "Agend. Hoje",    val: String(agendHoje), sub: `${todayAppts.filter(a => a.status === "pendente").length} pendente(s)`,  icon: Calendar,   color: "oklch(60% 0.1 250)",   bg: "oklch(97% 0.03 250)"  },
-    { label: "Receita Mensal", val: fmt(monthRevenue), sub: `${monthCount} concluídos`,                                               icon: BarChart3,  color: "oklch(60% 0.1 145)",   bg: "oklch(97% 0.03 145)"  },
-    { label: "Ticket Médio",   val: fmt(ticketMedio),  sub: "Serviços concluídos",                                                    icon: TrendingUp, color: "oklch(60% 0.1 320)",   bg: "oklch(97% 0.03 320)"  },
+    { label: "Receita Hoje",   val: fmt(dayRevenue),   sub: `${todayAppts.filter(a => a.status === "concluído").length} concluídos`, icon: DollarSign },
+    { label: "Agend. Hoje",    val: String(agendHoje), sub: `${todayAppts.filter(a => a.status === "pendente").length} pendente(s)`,  icon: Calendar   },
+    { label: "Receita Mensal", val: fmt(monthRevenue), sub: `${monthCount} concluídos`,                                               icon: BarChart3   },
+    { label: "Ticket Médio",   val: fmt(ticketMedio),  sub: "Serviços concluídos",                                                    icon: TrendingUp  },
   ];
 
   if (!hasSalon && !loading) {
     return (
-      <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>💅</div>
-        <h2 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, color: "var(--text)", marginBottom: 8 }}>Configure seu salão primeiro</h2>
-        <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 24, textAlign: "center" }}>Complete o onboarding para começar a usar o painel.</p>
-        <button onClick={() => router.push("/onboarding")} style={{ padding: "12px 28px", borderRadius: 12, border: "none", background: "var(--gold)", color: "white", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-poppins)", cursor: "pointer" }}>
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
+        <h2 className="font-display text-2xl font-semibold text-onyx mb-2">
+          Configure seu salão primeiro
+        </h2>
+        <p className="font-sans text-sm text-silver mb-6">
+          Complete o onboarding para começar a usar o painel.
+        </p>
+        <Button variant="primary" onClick={() => router.push("/onboarding")}>
           Configurar agora →
-        </button>
+        </Button>
       </div>
     );
   }
@@ -144,62 +154,63 @@ export default function DashboardPage() {
   const todayLabel = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <div style={{ padding: "28px 32px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <div className="p-8 bg-cream">
+
+      {/* ── Header ────────────────────────────────────────────────── */}
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--text)" }}>
-            {greeting()}{ownerName ? `, ${ownerName}` : ""}! 🌸
+          <h1 className="font-display text-3xl font-semibold text-onyx leading-tight">
+            {greeting()}{ownerName ? `, ${ownerName}` : ""}
           </h1>
-          <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 3 }}>
+          <p className="font-sans text-sm text-silver mt-1">
             {todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1)}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button style={{ padding: "9px 18px", borderRadius: 10, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
-            <Bell size={14} color="var(--text-mid)" />
-          </button>
-          <button onClick={() => router.push("/painel/agenda")} style={{ padding: "9px 18px", borderRadius: 10, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 6, boxShadow: "0 4px 14px oklch(72% 0.115 75 / 0.35)" }}>
-            <Plus size={14} color="white" /> Novo agend.
-          </button>
+        <div className="flex gap-2.5">
+          <Button variant="secondary" size="sm">
+            <Bell size={14} />
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => router.push("/painel/agenda")}>
+            <Plus size={14} /> Novo agend.
+          </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+      {/* ── KPI Cards ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
         {kpis.map((k, i) => {
           const Icon = k.icon;
           return (
-            <div key={i} style={{ background: "white", borderRadius: 16, padding: 18, border: "1px solid var(--border)", boxShadow: "0 1px 6px oklch(40% 0.04 340 / 0.05)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 500 }}>{k.label}</p>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: k.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Icon size={15} color={k.color} />
+            <div key={i} className="bg-white rounded-xl p-4 border border-silver/20">
+              <div className="flex justify-between items-start mb-3">
+                <p className="font-sans text-xs text-silver font-medium">{k.label}</p>
+                <div className="w-8 h-8 rounded-lg bg-cream border border-silver/20 flex items-center justify-center flex-shrink-0">
+                  <Icon size={14} className="text-silver" />
                 </div>
               </div>
               {loading ? (
-                <div style={{ height: 32, borderRadius: 6, background: "var(--border)", marginBottom: 8 }} />
+                <div className="h-8 rounded-md bg-silver/20 mb-2" />
               ) : (
-                <p style={{ fontFamily: "var(--font-playfair)", fontSize: 26, fontWeight: 600, color: "var(--text)" }}>{k.val}</p>
+                <p className="font-display text-2xl font-semibold text-onyx">{k.val}</p>
               )}
-              <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 4 }}>{k.sub}</p>
+              <p className="font-sans text-xs text-silver mt-1">{k.sub}</p>
             </div>
           );
         })}
       </div>
 
-      {/* Bottom grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}>
+      {/* ── Bottom grid ───────────────────────────────────────────── */}
+      <div className="grid gap-5" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
 
-        {/* Agenda card with tabs */}
-        <div style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid var(--border)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, fontWeight: 600, color: "var(--text)" }}>Agenda</h3>
+        {/* Agenda */}
+        <Card className="!bg-white">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-display text-lg font-semibold text-onyx">Agenda</h3>
             <ViewToggle
               options={[
-                { key: "hoje", label: "Hoje" },
+                { key: "hoje",   label: "Hoje" },
                 { key: "semana", label: "Esta Semana" },
-                { key: "mes", label: "Este Mês" },
+                { key: "mes",    label: "Este Mês" },
               ]}
               value={dashTab}
               onChange={v => setDashTab(v as DashTab)}
@@ -209,40 +220,36 @@ export default function DashboardPage() {
           {/* HOJE */}
           {dashTab === "hoje" && (
             loading || loadingAppts ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {[1, 2, 3].map(i => <div key={i} style={{ height: 64, borderRadius: 12, background: "var(--border)" }} />)}
+              <div className="flex flex-col gap-2.5">
+                {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-silver/20" />)}
               </div>
             ) : todayAppts.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontSize: 13 }}>
-                Nenhum agendamento hoje.
-                <br />
-                <button onClick={() => router.push("/painel/agenda")}
-                  style={{ marginTop: 12, padding: "8px 18px", borderRadius: 9, border: "1.5px solid var(--gold)", background: "transparent", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>
+              <div className="text-center py-8">
+                <p className="font-sans text-sm text-silver mb-4">Nenhum agendamento hoje.</p>
+                <Button variant="secondary" size="sm" onClick={() => router.push("/painel/agenda")}>
                   + Agendar
-                </button>
+                </Button>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {todayAppts.map((a, i) => {
-                  const sc = statusColors[a.status] || statusColors.pendente;
-                  return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12, background: "oklch(98% 0.01 75)", border: "1px solid var(--border)" }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 10, background: "linear-gradient(135deg, oklch(88% 0.055 10), oklch(84% 0.065 350))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "var(--font-poppins)", color: "var(--mauve)" }}>{a.time}</span>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>{a.name}</p>
-                        <p style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {a.items.length > 0 ? a.items.map(i => i.serviceName).join(" + ") : "—"}
-                        </p>
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{fmt(a.totalPrice)}</p>
-                        <span style={{ fontSize: 10, fontWeight: 600, fontFamily: "var(--font-poppins)", padding: "2px 8px", borderRadius: 10, background: sc.bg, color: sc.color }}>{a.status}</span>
-                      </div>
+              <div className="flex flex-col gap-2.5">
+                {todayAppts.map((a, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-cream border border-silver/20">
+                    <span className="font-sans text-xs font-semibold text-silver w-10 text-center flex-shrink-0">
+                      {a.time}
+                    </span>
+                    <div className="w-px h-8 bg-silver/20 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-sans text-sm font-semibold text-onyx">{a.name}</p>
+                      <p className="font-sans text-xs text-silver truncate">
+                        {a.items.length > 0 ? a.items.map(it => it.serviceName).join(" + ") : "—"}
+                      </p>
                     </div>
-                  );
-                })}
+                    <div className="flex-shrink-0 text-right">
+                      <p className="font-sans text-sm font-semibold text-blush">{fmt(a.totalPrice)}</p>
+                      <Badge variant={STATUS_VARIANT[a.status] ?? "neutral"}>{a.status}</Badge>
+                    </div>
+                  </div>
+                ))}
               </div>
             )
           )}
@@ -255,75 +262,101 @@ export default function DashboardPage() {
           {/* ESTE MÊS */}
           {dashTab === "mes" && (
             loading ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {[1, 2].map(i => <div key={i} style={{ height: 48, borderRadius: 10, background: "var(--border)" }} />)}
+              <div className="flex flex-col gap-2.5">
+                {[1, 2].map(i => <div key={i} className="h-12 rounded-xl bg-silver/20" />)}
               </div>
             ) : (
               <div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-                  <div style={{ background: "oklch(97% 0.03 75)", borderRadius: 12, padding: "14px 16px", border: "1px solid oklch(90% 0.04 75)" }}>
-                    <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 4 }}>AGENDAMENTOS</p>
-                    <p style={{ fontFamily: "var(--font-playfair)", fontSize: 32, fontWeight: 700, color: "var(--text)", margin: 0 }}>{monthData.length}</p>
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="bg-cream rounded-xl p-4 border border-silver/20">
+                    <p className="font-sans text-[10px] text-silver font-medium tracking-widest uppercase mb-1.5">
+                      Agendamentos
+                    </p>
+                    <p className="font-display text-3xl font-bold text-onyx">{monthData.length}</p>
                   </div>
-                  <div style={{ background: "oklch(97% 0.03 75)", borderRadius: 12, padding: "14px 16px", border: "1px solid oklch(90% 0.04 75)" }}>
-                    <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 4 }}>RECEITA</p>
-                    <p style={{ fontFamily: "var(--font-playfair)", fontSize: 24, fontWeight: 700, color: "var(--gold)", margin: 0 }}>{fmt(monthRevenue)}</p>
+                  <div className="bg-cream rounded-xl p-4 border border-silver/20">
+                    <p className="font-sans text-[10px] text-silver font-medium tracking-widest uppercase mb-1.5">
+                      Receita
+                    </p>
+                    <p className="font-display text-2xl font-bold text-blush">{fmt(monthRevenue)}</p>
                   </div>
                 </div>
 
                 {topDays.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 8 }}>DIAS MAIS CHEIOS</p>
+                  <div className="mb-4">
+                    <p className="font-sans text-[10px] text-silver font-medium tracking-widest uppercase mb-2">
+                      Dias Mais Cheios
+                    </p>
                     {topDays.map(([date, count]) => {
                       const label = new Date(date + "T12:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" });
                       return (
-                        <div key={date} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
-                          <span style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>{label}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--gold)", fontFamily: "var(--font-poppins)" }}>{count} agend.</span>
+                        <div key={date} className="flex justify-between items-center py-1.5 border-b border-silver/20">
+                          <span className="font-sans text-xs text-silver">{label}</span>
+                          <span className="font-sans text-xs font-semibold text-blush">{count} agend.</span>
                         </div>
                       );
                     })}
                   </div>
                 )}
 
-                <button onClick={() => router.push("/painel/agenda?view=mes")}
-                  style={{ width: "100%", padding: 10, borderRadius: 10, border: "1.5px solid var(--gold)", background: "transparent", cursor: "pointer", fontFamily: "var(--font-poppins)", fontSize: 12, fontWeight: 600, color: "var(--gold)" }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => router.push("/painel/agenda?view=mes")}
+                >
                   Ver agenda completa →
-                </button>
+                </Button>
               </div>
             )
           )}
-        </div>
+        </Card>
 
-        {/* Fixed costs */}
-        <div style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid var(--border)" }}>
-          <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>Custos Fixos/Mês</h3>
-          <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginBottom: 14 }}>
-            Total: <strong style={{ color: "var(--text)" }}>{loading ? "..." : fmt(totalFixed)}</strong>
+        {/* Custos Fixos */}
+        <Card className="!bg-white">
+          <h3 className="font-display text-lg font-semibold text-onyx mb-1">Custos Fixos/Mês</h3>
+          <p className="font-sans text-xs text-silver mb-4">
+            Total:{" "}
+            <span className="font-semibold text-onyx">{loading ? "..." : fmt(totalFixed)}</span>
           </p>
+
           {loading ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[1, 2, 3].map(i => <div key={i} style={{ height: 20, borderRadius: 4, background: "var(--border)" }} />)}
+            <div className="flex flex-col gap-2">
+              {[1, 2, 3].map(i => <div key={i} className="h-5 rounded bg-silver/20" />)}
             </div>
           ) : costs.length === 0 ? (
-            <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", textAlign: "center", padding: "16px 0" }}>Nenhum custo cadastrado.</p>
+            <p className="font-sans text-sm text-silver text-center py-4">
+              Nenhum custo cadastrado.
+            </p>
           ) : (
             costs.slice(0, 5).map((c, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>{c.name}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 60, height: 5, borderRadius: 3, background: "var(--border)", overflow: "hidden" }}>
-                    <div style={{ width: `${totalFixed > 0 ? (c.val / totalFixed) * 100 : 0}%`, height: "100%", background: "linear-gradient(90deg, oklch(88% 0.055 10), var(--gold))", borderRadius: 3 }} />
+              <div key={i} className="flex justify-between items-center mb-2">
+                <span className="font-sans text-xs text-silver">{c.name}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-14 h-1 rounded-full bg-silver/20 overflow-hidden">
+                    <div
+                      className="h-full bg-blush rounded-full"
+                      style={{ width: `${totalFixed > 0 ? (c.val / totalFixed) * 100 : 0}%` }}
+                    />
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", minWidth: 60, textAlign: "right" }}>{fmt(c.val)}</span>
+                  <span className="font-sans text-xs font-semibold text-onyx min-w-[60px] text-right">
+                    {fmt(c.val)}
+                  </span>
                 </div>
               </div>
             ))
           )}
-          <button onClick={() => router.push("/painel/financeiro")} style={{ width: "100%", marginTop: 12, padding: 10, borderRadius: 10, border: "1.5px solid var(--gold)", background: "transparent", cursor: "pointer", fontFamily: "var(--font-poppins)", fontSize: 12, fontWeight: 600, color: "var(--gold)" }}>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full mt-3"
+            onClick={() => router.push("/painel/financeiro")}
+          >
             Gerenciar Custos →
-          </button>
-        </div>
+          </Button>
+        </Card>
+
       </div>
     </div>
   );
