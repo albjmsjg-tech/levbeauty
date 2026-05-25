@@ -192,10 +192,12 @@ export default function PrecificacaoPage() {
           </div>
 
           {selected && calc && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div className="flex flex-col gap-4">
+
+              <div className="flex flex-col lg:flex-row gap-4">
 
               {/* ── Card 1: Preço cobrado ── */}
-              <div style={{ background: "white", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", display: "flex", flexDirection: "column" }}>
+              <div className="w-full" style={{ background: "white", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", display: "flex", flexDirection: "column" }}>
                 <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600, marginBottom: 14 }}>PREÇO COBRADO</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, flex: 1 }}>
                   <span style={{ fontSize: 26, fontWeight: 700, color: "var(--text-light)", fontFamily: "var(--font-poppins)", lineHeight: 1 }}>R$</span>
@@ -217,7 +219,7 @@ export default function PrecificacaoPage() {
               </div>
 
               {/* ── Card 2: Onde vai cada real ── */}
-              <div style={{ background: "white", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)" }}>
+              <div className="w-full" style={{ background: "white", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)" }}>
                 <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600, marginBottom: 14 }}>ONDE VAI CADA REAL</p>
 
                 {/* Price row */}
@@ -253,8 +255,10 @@ export default function PrecificacaoPage() {
                 </div>
               </div>
 
+              </div>{/* end flex-row cards 1+2 */}
+
               {/* ── Card 3: Insumos ── */}
-              <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", gridColumn: "1 / -1" }}>
+              <div className="w-full" style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <p style={{ fontSize: 10, color: "var(--text-light)", fontFamily: "var(--font-poppins)", letterSpacing: "0.08em", fontWeight: 600 }}>INSUMOS DESTE SERVIÇO</p>
                   <Link href="/painel/insumos" style={{ fontSize: 11, color: "var(--gold)", fontFamily: "var(--font-poppins)", fontWeight: 600, textDecoration: "none" }}>
