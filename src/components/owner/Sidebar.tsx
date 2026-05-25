@@ -47,7 +47,7 @@ export function Sidebar() {
 
   return (
     <div
-      className="bg-onyx border-r border-cream/5 flex flex-col flex-shrink-0 h-screen sticky top-0"
+      className="hidden lg:flex bg-onyx border-r border-cream/5 flex-col flex-shrink-0 h-screen sticky top-0"
       style={{ width: 220 }}
     >
       {/* Logo */}
