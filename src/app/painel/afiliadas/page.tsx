@@ -142,7 +142,7 @@ export default function AfíliadasPage() {
             <ol className="space-y-2">
               {[
                 "Compartilhe seu link com profissionais da beleza",
-                "Elas se cadastram e começam o teste grátis de 14 dias",
+                "Elas fazem o cadastro e ganham teste grátis de 30 dias",
                 "Quando assinam o plano, você recebe R$25 de comissão",
               ].map((step, i) => (
                 <li key={i} className="flex items-start gap-2.5">
