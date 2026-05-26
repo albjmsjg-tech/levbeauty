@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, Calendar, DollarSign, Package, BarChart3, Settings, LogOut, Users } from "lucide-react";
+import { Home, Calendar, DollarSign, Package, BarChart3, Settings, LogOut, Users, Gift } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -14,8 +14,9 @@ const navItems = [
   { href: "/painel/clientes",     icon: Users,     label: "Clientes"      },
   { href: "/painel/precificacao", icon: DollarSign, label: "Precificação" },
   { href: "/painel/insumos",      icon: Package,   label: "Insumos"       },
-  { href: "/painel/financeiro",   icon: BarChart3, label: "Financeiro"    },
-  { href: "/painel/configuracoes",icon: Settings,  label: "Configurações" },
+  { href: "/painel/financeiro",   icon: BarChart3, label: "Financeiro"      },
+  { href: "/painel/afiliadas",    icon: Gift,      label: "Indicar e Ganhar" },
+  { href: "/painel/configuracoes",icon: Settings,  label: "Configurações"   },
 ];
 
 export function Sidebar() {

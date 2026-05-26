@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
 
 const PRICE_ID = "price_1Tb7789yiUhGSlEdjVDRu3bt";
@@ -15,19 +15,27 @@ const BENEFITS = [
   "Suporte por chat",
 ];
 
-export default function AssinarPage() {
-  const router = useRouter();
+const COUPON_LABELS: Record<string, string> = {
+  LVB50:  "50% de desconto no primeiro mês",
+  LVB100: "Primeiro mês grátis",
+};
+
+function AssinarForm() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const couponCode   = searchParams.get("coupon")?.toUpperCase() ?? null;
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
 
   const handleSubscribe = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/stripe/subscribe", {
+      const res  = await fetch("/api/stripe/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId: PRICE_ID }),
+        body: JSON.stringify({ priceId: PRICE_ID, couponCode }),
       });
       const data = await res.json();
       if (data.url) {
@@ -62,6 +70,16 @@ export default function AssinarPage() {
           <p className="font-sans text-sm text-silver mb-6">
             Seu período de teste encerrou. Assine para continuar.
           </p>
+
+          {/* Cupom banner */}
+          {couponCode && COUPON_LABELS[couponCode] && (
+            <div className="bg-blush/10 border border-blush/20 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
+              <Check size={14} className="text-blush flex-shrink-0" />
+              <p className="font-sans text-sm text-onyx font-medium">
+                Cupom <span className="text-blush">{couponCode}</span> — {COUPON_LABELS[couponCode]}
+              </p>
+            </div>
+          )}
 
           {/* Preço */}
           <div className="bg-cream rounded-xl p-5 mb-6 border border-silver/20">
@@ -111,5 +129,13 @@ export default function AssinarPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function AssinarPage() {
+  return (
+    <Suspense fallback={null}>
+      <AssinarForm />
+    </Suspense>
   );
 }

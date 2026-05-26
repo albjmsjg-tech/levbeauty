@@ -1,11 +1,18 @@
-﻿"use client";
+"use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { signUpOwner } from "./actions";
 
-export default function CadastroPage() {
+const field: React.CSSProperties = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text)", background: "white", outline: "none" };
+const label: React.CSSProperties = { fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 6 };
+
+function CadastroForm() {
+  const searchParams = useSearchParams();
+  const ref = searchParams.get("ref") ?? "";
+
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -16,9 +23,6 @@ export default function CadastroPage() {
       if (result?.error) setError(result.error);
     });
   }
-
-  const field: React.CSSProperties = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text)", background: "white", outline: "none" };
-  const label: React.CSSProperties = { fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 6 };
 
   return (
     <div style={{ width: "100%", maxWidth: 440 }}>
@@ -42,11 +46,28 @@ export default function CadastroPage() {
             <label style={label}>Senha</label>
             <input type="password" name="password" placeholder="Mínimo 6 caracteres" minLength={6} required style={field} />
           </div>
+          <div>
+            <label style={{ ...label, color: "var(--text-light)" }}>
+              Cupom <span style={{ fontWeight: 400 }}>(opcional)</span>
+            </label>
+            <input
+              name="coupon"
+              placeholder="Ex: EMBLEV6"
+              style={{ ...field, textTransform: "uppercase", letterSpacing: "0.05em" }}
+            />
+          </div>
 
-          <button type="submit" disabled={pending} style={{ padding: "14px", borderRadius: 12, border: "none", background: pending ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: pending ? "none" : "0 4px 14px rgba(184,154,143,0.25)", cursor: pending ? "not-allowed" : "pointer" }}>
+          <input type="hidden" name="ref" value={ref} />
+
+          <button
+            type="submit"
+            disabled={pending}
+            style={{ padding: "14px", borderRadius: 12, border: "none", background: pending ? "var(--border)" : "var(--gold)", color: "white", fontSize: 15, fontWeight: 600, fontFamily: "var(--font-poppins)", boxShadow: pending ? "none" : "0 4px 14px rgba(184,154,143,0.25)", cursor: pending ? "not-allowed" : "pointer" }}
+          >
             {pending ? "Criando conta..." : "Criar conta"}
           </button>
-          {error && <p className="text-red-500 text-sm mt-2 text-center">{error}</p>}
+
+          {error && <p className="text-red-500 text-sm mt-1 text-center">{error}</p>}
         </form>
 
         <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)", textAlign: "center" }}>
@@ -57,5 +78,13 @@ export default function CadastroPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CadastroPage() {
+  return (
+    <Suspense fallback={null}>
+      <CadastroForm />
+    </Suspense>
   );
 }
