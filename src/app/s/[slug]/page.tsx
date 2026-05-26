@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { bookAppointment } from "./actions";
@@ -549,8 +550,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
   if (notFound || !salon) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "linear-gradient(160deg, oklch(97% 0.012 75), oklch(93% 0.03 10))", padding: 24 }}>
-        <div style={{ fontSize: 48 }}>💅</div>
-        <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, color: "var(--mauve-dark)", textAlign: "center" }}>Salão não encontrado</h1>
+        <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 24, color: "#0A0A0A", textAlign: "center" }}>Salão não encontrado</h1>
         <p style={{ fontFamily: "var(--font-poppins)", color: "var(--text-light)", fontSize: 14, textAlign: "center" }}>O link que você acessou não existe ou foi removido.</p>
         <Link href="/" style={{ color: "var(--gold)", fontFamily: "var(--font-poppins)", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>← Voltar ao início</Link>
       </div>
@@ -562,14 +562,22 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, oklch(97% 0.012 75), oklch(93% 0.03 10))" }}>
 
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, oklch(28% 0.055 340), oklch(20% 0.04 340))", padding: "36px 24px 32px", textAlign: "center" }}>
-        <div style={{ width: 60, height: 60, borderRadius: 18, background: "#B89A8F", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 16px", boxShadow: "0 4px 20px rgba(184,154,143,0.3)" }}>💅</div>
+      <div style={{ background: "#0A0A0A", padding: "36px 24px 32px", textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", margin: "0 auto 16px" }}>
+          <Image src="/logo.png" width={80} height={80} alt="LevBeauty" style={{ objectFit: "contain" }} />
+        </div>
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 28, fontWeight: 600, color: "white", margin: "0 0 6px" }}>{salon.name}</h1>
         {salon.address && (
-          <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "oklch(80% 0.02 340)", margin: 0 }}>📍 {salon.address}</p>
+          <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "#C9C4BC", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            {salon.address}
+          </p>
         )}
         {salon.phone && (
-          <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "oklch(80% 0.02 340)", margin: "4px 0 0" }}>📞 {salon.phone}</p>
+          <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "#C9C4BC", margin: "4px 0 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            {salon.phone}
+          </p>
         )}
       </div>
 
@@ -588,19 +596,16 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {services.map(svc => (
-                  <div key={svc.id} style={{ background: "white", borderRadius: 14, padding: "16px 18px", boxShadow: "0 2px 12px oklch(40% 0.04 340 / 0.06)", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 14 }}>
-                    <div style={{ width: 48, height: 48, background: "#F6F2EC", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
-                      {svc.emoji}
-                    </div>
+                  <div key={svc.id} style={{ background: "white", borderRadius: 14, padding: "16px 18px", border: "1px solid #C9C4BC", display: "flex", alignItems: "center", gap: 14 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 15, color: "var(--text)", margin: "0 0 3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{svc.name}</p>
                       <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: 0 }}>{svc.duration_min} min</p>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 700, fontSize: 16, color: "var(--gold)", margin: "0 0 8px" }}>{fmt(svc.price)}</p>
+                      <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 700, fontSize: 16, color: "#B89A8F", margin: "0 0 8px" }}>{fmt(svc.price)}</p>
                       <button
                         onClick={() => handleSelectService(svc)}
-                        style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "var(--gold)", color: "white", fontFamily: "var(--font-poppins)", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(184,154,143,0.2)" }}>
+                        className="bg-blush text-cream hover:bg-onyx font-sans font-semibold text-sm px-4 py-2 rounded-lg cursor-pointer transition-colors border-0">
                         Agendar
                       </button>
                     </div>
@@ -610,9 +615,9 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             )}
 
             <div style={{ marginTop: 40, textAlign: "center" }}>
-              <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)" }}>
+              <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "#C9C4BC" }}>
                 Agendamento online por{" "}
-                <span style={{ color: "var(--gold)", fontWeight: 600 }}>LevBeauty</span>
+                <span style={{ fontWeight: 600 }}>LevBeauty</span>
               </p>
             </div>
           </>
@@ -624,7 +629,6 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             <button onClick={() => setStep("list")} style={backBtn}>← Voltar</button>
 
             <div style={{ background: "white", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--border)", marginBottom: 28, display: "flex", gap: 12, alignItems: "center" }}>
-              <span style={{ fontSize: 24 }}>{selectedSvc.emoji}</span>
               <div>
                 <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{selectedSvc.name}</p>
                 <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: "2px 0 0" }}>{selectedSvc.duration_min} min · {fmt(selectedSvc.price)}</p>
@@ -670,7 +674,6 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             <button onClick={() => setStep(getLocationMode(salon!) === "force-home" ? "list" : "location")} style={backBtn}>← Voltar</button>
 
             <div style={{ background: "white", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--border)", marginBottom: 28, display: "flex", gap: 12, alignItems: "center" }}>
-              <span style={{ fontSize: 24 }}>{selectedSvc.emoji}</span>
               <div style={{ flex: 1 }}>
                 <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{selectedSvc.name}</p>
                 <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: "2px 0 0" }}>{selectedSvc.duration_min} min · {fmt(selectedSvc.price)}</p>
@@ -776,7 +779,6 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
               style={backBtn}>← Voltar</button>
 
             <div style={{ background: "white", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--border)", marginBottom: 24, display: "flex", gap: 12, alignItems: "center" }}>
-              <span style={{ fontSize: 24 }}>{selectedSvc.emoji}</span>
               <div style={{ flex: 1 }}>
                 <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{selectedSvc.name}</p>
                 <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: "2px 0 0" }}>{selectedSvc.duration_min} min · {fmt(selectedSvc.price)}</p>
@@ -833,7 +835,6 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             <button onClick={() => setStep("date")} style={backBtn}>← Voltar</button>
 
             <div style={{ background: "white", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--border)", marginBottom: 24, display: "flex", gap: 12, alignItems: "center" }}>
-              <span style={{ fontSize: 24 }}>{selectedSvc.emoji}</span>
               <div>
                 <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{selectedSvc.name}</p>
                 <p style={{ fontFamily: "var(--font-poppins)", fontSize: 12, color: "var(--text-light)", margin: "2px 0 0" }}>
@@ -902,7 +903,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             {/* Booking summary */}
             <div style={{ background: "#F6F2EC", borderRadius: 12, padding: "14px 16px", border: "1px solid #C9C4BC", marginBottom: 24 }}>
               <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text-mid)", margin: 0, lineHeight: 1.7 }}>
-                <strong style={{ color: "var(--text)" }}>{selectedSvc.emoji} {selectedSvc.name}</strong><br />
+                <strong style={{ color: "var(--text)" }}>{selectedSvc.name}</strong><br />
                 {formatDateDisplay(dates.find(d => toISODate(d) === selectedDate)!)} às {selectedTime}<br />
                 <strong style={{ color: "var(--gold)" }}>{fmt(selectedSvc.price)}</strong>
                 {travelFee > 0 && <><br /><span style={{ color: "var(--text-mid)", fontSize: 12 }}>+ taxa de deslocamento {fmt(travelFee)}</span></>}
@@ -1011,7 +1012,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
             {selectedSvc && selectedDate && selectedTime && (
               <div style={{ background: "white", borderRadius: 14, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 20, textAlign: "left" }}>
                 <p style={{ fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text)", margin: 0, lineHeight: 1.8 }}>
-                  <strong>{selectedSvc.emoji} {selectedSvc.name}</strong><br />
+                  <strong>{selectedSvc.name}</strong><br />
                   <span style={{ color: "var(--text-mid)" }}>
                     {formatDateDisplay(dates.find(d => toISODate(d) === selectedDate) ?? new Date())} às {selectedTime}
                   </span><br />
