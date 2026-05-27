@@ -642,7 +642,15 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
                 <button key={loc}
                   onClick={() => setLocation(loc)}
                   style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 14, border: `2px solid ${location === loc ? "var(--gold)" : "var(--border)"}`, background: location === loc ? "#F6F2EC" : "white", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
-                  <span style={{ fontSize: 32 }}>{loc === "salon" ? "🏪" : "🏠"}</span>
+                  {loc === "salon" ? (
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <path d="M20 10c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                  ) : (
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"/><path d="M9 21V12h6v9"/>
+                    </svg>
+                  )}
                   <div>
                     <p style={{ fontFamily: "var(--font-poppins)", fontWeight: 700, fontSize: 15, color: location === loc ? "var(--gold)" : "var(--text)", margin: "0 0 2px" }}>
                       {loc === "salon" ? "No Salão" : "Em Casa"}
