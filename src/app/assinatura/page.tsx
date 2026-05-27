@@ -31,7 +31,7 @@ export default function AssinaturaPage() {
           </Link>
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 42, fontWeight: 700, color: "var(--mauve-dark)", margin: "0 0 14px" }}>Planos e Preços</h1>
           <p style={{ fontSize: 16, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", margin: 0 }}>
-            30 dias grátis. Cancele quando quiser.
+            14 dias grátis. Cancele quando quiser.
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export default function AssinaturaPage() {
               </span>
               <span style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>/mês</span>
             </div>
-            <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "6px 0 0" }}>30 dias grátis, sem cartão agora</p>
+            <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: "6px 0 0" }}>14 dias grátis, sem cartão agora</p>
           </div>
 
           {/* Divider */}
