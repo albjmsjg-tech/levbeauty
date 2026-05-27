@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 
 const premium = {
   name: "PREMIUM",
-  price: 79.9,
-  tagline: "Tudo que você precisa para gerir seu salão",
+  price: 49.9,
+  tagline: "Tudo que você precisa pra gerir seu negócio.",
   features: [
     "Valor fixo mensal, sem % por agendamento",
     "Agendamentos ilimitados",
