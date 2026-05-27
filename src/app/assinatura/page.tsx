@@ -49,7 +49,7 @@ export default function AssinaturaPage() {
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 52 }}>
           <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", marginBottom: 28 }}>
-            <Image src="/logo.png" width={120} height={40} alt="LevBeauty" />
+            <Image src="/logo.png" width={120} height={40} alt="LevBeauty" style={{ objectFit: "contain" }} />
           </Link>
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 42, fontWeight: 700, color: "var(--mauve-dark)", margin: "0 0 14px" }}>Planos e Preços</h1>
           <p style={{ fontSize: 16, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", margin: 0 }}>

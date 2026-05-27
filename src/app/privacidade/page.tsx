@@ -27,7 +27,7 @@ export default function PrivacidadePage() {
       {/* Nav */}
       <nav style={{ padding: "16px 40px", background: "white", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <Image src="/logo.png" width={120} height={40} alt="LevBeauty" />
+          <Image src="/logo.png" width={120} height={40} alt="LevBeauty" style={{ objectFit: "contain" }} />
         </Link>
         <Link href="/" style={{ fontSize: 13, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", textDecoration: "none" }}>← Voltar ao início</Link>
       </nav>

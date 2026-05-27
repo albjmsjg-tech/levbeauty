@@ -23,7 +23,7 @@ export default function LoginPage() {
   return (
     <div style={{ width: "100%", maxWidth: 400 }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <Image src="/logo.png" width={96} height={96} alt="LevBeauty" style={{ margin: "0 auto 14px", display: "block" }} />
+        <Image src="/logo.png" width={96} height={96} alt="LevBeauty" style={{ margin: "0 auto 14px", display: "block", objectFit: "contain" }} />
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 32, fontWeight: 600, color: "var(--mauve-dark)" }}>Bem-vinda de volta</h1>
         <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 6 }}>Entre na sua conta LevBeauty</p>
       </div>

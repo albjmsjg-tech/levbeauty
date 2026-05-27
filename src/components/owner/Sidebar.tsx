@@ -53,7 +53,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="px-5 pt-6 pb-5">
-        <Image src="/logo.png" width={120} height={40} alt="LevBeauty" />
+        <Image src="/logo.png" width={120} height={40} alt="LevBeauty" style={{ objectFit: "contain" }} />
       </div>
 
       {/* Nav */}

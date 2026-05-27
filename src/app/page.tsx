@@ -9,7 +9,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav style={{ padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Image src="/logo.png" width={120} height={40} alt="LevBeauty" />
+          <Image src="/logo.png" width={120} height={40} alt="LevBeauty" style={{ objectFit: "contain" }} />
         </div>
         <div style={{ display: "flex", gap: 12 }}>
           <Link href="/login" style={{ padding: "9px 22px", borderRadius: 10, border: "1.5px solid var(--border)", background: "white", textDecoration: "none", fontSize: 14, fontWeight: 500, color: "var(--text)", fontFamily: "var(--font-poppins)" }}>Entrar</Link>

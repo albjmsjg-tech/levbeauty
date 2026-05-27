@@ -104,7 +104,7 @@ export default function OnboardingPage() {
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, oklch(97% 0.012 75), oklch(93% 0.03 10))", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 520 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <Image src="/logo.png" width={120} height={40} alt="LevBeauty" style={{ margin: "0 auto 14px", display: "block" }} />
+          <Image src="/logo.png" width={120} height={40} alt="LevBeauty" style={{ margin: "0 auto 14px", display: "block", objectFit: "contain" }} />
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--mauve-dark)" }}>Configurar seu salão</h1>
           <p style={{ fontSize: 14, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 6 }}>Apenas 3 passos para começar</p>
         </div>

@@ -88,7 +88,7 @@ export function MobileNav() {
       >
         {/* Drawer header with close button */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 flex-shrink-0">
-          <Image src="/logo.png" width={100} height={34} alt="LevBeauty" />
+          <Image src="/logo.png" width={100} height={34} alt="LevBeauty" style={{ objectFit: "contain" }} />
           <button
             onClick={() => setIsOpen(false)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-cream/50 hover:text-cream hover:bg-cream/5 transition-colors"
