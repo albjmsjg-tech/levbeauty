@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fmt } from "@/lib/utils";
 import { MarkPaidButton } from "./MarkPaidButton";
 
-const ADMIN_EMAIL = "alana@minhalev.com.br";
+const ADMIN_EMAIL = "alanabzg30@gmail.com";
 
 type AffiliateRow = {
   id: string;
