@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { bookAppointment } from "./actions";
@@ -563,7 +564,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       {/* Header */}
       <div style={{ background: "#0A0A0A", padding: "36px 24px 32px", textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", margin: "0 auto 16px" }}>
-          <span style={{ fontFamily: "var(--font-playfair)", fontSize: 32, fontWeight: 700, color: "white", letterSpacing: "0.02em" }}>LevBeauty</span>
+          <Image src="/logo.png" width={80} height={80} alt="LevBeauty" style={{ objectFit: "contain" }} />
         </div>
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 28, fontWeight: 600, color: "white", margin: "0 0 6px" }}>{salon.name}</h1>
         {salon.address && (
