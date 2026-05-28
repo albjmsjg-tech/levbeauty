@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
 
-const PRICE_ID = "price_1Tb7789yiUhGSlEdjVDRu3bt";
+const PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID ?? "";
 
 const BENEFITS = [
   "Agenda online para suas clientes",
@@ -29,6 +29,10 @@ function AssinarForm() {
   const [error, setError]     = useState<string | null>(null);
 
   const handleSubscribe = async () => {
+    if (!PRICE_ID) {
+      setError("Configuração de pagamento indisponível. Entre em contato com o suporte.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

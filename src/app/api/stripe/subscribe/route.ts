@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: { owner_id: user.id },
-      ...(discounts ? { discounts } : {}),
+      ...(discounts ? { discounts } : { allow_promotion_codes: true }),
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/painel/dashboard?subscribed=1`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/assinar?canceled=1`,
     });
