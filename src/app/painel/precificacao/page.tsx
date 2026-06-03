@@ -139,7 +139,7 @@ export default function PrecificacaoPage() {
       )}
 
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22 }}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start mb-5">
         <div>
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--text)" }}>Precificação</h1>
           <p style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", marginTop: 3 }}>

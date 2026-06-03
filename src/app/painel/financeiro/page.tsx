@@ -14,14 +14,16 @@ function CostRow({ cost, onSave, onDelete }: { cost: FixedCost; onSave: (c: Fixe
 
   if (editing) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-        <input value={name} onChange={e => setName(e.target.value)} style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--gold)", fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text)", outline: "none" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>R$</span>
-          <input type="number" value={val} onChange={e => setVal(Number(e.target.value))} style={{ width: 90, padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--gold)", fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text)", outline: "none", textAlign: "right" }} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+        <input value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--gold)", fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text)", outline: "none" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
+            <span style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", flexShrink: 0 }}>R$</span>
+            <input type="number" value={val} onChange={e => setVal(Number(e.target.value))} style={{ flex: 1, minWidth: 0, padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--gold)", fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text)", outline: "none", textAlign: "right" }} />
+          </div>
+          <button onClick={() => { onSave({ ...cost, name, val }); setEditing(false); }} style={{ padding: "6px 14px", borderRadius: 7, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 11, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)", flexShrink: 0 }}>Salvar</button>
+          <button onClick={() => { setName(cost.name); setVal(cost.val); setEditing(false); }} style={{ padding: "6px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", fontSize: 11, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", flexShrink: 0 }}>✕</button>
         </div>
-        <button onClick={() => { onSave({ ...cost, name, val }); setEditing(false); }} style={{ padding: "6px 14px", borderRadius: 7, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 11, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)" }}>Salvar</button>
-        <button onClick={() => { setName(cost.name); setVal(cost.val); setEditing(false); }} style={{ padding: "6px 10px", borderRadius: 7, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", fontSize: 11, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>✕</button>
       </div>
     );
   }
@@ -211,7 +213,7 @@ export default function FinanceiroPage() {
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start mb-5">
         <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 30, fontWeight: 600, color: "var(--text)" }}>Financeiro</h1>
         <button onClick={() => setExportModal(true)}
           style={{ padding: "10px 20px", borderRadius: 12, border: "1.5px solid var(--gold)", background: "white", cursor: "pointer", fontSize: 12, fontFamily: "var(--font-poppins)", color: "var(--gold)", fontWeight: 600, display: "flex", alignItems: "center", gap: 7 }}
@@ -238,7 +240,7 @@ export default function FinanceiroPage() {
 
       {/* Costs table */}
       <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center mb-4">
           <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 20, fontWeight: 600, color: "var(--text)" }}>Custos Fixos Mensais</h3>
           <button onClick={() => setAdding(v => !v)} style={{ padding: "7px 16px", borderRadius: 9, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 12, fontFamily: "var(--font-poppins)", color: "white", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
             <Plus size={13} color="white" /> Novo Custo
@@ -246,14 +248,16 @@ export default function FinanceiroPage() {
         </div>
 
         {adding && (
-          <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 12px", borderRadius: 10, background: "oklch(98% 0.03 75)", border: "1.5px solid var(--gold)", marginBottom: 12 }}>
-            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome do custo (ex: Água)" style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--border)", fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text)", outline: "none" }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>R$</span>
-              <input type="number" value={newVal} onChange={e => setNewVal(e.target.value)} placeholder="0,00" style={{ width: 90, padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--border)", fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text)", outline: "none", textAlign: "right" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "10px 12px", borderRadius: 10, background: "oklch(98% 0.03 75)", border: "1.5px solid var(--gold)", marginBottom: 12 }}>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome do custo (ex: Água)" style={{ width: "100%", boxSizing: "border-box", padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--border)", fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text)", outline: "none" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
+                <span style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", flexShrink: 0 }}>R$</span>
+                <input type="number" value={newVal} onChange={e => setNewVal(e.target.value)} placeholder="0,00" style={{ flex: 1, minWidth: 0, padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--border)", fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text)", outline: "none", textAlign: "right" }} />
+              </div>
+              <button onClick={addCost} style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)", flexShrink: 0 }}>Adicionar</button>
+              <button onClick={() => setAdding(false)} style={{ padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", flexShrink: 0 }}>✕</button>
             </div>
-            <button onClick={addCost} style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: "var(--gold)", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "white", fontFamily: "var(--font-poppins)" }}>Adicionar</button>
-            <button onClick={() => setAdding(false)} style={{ padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--border)", background: "white", cursor: "pointer", fontSize: 12, color: "var(--text-mid)", fontFamily: "var(--font-poppins)" }}>✕</button>
           </div>
         )}
 

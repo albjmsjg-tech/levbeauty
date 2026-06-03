@@ -177,7 +177,7 @@ export default function ClientesPage() {
   return (
     <div style={{ padding: "28px 32px", maxWidth: 860, margin: "0 auto" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-6">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Users size={22} color="var(--gold)" />
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 28, fontWeight: 700, color: "var(--text)", margin: 0 }}>

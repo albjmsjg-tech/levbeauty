@@ -157,16 +157,16 @@ export default function DashboardPage() {
     <div className="p-8 bg-cream">
 
       {/* ── Header ────────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="font-display text-3xl font-semibold text-onyx leading-tight">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-6">
+        <div className="min-w-0">
+          <h1 className="font-display text-3xl font-semibold text-onyx leading-tight truncate">
             {greeting()}{ownerName ? `, ${ownerName}` : ""}
           </h1>
           <p className="font-sans text-sm text-silver mt-1">
             {todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1)}
           </p>
         </div>
-        <div className="flex gap-2.5">
+        <div className="flex gap-2.5 flex-shrink-0">
           <Button variant="secondary" size="sm">
             <Bell size={14} />
           </Button>
@@ -204,7 +204,7 @@ export default function DashboardPage() {
 
         {/* Agenda */}
         <Card className="!bg-white">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center mb-4">
             <h3 className="font-display text-lg font-semibold text-onyx">Agenda</h3>
             <ViewToggle
               options={[
