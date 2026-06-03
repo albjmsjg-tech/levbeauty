@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Copy, Check, ExternalLink } from "lucide-react";
+import { Clock, Copy, Check, ExternalLink, CreditCard, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatCEP } from "@/lib/utils";
@@ -54,6 +54,13 @@ export default function ConfiguracoesPage() {
   // Pricing config state
   const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING_CONFIG);
 
+  // Subscription state
+  const [subStatus, setSubStatus] = useState<string | null>(null);
+  const [subCustomerId, setSubCustomerId] = useState<string | null>(null);
+  const [subPeriodEnd, setSubPeriodEnd] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState("");
+
   // UI state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -92,6 +99,19 @@ export default function ConfiguracoesPage() {
         const pc = await getPricingConfig();
         setPricing(pc);
       }
+
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("status, stripe_customer_id, current_period_end")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      if (sub) {
+        setSubStatus(sub.status as string);
+        setSubCustomerId((sub.stripe_customer_id as string | null) ?? null);
+        setSubPeriodEnd((sub.current_period_end as string | null) ?? null);
+      }
+
       setLoading(false);
     }
     load();
@@ -146,6 +166,24 @@ export default function ConfiguracoesPage() {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    setPortalError("");
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json() as { url?: string; error?: string };
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setPortalError(data.error ?? "Não foi possível abrir o portal. Tente novamente.");
+        setPortalLoading(false);
+      }
+    } catch {
+      setPortalError("Erro de conexão. Tente novamente.");
+      setPortalLoading(false);
+    }
   };
 
   const copyLink = () => {
@@ -465,6 +503,114 @@ export default function ConfiguracoesPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Assinatura ───────────────────────────────── */}
+      {subStatus && (
+        <div style={{ background: "white", borderRadius: 16, padding: "20px 24px", border: "1px solid var(--border)", marginBottom: 20 }}>
+          {subStatus === "active" || subStatus === "past_due" ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F6F0EE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <CreditCard size={18} color="#B89A8F" />
+                </div>
+                <div>
+                  <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 18, fontWeight: 600, color: "#0A0A0A", margin: 0 }}>Assinatura</h3>
+                  <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: 0 }}>Gerencie seu plano e dados de cobrança</p>
+                </div>
+              </div>
+
+              <div style={{ background: "#F6F0EE", borderRadius: 12, padding: "14px 18px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <p style={{ fontFamily: "var(--font-playfair)", fontSize: 16, fontWeight: 600, color: "#0A0A0A", margin: "0 0 2px" }}>Plano Premium</p>
+                  <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "#B89A8F", fontWeight: 600, margin: 0 }}>
+                    R$ 49,90/mês
+                    <span style={{ fontWeight: 400, color: subStatus === "past_due" ? "oklch(55% 0.15 25)" : "oklch(48% 0.12 145)", marginLeft: 8 }}>
+                      · {subStatus === "past_due" ? "Pagamento pendente" : "Ativa"}
+                    </span>
+                  </p>
+                </div>
+                {subPeriodEnd && (
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontFamily: "var(--font-poppins)", fontSize: 11, color: "var(--text-light)", margin: "0 0 2px" }}>Próxima cobrança</p>
+                    <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>
+                      {new Date(subPeriodEnd).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {portalError && (
+                <p style={{ fontSize: 12, color: "oklch(50% 0.15 15)", fontFamily: "var(--font-poppins)", margin: "0 0 12px", fontWeight: 500 }}>
+                  {portalError}
+                </p>
+              )}
+
+              <button
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                style={{
+                  width: "100%",
+                  padding: "11px 0",
+                  borderRadius: 10,
+                  border: "none",
+                  background: portalLoading ? "var(--border)" : "#B89A8F",
+                  cursor: portalLoading ? "not-allowed" : "pointer",
+                  fontFamily: "var(--font-poppins)",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "white",
+                  transition: "background 0.2s",
+                  boxShadow: portalLoading ? "none" : "0 4px 14px rgba(184,154,143,0.25)",
+                }}>
+                {portalLoading ? "Abrindo portal..." : "Gerenciar assinatura"}
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F6F0EE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Sparkles size={18} color="#B89A8F" />
+                </div>
+                <div>
+                  <h3 style={{ fontFamily: "var(--font-playfair)", fontSize: 18, fontWeight: 600, color: "#0A0A0A", margin: 0 }}>Assinatura</h3>
+                  <p style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", margin: 0 }}>Gerencie seu plano e dados de cobrança</p>
+                </div>
+              </div>
+
+              <div style={{ background: "#F6F0EE", borderRadius: 12, padding: "14px 18px", marginBottom: 16 }}>
+                <p style={{ fontFamily: "var(--font-playfair)", fontSize: 16, fontWeight: 600, color: "#0A0A0A", margin: "0 0 4px" }}>Em período de teste</p>
+                <p style={{ fontFamily: "var(--font-poppins)", fontSize: 13, color: "var(--text-mid)", margin: 0 }}>
+                  Você está nos primeiros 14 dias gratuitos.{" "}
+                  {subPeriodEnd && (
+                    <span>Expira em <strong>{new Date(subPeriodEnd).toLocaleDateString("pt-BR")}</strong>.</span>
+                  )}
+                </p>
+              </div>
+
+              <a
+                href="/assinar"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "11px 0",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#B89A8F",
+                  fontFamily: "var(--font-poppins)",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "white",
+                  textAlign: "center",
+                  textDecoration: "none",
+                  boxSizing: "border-box",
+                  boxShadow: "0 4px 14px rgba(184,154,143,0.25)",
+                }}>
+                Assinar agora
+              </a>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Save */}
       <button
