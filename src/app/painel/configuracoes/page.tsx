@@ -56,7 +56,6 @@ export default function ConfiguracoesPage() {
 
   // Subscription state
   const [subStatus, setSubStatus] = useState<string | null>(null);
-  const [subCustomerId, setSubCustomerId] = useState<string | null>(null);
   const [subPeriodEnd, setSubPeriodEnd] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
@@ -100,15 +99,16 @@ export default function ConfiguracoesPage() {
         setPricing(pc);
       }
 
-      const { data: sub } = await supabase
+      const { data: sub, error: subError } = await supabase
         .from("subscriptions")
         .select("status, stripe_customer_id, current_period_end")
         .eq("owner_id", user.id)
         .maybeSingle();
 
+      if (subError) console.error("[configuracoes] subscriptions query error:", subError);
+
       if (sub) {
         setSubStatus(sub.status as string);
-        setSubCustomerId((sub.stripe_customer_id as string | null) ?? null);
         setSubPeriodEnd((sub.current_period_end as string | null) ?? null);
       }
 
