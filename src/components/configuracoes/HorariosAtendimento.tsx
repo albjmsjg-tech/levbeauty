@@ -192,31 +192,33 @@ export function HorariosAtendimento({ salonId, initialSalonIntervalMin, initialH
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
         {hours.map(h => (
           <div key={h.dayOfWeek} style={{
-            display: "flex", alignItems: "center", gap: 12,
+            display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10,
             padding: "10px 12px", borderRadius: 10,
             background: h.isOpen ? "white" : "oklch(98% 0.003 0)",
             border: `1px solid ${h.isOpen ? "var(--border)" : "oklch(92% 0.005 0)"}`,
           }}>
-            <span style={{ fontFamily: "var(--font-poppins)", fontSize: 13, fontWeight: 600, color: "var(--text)", width: 64, flexShrink: 0 }}>
-              {DAY_LABELS[h.dayOfWeek]}
-            </span>
-            <button
-              onClick={() => updateHour(h.dayOfWeek, "isOpen", !h.isOpen)}
-              style={{ width: 40, height: 22, borderRadius: 11, border: "none", background: h.isOpen ? "var(--gold)" : "var(--border)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-              <div style={{ position: "absolute", top: 2, left: h.isOpen ? 20 : 2, width: 18, height: 18, borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 3px oklch(0% 0 0 / 0.18)" }} />
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+              <span style={{ fontFamily: "var(--font-poppins)", fontSize: 13, fontWeight: 600, color: "var(--text)", width: 64 }}>
+                {DAY_LABELS[h.dayOfWeek]}
+              </span>
+              <button
+                onClick={() => updateHour(h.dayOfWeek, "isOpen", !h.isOpen)}
+                style={{ width: 40, height: 22, borderRadius: 11, border: "none", background: h.isOpen ? "var(--gold)" : "var(--border)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                <div style={{ position: "absolute", top: 2, left: h.isOpen ? 20 : 2, width: 18, height: 18, borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 3px oklch(0% 0 0 / 0.18)" }} />
+              </button>
+            </div>
             {h.isOpen ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-                <select value={h.opensAt ?? "09:00"} onChange={e => updateHour(h.dayOfWeek, "opensAt", e.target.value)} style={sel}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 0 180px", minWidth: 0 }}>
+                <select value={h.opensAt ?? "09:00"} onChange={e => updateHour(h.dayOfWeek, "opensAt", e.target.value)} style={{ ...sel, flex: 1, minWidth: 0 }}>
                   {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
-                <span style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)" }}>até</span>
-                <select value={h.closesAt ?? "18:00"} onChange={e => updateHour(h.dayOfWeek, "closesAt", e.target.value)} style={sel}>
+                <span style={{ fontSize: 12, color: "var(--text-light)", fontFamily: "var(--font-poppins)", flexShrink: 0 }}>até</span>
+                <select value={h.closesAt ?? "18:00"} onChange={e => updateHour(h.dayOfWeek, "closesAt", e.target.value)} style={{ ...sel, flex: 1, minWidth: 0 }}>
                   {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             ) : (
-              <span style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontStyle: "italic", flex: 1 }}>Fechado</span>
+              <span style={{ fontSize: 13, color: "var(--text-light)", fontFamily: "var(--font-poppins)", fontStyle: "italic", flex: "1 0 auto" }}>Fechado</span>
             )}
           </div>
         ))}

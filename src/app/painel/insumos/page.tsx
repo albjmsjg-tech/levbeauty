@@ -167,7 +167,7 @@ export default function InsumosPage() {
       {adding && (
         <div style={{ background: "oklch(98% 0.03 75)", borderRadius: 14, padding: "16px 18px", border: "1.5px solid var(--gold)", marginBottom: 16 }}>
           <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-poppins)", letterSpacing: "0.04em", marginBottom: 10 }}>NOVO INSUMO</p>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 mb-3">
             <div>
               <label style={{ fontSize: 11, color: "var(--text-light)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 4 }}>Nome</label>
               <input value={newInp.name} onChange={e => setN("name", e.target.value)} placeholder="Ex: Builder Gel" style={inputStyle} />
@@ -201,9 +201,9 @@ export default function InsumosPage() {
         </div>
       )}
 
-      <div style={{ background: "white", borderRadius: 16, border: "1px solid var(--border)", overflow: "clip" }}>
+      <div style={{ background: "white", borderRadius: 16, border: "1px solid var(--border)", overflow: "hidden" }}>
         <div className="overflow-x-auto">
-        <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-poppins)" }}>
+        <table style={{ minWidth: "100%", borderCollapse: "collapse", fontFamily: "var(--font-poppins)" }}>
           <thead>
             <tr style={{ background: "oklch(98% 0.015 75)", borderBottom: "1px solid var(--border)" }}>
               {["Produto", "Qtd/Pacote", "Custo Pacote", "Uso/Aplicação", "Custo/Aplicação", "Ações"].map(h => (
