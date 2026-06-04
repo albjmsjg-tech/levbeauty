@@ -52,7 +52,7 @@ function CadastroForm() {
             </label>
             <input
               name="coupon"
-              placeholder="Ex: EMBLEV6"
+              placeholder="Ex: SEUCUPOM"
               style={{ ...field, textTransform: "uppercase", letterSpacing: "0.05em" }}
             />
           </div>
