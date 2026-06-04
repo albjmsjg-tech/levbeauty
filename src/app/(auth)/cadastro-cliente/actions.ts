@@ -1,27 +1,42 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 export async function signUpClient(formData: FormData) {
-  const email = formData.get('email') as string
+  const email    = formData.get('email') as string
   const password = formData.get('password') as string
-  const name = formData.get('name') as string
+  const name     = formData.get('name') as string
+  const phone    = ((formData.get('phone') as string) ?? '').replace(/\D/g, '')
 
-  if (!email || !password) {
+  if (!email || !password || !phone) {
     return { error: 'Preencha todos os campos.' }
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signUp({
+  const { data: authData, error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { full_name: name } },
   })
 
-  if (error) {
-    return { error: error.message }
+  if (error) return { error: error.message }
+
+  // Auto-link: vincula clients com mesmo telefone ao novo profile (falha silenciosa)
+  const newUserId = authData.user?.id
+  if (newUserId && phone) {
+    try {
+      const admin = createAdminClient()
+      await admin
+        .from('clients')
+        .update({ profile_id: newUserId })
+        .eq('phone', phone)
+        .is('profile_id', null)
+    } catch {
+      // Signup já concluído — não bloqueia o fluxo
+    }
   }
 
   revalidatePath('/', 'layout')

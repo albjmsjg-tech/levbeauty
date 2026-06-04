@@ -42,7 +42,11 @@ type Row = {
 };
 
 function ApptCard({ appt, onCancel }: { appt: AgendaItem; onCancel?: (id: string) => void }) {
-  const sc = statusColors[appt.status] ?? statusColors.pendente;
+  const isPendente = appt.status === "pendente";
+  const sc = isPendente
+    ? { bg: "#ECE6DC", color: "#0A0A0A" }
+    : (statusColors[appt.status] ?? statusColors.pendente);
+  const badgeLabel = isPendente ? "Aguardando confirmação" : appt.status;
   return (
     <div style={{ background: "white", borderRadius: 16, padding: "14px 16px", marginBottom: 10, border: "1px solid var(--border)", boxShadow: "0 1px 8px oklch(40% 0.05 340 / 0.05)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -54,7 +58,7 @@ function ApptCard({ appt, onCancel }: { appt: AgendaItem; onCancel?: (id: string
           </p>
         </div>
         <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "var(--font-poppins)", padding: "4px 10px", borderRadius: 20, background: sc.bg, color: sc.color, flexShrink: 0 }}>
-          {appt.status}
+          {badgeLabel}
         </span>
       </div>
       <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -82,18 +86,28 @@ export default function ClientAgendaPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
+      // Busca client_ids vinculados ao profile (cobre agendamentos feitos sem login)
+      const { data: linkedClients } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("profile_id", user.id);
+      const clientIds = (linkedClients ?? []).map(r => r.id as string);
+      const ownerFilter = clientIds.length > 0
+        ? `profile_id.eq.${user.id},client_id.in.(${clientIds.join(",")})`
+        : `profile_id.eq.${user.id}`;
+
       const [{ data: upcomingData }, { data: historyData }] = await Promise.all([
         supabase
           .from("appointments")
           .select("id, appt_date, appt_time, status, total_price, appointment_items(service_name, position)")
-          .eq("profile_id", user.id)
+          .or(ownerFilter)
           .in("status", ["pendente", "confirmado"])
           .order("appt_date", { ascending: true })
           .order("appt_time", { ascending: true }),
         supabase
           .from("appointments")
           .select("id, appt_date, appt_time, status, total_price, appointment_items(service_name, position)")
-          .eq("profile_id", user.id)
+          .or(ownerFilter)
           .eq("status", "concluido")
           .order("appt_date", { ascending: false })
           .order("appt_time", { ascending: false })

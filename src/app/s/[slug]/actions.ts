@@ -21,6 +21,7 @@ interface BookParams {
   salonName: string;
   salonPhone?: string | null;
   salonAddress?: string | null;
+  requiresDeposit: boolean;
 }
 
 type BookResult =
@@ -103,7 +104,7 @@ export async function bookAppointment(params: BookParams): Promise<BookResult> {
       client_phone: phone || null,
       appt_date: apptDate,
       appt_time: apptTime,
-      status: 'pendente',
+      status: requiresDeposit ? 'pendente' : 'confirmado',
       payment_method: paymentMethod,
       location,
       client_cep: clientCep || null,

@@ -1,13 +1,22 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { signUpClient } from "./actions";
 
+function phoneMask(v: string): string {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  const split = d.length === 11 ? 7 : 6;
+  return `(${d.slice(0, 2)}) ${d.slice(2, split)}-${d.slice(split)}`;
+}
+
 export default function CadastroClientePage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [phone, setPhone] = useState("");
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -17,7 +26,7 @@ export default function CadastroClientePage() {
     });
   }
 
-  const field: React.CSSProperties = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontFamily: "var(--font-poppins)", fontSize: 14, color: "var(--text)", background: "white", outline: "none" };
+  const field: React.CSSProperties = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid var(--border)", fontFamily: "var(--font-poppins)", fontSize: 16, color: "var(--text)", background: "white", outline: "none" };
   const label: React.CSSProperties = { fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "var(--font-poppins)", display: "block", marginBottom: 6 };
 
   return (
@@ -33,6 +42,19 @@ export default function CadastroClientePage() {
           <div>
             <label style={label}>Seu nome</label>
             <input name="name" placeholder="Fernanda Silva" required style={field} />
+          </div>
+          <div>
+            <label style={label}>Telefone / WhatsApp</label>
+            <input
+              name="phone"
+              value={phone}
+              onChange={e => setPhone(phoneMask(e.target.value))}
+              placeholder="(11) 99999-0000"
+              type="tel"
+              inputMode="numeric"
+              required
+              style={field}
+            />
           </div>
           <div>
             <label style={label}>E-mail</label>

@@ -450,6 +450,7 @@ export default function SalonPage({ params }: { params: { slug: string } }) {
       salonName: salon.name,
       salonPhone: salon.phone,
       salonAddress: salon.address,
+      requiresDeposit: salon.requires_deposit,
     });
     if (!result.ok) {
       setBookingFailed(true);

@@ -155,6 +155,15 @@ export default function ClientPerfilPage() {
     if (error) {
       setSaveError("Não foi possível salvar. Tente novamente.");
     } else {
+      // Fire-and-forget: vincula agendamentos por telefone (falha silenciosa)
+      const cleanPhone = phone.replace(/\D/g, "");
+      if (cleanPhone) {
+        fetch("/api/link-client", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: cleanPhone }),
+        }).catch(() => {});
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 3500);
     }
