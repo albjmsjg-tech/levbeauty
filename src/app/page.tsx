@@ -21,11 +21,11 @@ export default function LandingPage() {
       <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 40px", textAlign: "center" }}>
         <div style={{ maxWidth: 680 }}>
           <div style={{ display: "inline-block", padding: "6px 16px", borderRadius: 20, background: "oklch(95% 0.04 75)", border: "1px solid oklch(88% 0.06 75)", marginBottom: 24 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)", letterSpacing: "0.05em" }}>O único App para atendimento a domicilio</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gold)", fontFamily: "var(--font-poppins)", letterSpacing: "0.05em" }}>Gerencie seu negócio de onde estiver</span>
           </div>
           <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 56, fontWeight: 700, color: "var(--mauve-dark)", lineHeight: 1.1, marginBottom: 20 }}>
-            Gerencie seu salão com
-            <span style={{ color: "var(--gold)", display: "block", fontStyle: "italic" }}>elegância e precisão</span>
+            O único App para profissionais
+            <span style={{ color: "var(--gold)", display: "block", fontStyle: "italic" }}>da beleza que atendem a domicílio</span>
           </h1>
           <p style={{ fontSize: 18, color: "var(--text-mid)", fontFamily: "var(--font-poppins)", lineHeight: 1.7, marginBottom: 36, maxWidth: 540, margin: "0 auto 36px" }}>
             Agendamento online, precificação inteligente, gestão de insumos e financeiro completo — tudo em um só lugar.
