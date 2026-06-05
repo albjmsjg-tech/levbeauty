@@ -44,8 +44,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && (pathname === "/login" || pathname === "/cadastro")) {
-    return NextResponse.redirect(new URL("/painel/dashboard", request.url));
+  if (user) {
+    const role = (user.app_metadata?.role as string | undefined) ?? 'client';
+    const home  = role === 'owner' ? '/painel/dashboard' : '/app';
+
+    // Redireciona usuário logado que acessa páginas de auth
+    const authPages = ['/login', '/cadastro', '/cadastro-cliente'];
+    if (authPages.includes(pathname)) {
+      return NextResponse.redirect(new URL(home, request.url));
+    }
+
+    // Gating: cliente tentando acessar área da proprietária
+    if (pathname.startsWith('/painel') && role === 'client') {
+      return NextResponse.redirect(new URL('/app', request.url));
+    }
+
+    // Gating: proprietária tentando acessar área da cliente
+    if (pathname.startsWith('/app') && role === 'owner') {
+      return NextResponse.redirect(new URL('/painel/dashboard', request.url));
+    }
   }
 
   return supabaseResponse;

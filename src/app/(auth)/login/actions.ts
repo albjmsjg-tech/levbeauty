@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -13,12 +14,33 @@ export async function login(formData: FormData) {
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
     return { error: 'Email ou senha incorretos.' }
   }
 
+  // Lê role do app_metadata (vem no response, sem query DB)
+  let role = signInData.user?.app_metadata?.role as string | undefined
+
+  // Fallback para usuários legados sem app_metadata.role
+  if (!role) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', signInData.user.id)
+      .single()
+    role = (profile?.role as string | undefined) ?? 'client'
+
+    // Backfill app_metadata para que próximos logins não precisem da query
+    try {
+      const admin = createAdminClient()
+      await admin.auth.admin.updateUserById(signInData.user.id, {
+        app_metadata: { role },
+      })
+    } catch { /* non-blocking */ }
+  }
+
   revalidatePath('/', 'layout')
-  redirect('/painel/dashboard')
+  redirect(role === 'owner' ? '/painel/dashboard' : '/app')
 }

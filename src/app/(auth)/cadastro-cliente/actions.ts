@@ -24,8 +24,19 @@ export async function signUpClient(formData: FormData) {
 
   if (error) return { error: error.message }
 
-  // Auto-link: vincula clients com mesmo telefone ao novo profile (falha silenciosa)
   const newUserId = authData.user?.id
+
+  // Persiste role='client' no app_metadata para que middleware leia do JWT sem query DB
+  if (newUserId) {
+    try {
+      const admin = createAdminClient()
+      await admin.auth.admin.updateUserById(newUserId, {
+        app_metadata: { role: 'client' },
+      })
+    } catch { /* non-blocking — signup já concluído */ }
+  }
+
+  // Auto-link: vincula clients com mesmo telefone ao novo profile (falha silenciosa)
   if (newUserId && phone) {
     try {
       const admin = createAdminClient()
