@@ -1,5 +1,6 @@
 'use server';
 
+import { waitUntil } from "@vercel/functions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { sendWhatsApp } from "@/lib/zapi";
@@ -161,8 +162,8 @@ export async function bookAppointment(params: BookParams): Promise<BookResult> {
       `Serviço: ${serviceName}\n` +
       `📅 ${dateLabel} às ${apptTime}`;
 
-    if (phone) sendWhatsApp(phone, clientMsg, instanceId, token).catch(console.error);
-    if (salonPhone) sendWhatsApp(salonPhone, proMsg, instanceId, token).catch(console.error);
+    if (phone) waitUntil(sendWhatsApp(phone, clientMsg, instanceId, token).catch(console.error));
+    if (salonPhone) waitUntil(sendWhatsApp(salonPhone, proMsg, instanceId, token).catch(console.error));
   }
 
   return { ok: true, appointmentId: appt.id as string };
