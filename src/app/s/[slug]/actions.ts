@@ -40,7 +40,7 @@ export async function bookAppointment(params: BookParams): Promise<BookResult> {
   const {
     salonId, serviceId, serviceName, apptDate, apptTime, durationMin,
     clientName, clientPhone, paymentMethod, price, location, clientCep, travelFee,
-    salonName, salonPhone, salonAddress,
+    salonName, salonPhone, salonAddress, requiresDeposit,
   } = params;
 
   const admin = createAdminClient();
