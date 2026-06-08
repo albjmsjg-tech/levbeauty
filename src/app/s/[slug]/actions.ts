@@ -150,17 +150,28 @@ export async function bookAppointment(params: BookParams): Promise<BookResult> {
   if (instanceId && token) {
     const dateLabel = formatApptDate(apptDate);
     const loc = salonAddress || salonName;
-    const clientMsg =
-      `Olá ${name}! 🎉 Seu agendamento foi confirmado pelo LevBeauty!\n` +
-      `💅 ${serviceName} com ${salonName}\n` +
-      `📅 ${dateLabel} às ${apptTime}\n` +
-      `📍 ${loc}\n` +
-      `Qualquer dúvida entre em contato: ${salonPhone || '—'}`;
-    const proMsg =
-      `🔔 Novo agendamento via LevBeauty!\n` +
-      `Cliente: ${name} — ${phone}\n` +
-      `Serviço: ${serviceName}\n` +
-      `📅 ${dateLabel} às ${apptTime}`;
+    const clientMsg = requiresDeposit
+      ? `Olá ${name}! Seu agendamento foi recebido ✨\n` +
+        `💅 ${serviceName} com ${salonName}\n` +
+        `📅 ${dateLabel} às ${apptTime}\n` +
+        `📍 ${loc}\n\n` +
+        `Para confirmar, a profissional vai te enviar o link de pagamento do sinal aqui no WhatsApp. Assim que você pagar, o agendamento fica confirmado 💛\n\n` +
+        `Qualquer dúvida entre em contato: ${salonPhone || '—'}`
+      : `Olá ${name}! 🎉 Seu agendamento foi confirmado pelo LevBeauty!\n` +
+        `💅 ${serviceName} com ${salonName}\n` +
+        `📅 ${dateLabel} às ${apptTime}\n` +
+        `📍 ${loc}\n` +
+        `Qualquer dúvida entre em contato: ${salonPhone || '—'}`;
+    const proMsg = requiresDeposit
+      ? `💰 Novo agendamento pendente de sinal via LevBeauty!\n` +
+        `Cliente: ${name} — ${phone}\n` +
+        `Serviço: ${serviceName}\n` +
+        `📅 ${dateLabel} às ${apptTime}\n\n` +
+        `⚠️ Envie o link de pagamento do sinal para confirmar.`
+      : `🔔 Novo agendamento via LevBeauty!\n` +
+        `Cliente: ${name} — ${phone}\n` +
+        `Serviço: ${serviceName}\n` +
+        `📅 ${dateLabel} às ${apptTime}`;
 
     if (phone) waitUntil(sendWhatsApp(phone, clientMsg, instanceId, token).catch(console.error));
     if (salonPhone) waitUntil(sendWhatsApp(salonPhone, proMsg, instanceId, token).catch(console.error));
